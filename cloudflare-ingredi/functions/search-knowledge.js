@@ -20,10 +20,17 @@ export async function onRequest(context) {
   const TOKEN = env.AIRTABLE_TOKEN;
   const BASE_ID = env.AIRTABLE_BASE_ID;
 
-  if (!TOKEN || !BASE_ID) {
+   if (!TOKEN || !BASE_ID) {
     return new Response(JSON.stringify({
       error: "config_missing",
-      message: "Environment variables not set"
+      message: "Environment variables not set",
+      debug: {
+        hasToken: !!TOKEN,
+        hasBaseId: !!BASE_ID,
+        tokenLength: TOKEN ? TOKEN.length : 0,
+        baseIdValue: BASE_ID || "EMPTY",
+        allEnvKeys: env ? Object.keys(env) : "env_is_undefined"
+      }
     }), { status: 500, headers });
   }
 
