@@ -61,6 +61,17 @@ export async function onRequest(context) {
     }
 
     const data = await response.json();
+    
+        // ─── 임시 디버그: raw 데이터 확인 ───
+    if (query === "DEBUG") {
+      return new Response(JSON.stringify({
+        recordCount: (data.records || []).length,
+        firstRecord: (data.records || [])[0] || null,
+        allFieldNames: (data.records || [])[0] ? Object.keys((data.records || [])[0].fields || {}) : []
+      }), { status: 200, headers });
+    }
+    // ─── 임시 디버그 끝 ───
+    
     const lowerQuery = query.toLowerCase();
 
     const fieldKeyword = "\uD0A4\uC6CC\uB4DC";
