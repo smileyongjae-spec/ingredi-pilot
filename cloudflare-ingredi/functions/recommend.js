@@ -1,12 +1,10 @@
-// Cloudflare Pages Function: Product recommendation with V-Score (v3)
+// Cloudflare Pages Function: Product recommendation with V-Score (v4)
 // File path: functions/recommend.js
 // URL: /recommend?profile=<profile_id>&query=<optional>
 //
-// v3 changes:
-// - Aligned with Oliver's actual Airtable column names (product table)
-// - Case A: EPA_DHA_합계_mg is already daily total (no multiplication)
-// - Tier-based filtering integrated (Fail/조사중 excluded)
-// - Profiles: premium_seeker, budget_seeker, balanced, pregnancy, senior, vegan, kid
+// v4 changes:
+// - Loose column name matching (handles whitespace/special chars)
+// - Coupang link extraction works regardless of exact column name
 
 export async function onRequest(context) {
   const headers = {
@@ -35,6 +33,7 @@ export async function onRequest(context) {
   const profileId = (url.searchParams.get("profile") || "balanced").trim();
   const query = (url.searchParams.get("query") || "").trim();
   const includeFailed = url.searchParams.get("includeFailed") === "true";
+  const debug = url.searchParams.get("debug") === "true";
 
   // ─── PROFILE → WEIGHTS MAPPING ───────────────────
   const PROFILES = {
@@ -117,34 +116,48 @@ export async function onRequest(context) {
     }), { status: 200, headers });
   }
 
-  // Field name constants — Oliver's actual column names
-  const F = {
-    id: "product_id",
-    name: "\uC81C\uD488\uBA85",
-    image: "\uC774\uBBF8\uC9C0URL",
-    epaDha: "EPA_DHA_\uD569\uACC4_mg",     // 케이스 A: 이미 1일 합계
-    epaMg: "EPA_mg",
-    dhaMg: "DHA_mg",
-    dailyCapsules: "1\uC77C_\uCEA1\uC290\uC218",
-    purity: "\uC21C\uB3C4",
-    form: "\uC81C\uD615",
-    formGrade: "\uC81C\uD615\uB4F1\uAE09",
-    supplier: "\uC6D0\uB8CC\uC0AC",
-    certs: "\uC778\uC99D",
-    certCount: "\uC778\uC99D\uAC2F\uC218",
-    listPrice: "\uC815\uAC00_\uC6D0",
-    salePrice: "\uD560\uC778\uAC00_\uC6D0",
-    capsulesPerBottle: "1\uD1B5_\uCEA1\uC290\uC218",
-    bottles: "\uD1B5_\uAC1C\uC218",
-    dailyCost: "1\uC77C\uBE44\uC6A9_\uC6D0",
-    pricePer100mg: "EPA_DHA_100mg\uB2F9_\uC6D0",
-    reviews: "\uB9AC\uBDF0\uC218",
-    tier: "Tier\uB4F1\uAE09",
-    passFail: "\uD568\uB7C9_Pass_Fail",
-    coupangLink: "\uCFE0\uD314_\uD30C\uD2B8\uB108\uC2A4_\uB9C1\uD06C",
-    updatedAt: "\uC5C5\uB370\uC774\uD2B8\uC77C",
-    notes: "\uBE44\uACE0"
-  };
+  // ─── LOOSE FIELD VALUE GETTER ─────────────────────
+  // 컬럼명에 공백/특수문자/언더스코어 차이가 있어도 잘 찾음
+  function normalizeKey(s) {
+    return String(s).replace(/[\s_\-\(\)\[\]]/g, "").toLowerCase();
+  }
+
+  function getField(fields, ...candidates) {
+    if (!fields) return null;
+    
+    // 1. 정확 매칭 시도
+    for (const cand of candidates) {
+      if (fields[cand] !== undefined && fields[cand] !== null && fields[cand] !== "") {
+        return fields[cand];
+      }
+    }
+    
+    // 2. 정규화 매칭 (공백/언더스코어 무시)
+    const normalizedCands = candidates.map(normalizeKey);
+    const allKeys = Object.keys(fields);
+    for (const key of allKeys) {
+      const normKey = normalizeKey(key);
+      if (normalizedCands.indexOf(normKey) !== -1) {
+        if (fields[key] !== undefined && fields[key] !== null && fields[key] !== "") {
+          return fields[key];
+        }
+      }
+    }
+    
+    // 3. 부분 매칭 (키 포함 관계)
+    for (const key of allKeys) {
+      const normKey = normalizeKey(key);
+      for (const nc of normalizedCands) {
+        if (normKey.indexOf(nc) !== -1 || nc.indexOf(normKey) !== -1) {
+          if (fields[key] !== undefined && fields[key] !== null && fields[key] !== "") {
+            return fields[key];
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
 
   // ─── SCORING FUNCTIONS ──────────────────────────
   function scoreDose(dailyMg) {
@@ -163,42 +176,39 @@ export async function onRequest(context) {
     if (f.indexOf("phospholipid") !== -1 || f.indexOf("\uC778\uC9C0\uC9C8") !== -1) return 95;
     if (f === "tg" || f.indexOf("triglyceride") !== -1) return 90;
     if (f === "ee" || f.indexOf("ethyl") !== -1) return 60;
-    if (f.indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 30; // 미기재
+    if (f.indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 30;
     return 50;
   }
 
   function scoreSource(supplier) {
     if (!supplier) return 40;
     const s = String(supplier).toLowerCase();
-    if (s.indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 40; // 미기재
+    if (s.indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 40;
     
-    // 글로벌 신뢰 원료사
-    const trustedSuppliers = ["dsm", "basf", "epax", "croda", "gc rieber", "solutex", "kd\uD30C\uB9C8", "kd\u00A0\uD30C\uB9C8"];
+    const trustedSuppliers = ["dsm", "basf", "epax", "croda", "gc rieber", "solutex", "kd\uD30C\uB9C8"];
     for (let i = 0; i < trustedSuppliers.length; i++) {
       if (s.indexOf(trustedSuppliers[i]) !== -1) return 90;
     }
     
-    // 알려진 산지 (국가명만 표시된 경우)
     const knownRegions = ["\uB178\uB974\uC6E8\uC774", "\uD398\uB8E8", "\uC2A4\uD398\uC778", "\uCEAC\uB098\uB2E4", "\uC54C\uB798\uC2A4\uCE74"];
     for (let i = 0; i < knownRegions.length; i++) {
       if (s.indexOf(knownRegions[i]) !== -1) return 70;
     }
     
-    return 60; // 기타 (회사명은 있지만 비표준)
+    return 60;
   }
 
-  function scoreCert(certs, certCount) {
+  function scoreCert(certs) {
     if (!certs || String(certs).trim() === "" || String(certs).indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 0;
     
     let score = 0;
     const certText = String(certs).toUpperCase();
     
-    // 인증 종류별 점수
     if (certText.indexOf("IFOS") !== -1) {
       if (certText.indexOf("5-STAR") !== -1 || certText.indexOf("5\uC2A4\uD0C0") !== -1) {
-        score += 40; // IFOS 5스타
+        score += 40;
       } else {
-        score += 25; // 일반 IFOS
+        score += 25;
       }
     }
     if (certText.indexOf("GMP") !== -1 || certText.indexOf("CGMP") !== -1) score += 20;
@@ -220,28 +230,59 @@ export async function onRequest(context) {
     return 20;
   }
 
+  // ─── DEBUG: dump first record's keys ──────────────
+  if (debug && records.length > 0) {
+    return new Response(JSON.stringify({
+      debug: true,
+      firstRecord: records[0].fields,
+      allKeys: Object.keys(records[0].fields)
+    }, null, 2), { status: 200, headers });
+  }
+
   // ─── SCORE EACH PRODUCT ─────────────────────────
   const scored = records.map(function(record) {
     const f = record.fields || {};
-    const dailyMg = f[F.epaDha] || 0;
-    const dailyCost = f[F.dailyCost] || 0;
+    
+    // 느슨한 매칭으로 모든 필드 추출
+    const productId = getField(f, "product_id", "productId", "\uC81C\uD488ID");
+    const productName = getField(f, "\uC81C\uD488\uBA85", "name", "productName") || "";
+    const imageUrl = getField(f, "\uC774\uBBF8\uC9C0URL", "imageUrl", "image") || "";
+    const dailyMg = parseFloat(getField(f, "EPA_DHA_\uD569\uACC4_mg", "epaDha", "EPA_DHA")) || 0;
+    const dailyCapsules = parseFloat(getField(f, "1\uC77C_\uCEA1\uC290\uC218", "dailyCapsules")) || 1;
+    const purity = getField(f, "\uC21C\uB3C4", "purity");
+    const form = getField(f, "\uC81C\uD615", "form");
+    const supplier = getField(f, "\uC6D0\uB8CC\uC0AC", "supplier");
+    const certs = getField(f, "\uC778\uC99D", "certs", "certifications");
+    const dailyCost = parseFloat(getField(f, "1\uC77C\uBE44\uC6A9_\uC6D0", "dailyCost")) || 0;
+    const tier = getField(f, "Tier\uB4F1\uAE09", "tier");
+    const passFail = getField(f, "\uD568\uB7C9_Pass_Fail", "passFail", "pass_fail");
+    
+    // 쿠팡 링크 ─ 다양한 컬럼명 시도
+    const coupangLink = getField(f, 
+      "\uCFE0\uD314_\uD30C\uD2B8\uB108\uC2A4_\uB9C1\uD06C",     // 쿠팡_파트너스_링크
+      "\uCFE0\uD314_\uC0C1\uC138\uD398\uC774\uC9C0_\uB9C1\uD06C", // 쿠팡_상세페이지_링크
+      "\uCFE0\uD314 url",                                          // 쿠팡 url (원본)
+      "\uCFE0\uD314_url",                                          // 쿠팡_url
+      "coupangUrl",
+      "coupangLink",
+      "url"
+    ) || "";
 
     const dose = scoreDose(dailyMg);
-    const form = scoreForm(f[F.form]);
-    const source = scoreSource(f[F.supplier]);
-    const cert = scoreCert(f[F.certs], f[F.certCount]);
-    const price = scorePrice(dailyCost);
+    const formScore = scoreForm(form);
+    const sourceScore = scoreSource(supplier);
+    const certScore = scoreCert(certs);
+    const priceScore = scorePrice(dailyCost);
 
     const w = profile.weights;
     let total = (
       dose * w.dose / 100 +
-      form * w.form / 100 +
-      source * w.source / 100 +
-      cert * w.cert / 100 +
-      price * w.price / 100
+      formScore * w.form / 100 +
+      sourceScore * w.source / 100 +
+      certScore * w.cert / 100 +
+      priceScore * w.price / 100
     );
 
-    // 고함량 페널티 (2000mg 초과)
     let highDoseFlag = false;
     if (dailyMg > 2000) {
       total = Math.min(80, total);
@@ -252,14 +293,24 @@ export async function onRequest(context) {
     return {
       record: record,
       fields: f,
+      productId: productId,
+      productName: productName,
+      imageUrl: imageUrl,
+      coupangLink: coupangLink,
+      tier: tier,
+      passFail: passFail,
+      form: form,
+      supplier: supplier,
+      certs: certs,
+      purity: purity,
       dailyMg: dailyMg,
       dailyCost: Math.round(dailyCost),
       scores: {
         dose: dose,
-        form: form,
-        source: source,
-        cert: cert,
-        price: price,
+        form: formScore,
+        source: sourceScore,
+        cert: certScore,
+        price: priceScore,
         total: total
       },
       highDoseFlag: highDoseFlag
@@ -268,68 +319,56 @@ export async function onRequest(context) {
 
   // ─── APPLY FILTERS ──────────────────────────────
   let filtered = scored.filter(function(item) {
-    const f = item.fields;
-    
-    // 1. Pass/Fail 필터: Fail 자동 제외
-    if (!includeFailed && f[F.passFail] === "Fail") {
+    if (!includeFailed && item.passFail === "Fail") {
       return false;
     }
-    
-    // 2. 프로필별 추가 필터
     if (profile.filters.minDailyDose && item.dailyMg < profile.filters.minDailyDose) {
       return false;
     }
-    
-    // 3. 비건 프로필: 식물성/algae만 (제품명 또는 원료사로 판단)
     if (profile.filters.veganOnly) {
-      const nameLower = String(f[F.name] || "").toLowerCase();
-      const supplierLower = String(f[F.supplier] || "").toLowerCase();
+      const nameLower = String(item.productName).toLowerCase();
       const isVegan = nameLower.indexOf("\uC2DD\uBB3C\uC131") !== -1 || 
                       nameLower.indexOf("vegan") !== -1 ||
                       nameLower.indexOf("algae") !== -1 ||
                       nameLower.indexOf("\uBBF8\uC138\uC870\uB958") !== -1;
       if (!isVegan) return false;
     }
-    
     return true;
   });
 
-  // ─── RANK & PICK TOP 3 + REST ───────────────────
   filtered.sort(function(a, b) { return b.scores.total - a.scores.total; });
 
   const top3 = filtered.slice(0, 3).map(function(item, idx) {
-    const f = item.fields;
     return {
       rank: idx + 1,
-      id: f[F.id] || item.record.id,
-      name: f[F.name] || "",
-      image: f[F.image] || "",
-      coupangLink: f[F.coupangLink] || "",
+      id: item.productId || item.record.id,
+      name: item.productName,
+      image: item.imageUrl,
+      coupangLink: item.coupangLink,
       keySpec: {
         dailyMg: item.dailyMg,
         dailyCost: item.dailyCost,
-        form: f[F.form] || "",
-        supplier: f[F.supplier] || "",
-        certs: f[F.certs] || "",
-        purity: f[F.purity] || null,
-        tier: f[F.tier] || ""
+        form: item.form || "",
+        supplier: item.supplier || "",
+        certs: item.certs || "",
+        purity: item.purity,
+        tier: item.tier || ""
       },
       vScore: item.scores.total,
       detailScores: item.scores,
       highDoseFlag: item.highDoseFlag,
-      passFail: f[F.passFail] || ""
+      passFail: item.passFail || ""
     };
   });
 
   const rest = filtered.slice(3, 30).map(function(item, idx) {
-    const f = item.fields;
     return {
       rank: idx + 4,
-      id: f[F.id] || item.record.id,
-      name: f[F.name] || "",
+      id: item.productId || item.record.id,
+      name: item.productName,
       vScore: item.scores.total,
-      tier: f[F.tier] || "",
-      coupangLink: f[F.coupangLink] || ""
+      tier: item.tier || "",
+      coupangLink: item.coupangLink
     };
   });
 
