@@ -338,6 +338,16 @@ export async function onRequest(context) {
       const passFail = getField(f, "\uD568\uB7C9_Pass_Fail") || "";
       const coupangLink = getField(f, "coupang_url", "coupangUrl", "coupangLink", "\uCFE0\uD314_\uD30C\uD2B8\uB108\uC2A4_\uB9C1\uD06C") || "";
 
+      let imageUrl = getField(f, "\uC774\uBBF8\uC9C0URL", "imageUrl", "image", "\uC774\uBBF8\uC9C0", "photo") || "";
+      if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+        const att = imageUrl[0];
+        if (att.thumbnails && att.thumbnails.large) imageUrl = att.thumbnails.large.url;
+        else if (att.url) imageUrl = att.url;
+        else imageUrl = "";
+      } else if (typeof imageUrl === 'object' && imageUrl !== null) {
+        imageUrl = imageUrl.url || "";
+      }
+
       const dose = scoreDose(dailyMg);
       const formScore = scoreForm(form);
       const sourceScore = scoreSource(supplier);
@@ -360,7 +370,7 @@ export async function onRequest(context) {
       total = Math.round(total);
 
       return {
-        id: productId, name: productName, dailyMg, dailyCost: Math.round(dailyCost),
+        id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost),
         form, supplier, certs, tier, passFail, coupangLink,
         scores: { dose, form: formScore, source: sourceScore, cert: certScore, price: priceScore, total },
         highDoseFlag
@@ -383,6 +393,7 @@ export async function onRequest(context) {
       rank: idx + 1,
       id: item.id,
       name: item.name,
+      image: item.image || "",
       vScore: item.scores.total,
       detailScores: item.scores,
       keySpec: {
