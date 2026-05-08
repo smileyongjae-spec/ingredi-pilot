@@ -246,7 +246,20 @@ export async function onRequest(context) {
     // 느슨한 매칭으로 모든 필드 추출
     const productId = getField(f, "product_id", "productId", "\uC81C\uD488ID");
     const productName = getField(f, "\uC81C\uD488\uBA85", "name", "productName") || "";
-    const imageUrl = getField(f, "\uC774\uBBF8\uC9C0URL", "imageUrl", "image") || "";
+    let imageUrl = getField(f, "이미지URL", "imageUrl", "image", "이미지", "photo") || "";
+    // Airtable Attachment 형식 처리
+    if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+      const att = imageUrl[0];
+      if (att.thumbnails && att.thumbnails.large) {
+        imageUrl = att.thumbnails.large.url;
+      } else if (att.url) {
+        imageUrl = att.url;
+      } else {
+        imageUrl = "";
+      }
+    } else if (typeof imageUrl === 'object' && imageUrl !== null) {
+      imageUrl = imageUrl.url || "";
+    }
     const dailyMg = parseFloat(getField(f, "EPA_DHA_\uD569\uACC4_mg", "epaDha", "EPA_DHA")) || 0;
     const dailyCapsules = parseFloat(getField(f, "1\uC77C_\uCEA1\uC290\uC218", "dailyCapsules")) || 1;
     const purity = getField(f, "\uC21C\uB3C4", "purity");
@@ -366,6 +379,7 @@ export async function onRequest(context) {
       rank: idx + 4,
       id: item.productId || item.record.id,
       name: item.productName,
+      image: item.imageUrl || "",
       vScore: item.scores.total,
       tier: item.tier || "",
       coupangLink: item.coupangLink
