@@ -20,17 +20,10 @@ export async function onRequest(context) {
   const TOKEN = env.AIRTABLE_TOKEN;
   const BASE_ID = env.AIRTABLE_BASE_ID;
 
-   if (!TOKEN || !BASE_ID) {
+  if (!TOKEN || !BASE_ID) {
     return new Response(JSON.stringify({
       error: "config_missing",
-      message: "Environment variables not set",
-      debug: {
-        hasToken: !!TOKEN,
-        hasBaseId: !!BASE_ID,
-        tokenLength: TOKEN ? TOKEN.length : 0,
-        baseIdValue: BASE_ID || "EMPTY",
-        allEnvKeys: env ? Object.keys(env) : "env_is_undefined"
-      }
+      message: "Environment variables not set"
     }), { status: 500, headers });
   }
 
@@ -61,17 +54,6 @@ export async function onRequest(context) {
     }
 
     const data = await response.json();
-    
-        // ─── 임시 디버그: raw 데이터 확인 ───
-    if (query === "DEBUG") {
-      return new Response(JSON.stringify({
-        recordCount: (data.records || []).length,
-        firstRecord: (data.records || [])[0] || null,
-        allFieldNames: (data.records || [])[0] ? Object.keys((data.records || [])[0].fields || {}) : []
-      }), { status: 200, headers });
-    }
-    // ─── 임시 디버그 끝 ───
-    
     const lowerQuery = query.toLowerCase();
 
     const fieldKeyword = "\uD0A4\uC6CC\uB4DC";
