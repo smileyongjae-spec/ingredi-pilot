@@ -277,6 +277,34 @@
       gap: 8px;
       margin-bottom: 16px;
     }
+    .product-header-thumbnail {
+      width: 100%;
+      height: 64px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, var(--green-mid) 0%, var(--green-deep) 100%);
+    }
+    .cycle-1 .product-header-thumbnail {
+      background: linear-gradient(135deg, #D4A845 0%, #B8902F 100%);
+    }
+    .cycle-2 .product-header-thumbnail {
+      background: linear-gradient(135deg, #B8BDC1 0%, #8B8E91 100%);
+    }
+    .cycle-3 .product-header-thumbnail {
+      background: linear-gradient(135deg, #D49266 0%, #B07142 100%);
+    }
+    .product-header-thumbnail-letter {
+      font-size: 28px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.04em;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
     .product-header-card {
       background: white;
       border: 1.5px solid var(--line-soft);
@@ -697,9 +725,13 @@ function renderComparison(data) {
   // ─── 제품 헤더 카드 ───
   html += `<div class="product-headers" style="grid-template-columns: repeat(${cols}, 1fr);">`;
   valid.forEach((p, idx) => {
+    const firstChar = (p.name || '?').replace(/^[^가-힣A-Za-z0-9]+/, '').charAt(0) || '?';
     html += `
-      <div class="product-header-card rank-${idx + 1}">
+      <div class="product-header-card rank-${idx + 1} cycle-${(idx % 3) + 1}">
         <span class="product-header-rank">${idx + 1}위</span>
+        <div class="product-header-thumbnail">
+          <span class="product-header-thumbnail-letter">${escapeHtml(firstChar)}</span>
+        </div>
         <div class="product-header-name">${escapeHtml(p.name)}</div>
         <div class="product-header-score">${p.vScore}</div>
         <div class="product-header-score-label">V-Score</div>
