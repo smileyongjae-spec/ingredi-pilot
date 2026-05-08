@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ingredi · 오메가3 추천</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <style>
+    /* ─── DESIGN TOKENS ─────────────────── */
+    :root {
+      --green-deep:    #1B3A2E;
+      --green-primary: #2D5F3F;
+      --green-mid:     #4A7C5A;
+      --green-light:   #E8F1EA;
+      --green-bg:      #F5F9F6;
+
+      --paper:         #FAF8F3;
+      --ink:           #1A1F1B;
+      --ink-soft:      #4F564E;
+      --ink-faint:     #8B928A;
+      --line:          #D9DDD7;
+      --line-soft:     #ECEFEA;
+
+      --gold:          #B8902F;
+      --silver:        #8B8E91;
+      --bronze:        #B07142;
+      --warn:          #C9533D;
+
+      --shadow-sm:     0 1px 2px rgba(27, 58, 46, 0.06), 0 1px 1px rgba(27, 58, 46, 0.03);
+      --shadow-md:     0 4px 12px rgba(27, 58, 46, 0.08), 0 2px 4px rgba(27, 58, 46, 0.04);
+      --shadow-lg:     0 12px 32px rgba(27, 58, 46, 0.12), 0 4px 8px rgba(27, 58, 46, 0.06);
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* 한지 텍스처 배경 (옵션) */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(184, 144, 47, 0.015) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(45, 95, 63, 0.02) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+      background: var(--paper);
+      box-shadow: 0 0 40px rgba(27, 58, 46, 0.05);
+    }
+
+    /* ─── HEADER ────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line-soft);
+      background: var(--paper);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-back {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--ink-soft);
+      border-radius: var(--radius-sm);
+      transition: background 0.15s ease;
+    }
+    .header-back:hover { background: var(--green-light); }
+    .header-back svg { width: 22px; height: 22px; }
+    .header-title {
+      font-family: 'Pretendard', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--green-deep);
+    }
+    .header-spacer { width: 36px; }
+
+    /* ─── SCREENS ───────────────────────── */
+    .screen { display: none; padding: 24px 20px 40px; }
+    .screen.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── HERO (홈 화면) ──────────────── */
+    .hero {
+      text-align: center;
+      padding: 28px 0 24px;
+    }
+    .hero-eyebrow {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--green-mid);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .hero-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.3;
+      color: var(--green-deep);
+      margin-bottom: 8px;
+    }
+    .hero-subtitle {
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+
+    /* ─── FREE INPUT ────────────────────── */
+    .free-input-wrap {
+      margin: 24px 0 32px;
+      position: relative;
+    }
+    .free-input-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .free-input {
+      width: 100%;
+      padding: 14px 50px 14px 16px;
+      background: white;
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      transition: all 0.2s ease;
+    }
+    .free-input::placeholder { color: var(--ink-faint); }
+    .free-input:focus {
+      outline: none;
+      border-color: var(--green-primary);
+      box-shadow: 0 0 0 3px rgba(45, 95, 63, 0.08);
+    }
+    .free-input-btn {
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      width: 38px;
+      height: 38px;
+      background: var(--green-primary);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .free-input-btn:hover { background: var(--green-deep); }
+    .free-input-btn:active { transform: scale(0.95); }
+    .free-input-btn:disabled {
+      background: var(--line);
+      cursor: not-allowed;
+    }
+    .free-input-btn svg { width: 18px; height: 18px; }
+    .free-input-hint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--ink-faint);
+      line-height: 1.5;
+    }
+
+    /* ─── DIVIDER ───────────────────────── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 28px 0 20px;
+    }
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+    .divider-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-faint);
+      letter-spacing: 0.02em;
+    }
+
+    /* ─── PROFILE CARDS ─────────────────── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+    }
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .profile-card {
+      background: white;
+      border: 1.5px solid var(--line-soft);
+      border-radius: var(--radius-md);
+      padding: 18px 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 0%, var(--green-light) 100%);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .profile-card:hover {
+      border-color: var(--green-mid);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .profile-card:hover::before { opacity: 0.4; }
+    .profile-card:active { transform: translateY(0); }
+    .profile-card[data-profile="balanced"] {
+      grid-column: span 2;
+      background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
+      border-color: var(--green-mid);
+    }
+    .profile-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+    .profile-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--green-deep);
+      margin-bottom: 2px;
+      position: relative;
+      z-index: 1;
+    }
+    .profile-desc {
+      font-size: 11px;
+      color: var(--ink-faint);
+      line-height: 1.4;
+      position: relative;
+      z-index: 1;
+    }
+    .profile-card[data-profile="balanced"] .profile-icon {
+      font-size: 28px;
+      display: inline-block;
+      margin-right: 6px;
+      margin-bottom: 0;
+      vertical-align: middle;
+    }
+    .profile-card[data-profile="balanced"] .profile-label {
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    /* ─── LOADING ──────────────────────── */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .loading.active { display: block; }
+    .loading-spinner {
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--line);
+      border-top-color: var(--green-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+
+    /* ─── RESULT SCREEN ─────────────────── */
+    .result-header {
+      background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-primary) 100%);
+      color: white;
+      padding: 20px 20px 24px;
+      margin: -24px -20px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .result-header::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -10%;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    }
+    .result-header-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      opacity: 0.7;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .result-header-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .result-header-meta {
+      font-size: 12px;
+      opacity: 0.75;
+    }
+
+    /* ─── PRODUCT CARD (TOP 3) ──────────── */
+    .product-card {
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin-bottom: 14px;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s ease;
+    }
+    .product-card:hover { box-shadow: var(--shadow-md); }
+    .product-card.rank-1 {
+      border: 1.5px solid var(--gold);
+      background: linear-gradient(180deg, #FEFAF1 0%, white 60%);
+    }
+    .product-card.rank-2 {
+      border-color: var(--silver);
+    }
+    .product-card.rank-3 {
+      border-color: var(--bronze);
+    }
+
+    .product-rank {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .rank-1 .product-rank { background: var(--gold); color: white; }
+    .rank-2 .product-rank { background: var(--silver); color: white; }
+    .rank-3 .product-rank { background: var(--bronze); color: white; }
+
+    .product-vscore {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      text-align: right;
+    }
+    .product-vscore-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--green-deep);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .product-vscore-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ink-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .product-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.4;
+      margin-bottom: 14px;
+      padding-right: 70px;
+      letter-spacing: -0.02em;
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: var(--green-bg);
+      border-radius: var(--radius-sm);
+    }
+    .spec-item {
+      font-size: 12px;
+    }
+    .spec-label {
+      color: var(--ink-faint);
+      font-size: 10px;
+      letter-spacing: 0.02em;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .spec-value {
+      color: var(--green-deep);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 100px;
+      background: var(--green-light);
+      color: var(--green-deep);
+      letter-spacing: -0.01em;
+    }
+    .tag.tag-warn {
+      background: rgba(201, 83, 61, 0.1);
+      color: var(--warn);
+    }
+    .tag.tag-tier-1 {
+      background: var(--gold);
+      color: white;
+    }
+    .tag.tag-tier-2 {
+      background: var(--silver);
+      color: white;
+    }
+    .tag.tag-tier-3 {
+      background: rgba(176, 113, 66, 0.15);
+      color: var(--bronze);
+    }
+
+    /* 세부 점수 바 */
+    .score-bars {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 14px;
+      padding: 12px 6px;
+      background: var(--paper);
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-sm);
+    }
+    .score-bar {
+      text-align: center;
+    }
+    .score-bar-label {
+      font-size: 10px;
+      color: var(--ink-faint);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .score-bar-value {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--green-deep);
+      letter-spacing: -0.02em;
+    }
+    .score-bar-track {
+      height: 3px;
+      background: var(--line-soft);
+      border-radius: 2px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green-mid) 0%, var(--green-primary) 100%);
+      border-radius: 2px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .product-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .btn {
+      padding: 11px 14px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: -0.01em;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-decoration: none;
+    }
+    .btn-secondary {
+      background: var(--green-light);
+      color: var(--green-deep);
+    }
+    .btn-secondary:hover { background: #DCE9DF; }
+    .btn-primary {
+      background: var(--green-primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--green-deep); }
+    .btn:active { transform: scale(0.97); }
+
+    /* LLM 설명 영역 (확장) */
+    .explanation {
+      margin-top: 12px;
+      padding: 14px;
+      background: var(--green-bg);
+      border-left: 3px solid var(--green-primary);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--ink-soft);
+      display: none;
+    }
+    .explanation.active { display: block; animation: fadeIn 0.3s ease; }
+    .explanation-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink-faint);
+      font-size: 12px;
+    }
+    .explanation-loading::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--line);
+      border-top-color: var(--green-primary);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    /* ─── REST LIST ─────────────────────── */
+    .rest-section {
+      margin-top: 24px;
+    }
+    .rest-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+    .rest-list {
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .rest-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line-soft);
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s ease;
+    }
+    .rest-item:last-child { border-bottom: none; }
+    .rest-item:hover { background: var(--green-bg); }
+    .rest-rank {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-faint);
+      width: 32px;
+    }
+    .rest-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+    .rest-vscore {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green-deep);
+    }
+
+    /* ─── ALERTS ────────────────────────── */
+    .alert {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .alert-warn {
+      background: rgba(201, 83, 61, 0.06);
+      border: 1px solid rgba(201, 83, 61, 0.2);
+      color: var(--warn);
+    }
+    .alert-icon { flex-shrink: 0; font-size: 16px; line-height: 1.3; }
+
+    /* ─── DISCLAIMER ────────────────────── */
+    .disclaimer {
+      margin-top: 28px;
+      padding: 14px;
+      font-size: 11px;
+      color: var(--ink-faint);
+      text-align: center;
+      line-height: 1.6;
+      border-top: 1px solid var(--line-soft);
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- HEADER (공통)                            -->
+  <!-- ═══════════════════════════════════════ -->
+  <header class="header">
+    <div class="header-back" id="backBtn" style="visibility:hidden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </div>
+    <div class="header-title">ingredi</div>
+    <div class="header-spacer"></div>
+  </header>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SCREEN 1: HOME                           -->
+  <!-- ═══════════════════════════════════════ -->
+  <main class="screen active" id="screenHome">
+
+    <section class="hero">
+      <div class="hero-eyebrow">광고 없는 정직한 비교</div>
+      <h1 class="hero-title">나에게 맞는<br>오메가3 찾기</h1>
+      <p class="hero-subtitle">15개 제품 · 임상 근거 기반 V-Score</p>
+    </section>
+
+    <!-- 자유 입력 -->
+    <div class="free-input-wrap">
+      <label class="free-input-label">어떤 분이 드시나요?</label>
+      <input type="text" class="free-input" id="freeInput"
+             placeholder="예: 임산부에게 좋은 거 추천해줘"
+             autocomplete="off">
+      <button class="free-input-btn" id="freeInputBtn" aria-label="검색">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M13 5l7 7-7 7"/>
+        </svg>
+      </button>
+      <p class="free-input-hint" id="freeInputHint">자연어로 입력하면 알맞은 프로필을 자동 추천해드려요</p>
+    </div>
+
+    <!-- 구분선 -->
+    <div class="divider">
+      <span class="divider-text">또는 직접 선택</span>
+    </div>
+
+    <!-- 7개 프로필 카드 -->
+    <h2 class="section-title">프로필별 추천</h2>
+    <div class="profile-grid">
+      <div class="profile-card" data-profile="premium_seeker">
+        <span class="profile-icon">⭐</span>
+        <div class="profile-label">최고 품질</div>
+        <div class="profile-desc">비싸도 좋은 제품</div>
+      </div>
+      <div class="profile-card" data-profile="budget_seeker">
+        <span class="profile-icon">💰</span>
+        <div class="profile-label">가성비</div>
+        <div class="profile-desc">합리적인 가격</div>
+      </div>
+
+      <div class="profile-card" data-profile="pregnancy">
+        <span class="profile-icon">🤰</span>
+        <div class="profile-label">임산부·수유부</div>
+        <div class="profile-desc">안전성 우선</div>
+      </div>
+      <div class="profile-card" data-profile="senior">
+        <span class="profile-icon">👴</span>
+        <div class="profile-label">시니어 (50+)</div>
+        <div class="profile-desc">고함량·흡수율</div>
+      </div>
+
+      <div class="profile-card" data-profile="vegan">
+        <span class="profile-icon">🌱</span>
+        <div class="profile-label">비건·식물성</div>
+        <div class="profile-desc">algae 원료</div>
+      </div>
+      <div class="profile-card" data-profile="kid">
+        <span class="profile-icon">👶</span>
+        <div class="profile-label">어린이·자녀</div>
+        <div class="profile-desc">안전성·맛</div>
+      </div>
+
+      <div class="profile-card" data-profile="balanced">
+        <span class="profile-icon">⚖️</span>
+        <span class="profile-label">균형형 추천 (기본)</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SCREEN 2: LOADING                        -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="loading screen" id="screenLoading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">분석 중입니다…</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SCREEN 3: RESULT                         -->
+  <!-- ═══════════════════════════════════════ -->
+  <main class="screen" id="screenResult">
+    <div class="result-header">
+      <div class="result-header-eyebrow">ingredi V-Score</div>
+      <div class="result-header-title" id="resultTitle">균형형 추천</div>
+      <div class="result-header-meta" id="resultMeta">총 14개 제품 분석</div>
+    </div>
+
+    <div id="resultMedicalAlert"></div>
+    <div id="resultProducts"></div>
+    <div id="resultRest"></div>
+    <div class="disclaimer" id="resultDisclaimer"></div>
+  </main>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const API_BASE = window.location.origin;
+let currentScreen = 'home';
+
+// ═══════════════════════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  document.getElementById('backBtn').style.visibility = name === 'home' ? 'hidden' : 'visible';
+  currentScreen = name;
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('backBtn').addEventListener('click', () => showScreen('home'));
+
+// ═══════════════════════════════════════════════════════════
+//  PROFILE CARD CLICK
+// ═══════════════════════════════════════════════════════════
+document.querySelectorAll('.profile-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const profile = card.dataset.profile;
+    fetchRecommendation(profile);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+//  FREE INPUT (LLM)
+// ═══════════════════════════════════════════════════════════
+const freeInput = document.getElementById('freeInput');
+const freeInputBtn = document.getElementById('freeInputBtn');
+const freeInputHint = document.getElementById('freeInputHint');
+
+async function handleFreeInput() {
+  const query = freeInput.value.trim();
+  if (!query) return;
+
+  showScreen('loading');
+  document.getElementById('loadingText').textContent = '질문을 분석하고 있어요…';
+
+  try {
+    const matchRes = await fetch(`${API_BASE}/match-profile?q=${encodeURIComponent(query)}`);
+    const matchData = await matchRes.json();
+
+    if (matchData.error || !matchData.matchedProfile) {
+      // 매칭 실패 → balanced로 fallback
+      fetchRecommendation('balanced', query);
+      return;
+    }
+
+    fetchRecommendation(matchData.matchedProfile, query, matchData);
+  } catch (err) {
+    showScreen('home');
+    freeInputHint.textContent = '⚠️ 분석 중 오류가 발생했어요. 직접 프로필을 선택해주세요.';
+    freeInputHint.style.color = 'var(--warn)';
+  }
+}
+
+freeInputBtn.addEventListener('click', handleFreeInput);
+freeInput.addEventListener('keypress', e => {
+  if (e.key === 'Enter') handleFreeInput();
+});
+
+// ═══════════════════════════════════════════════════════════
+//  FETCH RECOMMENDATION
+// ═══════════════════════════════════════════════════════════
+async function fetchRecommendation(profile, query, matchInfo) {
+  showScreen('loading');
+  document.getElementById('loadingText').textContent = '맞춤 제품을 찾고 있어요…';
+
+  try {
+    const url = `${API_BASE}/recommend?profile=${profile}${query ? '&query=' + encodeURIComponent(query) : ''}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    renderResult(data, matchInfo);
+    showScreen('result');
+  } catch (err) {
+    document.getElementById('loadingText').innerHTML =
+      '⚠️ 데이터를 불러올 수 없어요<br><small>' + err.message + '</small>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER RESULT
+// ═══════════════════════════════════════════════════════════
+function renderResult(data, matchInfo) {
+  // 헤더
+  document.getElementById('resultTitle').textContent = data.profile.label;
+  document.getElementById('resultMeta').textContent =
+    `총 ${data.totalProducts}개 중 ${data.filteredCount}개 분석 · ${data.excludedCount}개 제외`;
+
+  // 의료 자문 알림
+  const alertBox = document.getElementById('resultMedicalAlert');
+  if (data.medicalConsult) {
+    alertBox.innerHTML = `
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <div><strong>의사·약사 상담을 권장합니다</strong><br>
+        임산부·수유부·어린이는 복용 전 전문가와 상담하세요.</div>
+      </div>`;
+  } else {
+    alertBox.innerHTML = '';
+  }
+
+  // Top 3 제품 카드
+  const products = document.getElementById('resultProducts');
+  if (!data.top3 || data.top3.length === 0) {
+    products.innerHTML = '<div class="alert"><span class="alert-icon">🌿</span>해당 조건에 맞는 제품을 찾을 수 없어요.</div>';
+    document.getElementById('resultRest').innerHTML = '';
+  } else {
+    products.innerHTML = data.top3.map(renderProductCard).join('');
+  }
+
+  // 그 외 제품 리스트
+  const restEl = document.getElementById('resultRest');
+  if (data.rest && data.rest.length > 0) {
+    restEl.innerHTML = `
+      <section class="rest-section">
+        <h3 class="rest-title">그 외 ${data.rest.length}개 제품</h3>
+        <div class="rest-list">
+          ${data.rest.map(r => `
+            <a class="rest-item" ${r.coupangLink ? `href="${r.coupangLink}" target="_blank"` : ''}>
+              <span class="rest-rank">${r.rank}위</span>
+              <span class="rest-name">${escapeHtml(r.name || '제품명 미상')}</span>
+              <span class="rest-vscore">${r.vScore}점</span>
+            </a>`).join('')}
+        </div>
+      </section>`;
+  } else {
+    restEl.innerHTML = '';
+  }
+
+  // 면책
+  document.getElementById('resultDisclaimer').textContent = data.disclaimer || '';
+}
+
+function renderProductCard(p) {
+  const tierTag = p.keySpec.tier
+    ? `<span class="tag tag-tier-${p.keySpec.tier.replace('Tier', '')}">${p.keySpec.tier}</span>` : '';
+  const formTag = p.keySpec.form ? `<span class="tag">${escapeHtml(p.keySpec.form)}</span>` : '';
+  const supplierTag = p.keySpec.supplier ? `<span class="tag">${escapeHtml(p.keySpec.supplier)}</span>` : '';
+  const certsTag = p.keySpec.certs ? `<span class="tag">${escapeHtml(p.keySpec.certs.split(',')[0])}</span>` : '';
+  const highDoseTag = p.highDoseFlag ? '<span class="tag tag-warn">⚠️ 고함량</span>' : '';
+
+  const scores = p.detailScores;
+  const scoreBars = [
+    { label: '함량', value: scores.dose },
+    { label: '제형', value: scores.form },
+    { label: '원료', value: scores.source },
+    { label: '인증', value: scores.cert },
+    { label: '가격', value: scores.price }
+  ].map(s => `
+    <div class="score-bar">
+      <div class="score-bar-label">${s.label}</div>
+      <div class="score-bar-value">${s.value}</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:${s.value}%"></div></div>
+    </div>`).join('');
+
+  const medalIcons = ['🥇', '🥈', '🥉'];
+  const rankIcon = medalIcons[p.rank - 1] || '';
+
+  return `
+    <article class="product-card rank-${p.rank}">
+      <div class="product-rank">${rankIcon} ${p.rank}위 추천</div>
+      <div class="product-vscore">
+        <div class="product-vscore-value">${p.vScore}</div>
+        <div class="product-vscore-label">V-Score</div>
+      </div>
+      <h3 class="product-name">${escapeHtml(p.name)}</h3>
+
+      <div class="spec-grid">
+        <div class="spec-item">
+          <div class="spec-label">1일 EPA+DHA</div>
+          <div class="spec-value">${p.keySpec.dailyMg.toLocaleString()}mg</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">1일 비용</div>
+          <div class="spec-value">${p.keySpec.dailyCost.toLocaleString()}원</div>
+        </div>
+      </div>
+
+      <div class="tags">
+        ${tierTag}${formTag}${supplierTag}${certsTag}${highDoseTag}
+      </div>
+
+      <div class="score-bars">${scoreBars}</div>
+
+      <div class="explanation" id="exp-${p.id}"></div>
+
+      <div class="product-actions">
+        <button class="btn btn-secondary" onclick="explainProduct('${p.id}', '${getCurrentProfile()}')">
+          💬 왜 이 점수?
+        </button>
+        ${p.coupangLink
+          ? `<a class="btn btn-primary" href="${p.coupangLink}" target="_blank">🛒 쿠팡에서 보기</a>`
+          : `<button class="btn btn-primary" disabled>링크 없음</button>`}
+      </div>
+    </article>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPLAIN PRODUCT (LLM, 결제 풀리면 작동)
+// ═══════════════════════════════════════════════════════════
+let lastProfile = 'balanced';
+function getCurrentProfile() { return lastProfile; }
+
+async function explainProduct(productId, profile) {
+  const expEl = document.getElementById('exp-' + productId);
+  if (expEl.classList.contains('active')) {
+    expEl.classList.remove('active');
+    return;
+  }
+
+  expEl.classList.add('active');
+  expEl.innerHTML = '<div class="explanation-loading">AI가 분석하고 있어요…</div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/explain-recommendation?profile=${profile}&id=${productId}`);
+    const data = await res.json();
+
+    if (data.error) {
+      if (data.error === 'claude_api_error') {
+        expEl.innerHTML = '⏳ <strong>AI 설명 기능 준비 중</strong><br><small>곧 더 자세한 설명을 제공해드릴게요.</small>';
+      } else {
+        expEl.innerHTML = '⚠️ ' + (data.message || '설명을 불러올 수 없어요.');
+      }
+      return;
+    }
+
+    expEl.innerHTML = escapeHtml(data.explanation).replace(/\n/g, '<br>');
+  } catch (err) {
+    expEl.innerHTML = '⚠️ 일시적인 오류가 발생했어요.';
+  }
+}
+window.explainProduct = explainProduct;
+
+// 마지막 프로필 추적
+const origFetch = fetchRecommendation;
+fetchRecommendation = function(profile, query, matchInfo) {
+  lastProfile = profile;
+  return origFetch(profile, query, matchInfo);
+};
+
+// ═══════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>
