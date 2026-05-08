@@ -7,37 +7,30 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <style>
-    /* ─── DESIGN TOKENS ─────────────────── */
     :root {
       --green-deep:    #1B3A2E;
       --green-primary: #2D5F3F;
       --green-mid:     #4A7C5A;
       --green-light:   #E8F1EA;
       --green-bg:      #F5F9F6;
-
       --paper:         #FAF8F3;
       --ink:           #1A1F1B;
       --ink-soft:      #4F564E;
       --ink-faint:     #8B928A;
       --line:          #D9DDD7;
       --line-soft:     #ECEFEA;
-
       --gold:          #B8902F;
       --silver:        #8B8E91;
       --bronze:        #B07142;
       --warn:          #C9533D;
-
       --shadow-sm:     0 1px 2px rgba(27, 58, 46, 0.06), 0 1px 1px rgba(27, 58, 46, 0.03);
       --shadow-md:     0 4px 12px rgba(27, 58, 46, 0.08), 0 2px 4px rgba(27, 58, 46, 0.04);
       --shadow-lg:     0 12px 32px rgba(27, 58, 46, 0.12), 0 4px 8px rgba(27, 58, 46, 0.06);
-
       --radius-sm: 8px;
       --radius-md: 14px;
       --radius-lg: 20px;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
     html, body {
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--paper);
@@ -46,9 +39,7 @@
       line-height: 1.5;
       letter-spacing: -0.01em;
       -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
     }
-
     body::before {
       content: '';
       position: fixed;
@@ -59,7 +50,6 @@
       pointer-events: none;
       z-index: 0;
     }
-
     .app {
       max-width: 480px;
       margin: 0 auto;
@@ -69,8 +59,6 @@
       background: var(--paper);
       box-shadow: 0 0 40px rgba(27, 58, 46, 0.05);
     }
-
-    /* ─── HEADER ────────────────────────── */
     .header {
       display: flex;
       align-items: center;
@@ -83,151 +71,86 @@
       z-index: 10;
     }
     .header-back {
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--ink-soft);
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--ink-soft);
       border-radius: var(--radius-sm);
       transition: background 0.15s ease;
     }
     .header-back:hover { background: var(--green-light); }
     .header-back svg { width: 22px; height: 22px; }
     .header-title {
-      font-family: 'Pretendard', sans-serif;
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--green-deep);
+      font-size: 17px; font-weight: 700;
+      color: var(--green-deep); letter-spacing: -0.02em;
     }
     .header-spacer { width: 36px; }
-
-    /* ─── SCREENS ───────────────────────── */
     .screen { display: none; padding: 24px 20px 40px; }
     .screen.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
-    .hero {
-      text-align: center;
-      padding: 28px 0 24px;
-    }
+    .hero { text-align: center; padding: 28px 0 24px; }
     .hero-eyebrow {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      color: var(--green-mid);
-      text-transform: uppercase;
-      margin-bottom: 12px;
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.08em; color: var(--green-mid);
+      text-transform: uppercase; margin-bottom: 12px;
     }
     .hero-title {
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.3;
-      color: var(--green-deep);
-      margin-bottom: 8px;
+      font-size: 26px; font-weight: 800;
+      letter-spacing: -0.03em; line-height: 1.3;
+      color: var(--green-deep); margin-bottom: 8px;
     }
     .hero-subtitle {
-      font-size: 14px;
-      color: var(--ink-soft);
-      line-height: 1.5;
+      font-size: 14px; color: var(--ink-soft); line-height: 1.5;
     }
-
-    .free-input-wrap {
-      margin: 24px 0 32px;
-      position: relative;
-    }
+    .free-input-wrap { margin: 24px 0 32px; position: relative; }
     .free-input-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--ink-soft);
-      margin-bottom: 8px;
-      letter-spacing: -0.01em;
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--ink-soft); margin-bottom: 8px; letter-spacing: -0.01em;
     }
     .free-input {
-      width: 100%;
-      padding: 14px 50px 14px 16px;
-      background: white;
-      border: 1.5px solid var(--line);
+      width: 100%; padding: 14px 50px 14px 16px;
+      background: white; border: 1.5px solid var(--line);
       border-radius: var(--radius-md);
-      font-family: inherit;
-      font-size: 14px;
-      color: var(--ink);
+      font-family: inherit; font-size: 14px; color: var(--ink);
       transition: all 0.2s ease;
     }
     .free-input::placeholder { color: var(--ink-faint); }
     .free-input:focus {
-      outline: none;
-      border-color: var(--green-primary);
+      outline: none; border-color: var(--green-primary);
       box-shadow: 0 0 0 3px rgba(45, 95, 63, 0.08);
     }
     .free-input-btn {
-      position: absolute;
-      right: 6px;
-      bottom: 6px;
-      width: 38px;
-      height: 38px;
-      background: var(--green-primary);
-      border: none;
-      border-radius: 10px;
-      color: white;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: absolute; right: 6px; bottom: 6px;
+      width: 38px; height: 38px;
+      background: var(--green-primary); border: none;
+      border-radius: 10px; color: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
       transition: all 0.15s ease;
     }
     .free-input-btn:hover { background: var(--green-deep); }
     .free-input-btn:active { transform: scale(0.95); }
-    .free-input-btn:disabled {
-      background: var(--line);
-      cursor: not-allowed;
-    }
     .free-input-btn svg { width: 18px; height: 18px; }
     .free-input-hint {
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--ink-faint);
-      line-height: 1.5;
+      margin-top: 8px; font-size: 12px; color: var(--ink-faint); line-height: 1.5;
     }
-
     .divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 28px 0 20px;
+      display: flex; align-items: center; gap: 12px; margin: 28px 0 20px;
     }
-    .divider::before,
-    .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--line);
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--line);
     }
     .divider-text {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--ink-faint);
-      letter-spacing: 0.02em;
+      font-size: 12px; font-weight: 500;
+      color: var(--ink-faint); letter-spacing: 0.02em;
     }
-
     .section-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--ink);
-      margin-bottom: 14px;
-      letter-spacing: -0.01em;
+      font-size: 13px; font-weight: 700; color: var(--ink);
+      margin-bottom: 14px; letter-spacing: -0.01em;
     }
     .profile-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
     }
     .profile-card {
       background: white;
@@ -241,12 +164,9 @@
       overflow: hidden;
     }
     .profile-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
+      content: ''; position: absolute; inset: 0;
       background: linear-gradient(135deg, transparent 0%, var(--green-light) 100%);
-      opacity: 0;
-      transition: opacity 0.2s ease;
+      opacity: 0; transition: opacity 0.2s ease;
     }
     .profile-card:hover {
       border-color: var(--green-mid);
@@ -261,49 +181,67 @@
       border-color: var(--green-mid);
     }
     .profile-icon {
-      font-size: 32px;
-      margin-bottom: 8px;
-      position: relative;
-      z-index: 1;
-      display: block;
+      font-size: 32px; margin-bottom: 8px;
+      position: relative; z-index: 1; display: block;
     }
     .profile-label {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--green-deep);
-      margin-bottom: 2px;
-      position: relative;
-      z-index: 1;
+      font-size: 14px; font-weight: 700;
+      color: var(--green-deep); margin-bottom: 2px;
+      position: relative; z-index: 1;
     }
     .profile-desc {
-      font-size: 11px;
-      color: var(--ink-faint);
-      line-height: 1.4;
-      position: relative;
-      z-index: 1;
+      font-size: 11px; color: var(--ink-faint);
+      line-height: 1.4; position: relative; z-index: 1;
     }
     .profile-card[data-profile="balanced"] .profile-icon {
-      font-size: 28px;
-      display: inline-block;
-      margin-right: 6px;
-      margin-bottom: 0;
-      vertical-align: middle;
+      font-size: 28px; display: inline-block;
+      margin-right: 6px; margin-bottom: 0; vertical-align: middle;
     }
     .profile-card[data-profile="balanced"] .profile-label {
-      display: inline-block;
-      vertical-align: middle;
+      display: inline-block; vertical-align: middle;
     }
-
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 60px 20px;
+    
+    /* 비교 페이지 진입 카드 (별도 섹션) */
+    .compare-entry-section {
+      margin: 28px 0 12px;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
+      border: 1.5px solid var(--green-mid);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
     }
+    .compare-entry-title {
+      font-size: 14px; font-weight: 700;
+      color: var(--green-deep); margin-bottom: 4px;
+      letter-spacing: -0.01em;
+    }
+    .compare-entry-desc {
+      font-size: 12px; color: var(--ink-soft); margin-bottom: 14px;
+    }
+    .compare-entry-buttons {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .compare-entry-btn {
+      padding: 11px 12px;
+      border: 1.5px solid var(--green-primary);
+      border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      cursor: pointer; letter-spacing: -0.01em;
+      transition: all 0.15s ease;
+      text-decoration: none; text-align: center;
+      background: white; color: var(--green-primary);
+    }
+    .compare-entry-btn:hover { background: var(--green-light); }
+    .compare-entry-btn.primary {
+      background: var(--green-primary); color: white;
+    }
+    .compare-entry-btn.primary:hover { background: var(--green-deep); }
+    .compare-entry-btn:active { transform: scale(0.97); }
+    
+    .loading { display: none; text-align: center; padding: 60px 20px; }
     .loading.active { display: block; }
     .loading-spinner {
-      display: inline-block;
-      width: 32px;
-      height: 32px;
+      display: inline-block; width: 32px; height: 32px;
       border: 3px solid var(--line);
       border-top-color: var(--green-primary);
       border-radius: 50%;
@@ -311,48 +249,31 @@
       margin-bottom: 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text {
-      font-size: 13px;
-      color: var(--ink-soft);
-    }
-
+    .loading-text { font-size: 13px; color: var(--ink-soft); }
     .result-header {
       background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-primary) 100%);
       color: white;
       padding: 20px 20px 24px;
       margin: -24px -20px 20px;
-      position: relative;
-      overflow: hidden;
+      position: relative; overflow: hidden;
     }
     .result-header::before {
-      content: '';
-      position: absolute;
-      top: -40%;
-      right: -10%;
-      width: 200px;
-      height: 200px;
+      content: ''; position: absolute;
+      top: -40%; right: -10%;
+      width: 200px; height: 200px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
     }
     .result-header-eyebrow {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      opacity: 0.7;
-      margin-bottom: 6px;
-      text-transform: uppercase;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; opacity: 0.7;
+      margin-bottom: 6px; text-transform: uppercase;
     }
     .result-header-title {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
+      font-size: 20px; font-weight: 800;
+      letter-spacing: -0.02em; margin-bottom: 4px;
     }
-    .result-header-meta {
-      font-size: 12px;
-      opacity: 0.75;
-    }
-
+    .result-header-meta { font-size: 12px; opacity: 0.75; }
     .product-card {
       background: white;
       border: 1px solid var(--line-soft);
@@ -368,149 +289,80 @@
       border: 1.5px solid var(--gold);
       background: linear-gradient(180deg, #FEFAF1 0%, white 60%);
     }
-    .product-card.rank-2 {
-      border-color: var(--silver);
-    }
-    .product-card.rank-3 {
-      border-color: var(--bronze);
-    }
-
+    .product-card.rank-2 { border-color: var(--silver); }
+    .product-card.rank-3 { border-color: var(--bronze); }
     .product-rank {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      font-weight: 700;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 700;
       letter-spacing: 0.04em;
-      padding: 3px 8px;
-      border-radius: 6px;
-      margin-bottom: 8px;
+      padding: 3px 8px; border-radius: 6px; margin-bottom: 8px;
     }
     .rank-1 .product-rank { background: var(--gold); color: white; }
     .rank-2 .product-rank { background: var(--silver); color: white; }
     .rank-3 .product-rank { background: var(--bronze); color: white; }
-
     .product-vscore {
-      position: absolute;
-      top: 18px;
-      right: 18px;
-      text-align: right;
+      position: absolute; top: 18px; right: 18px; text-align: right;
     }
     .product-vscore-value {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--green-deep);
-      line-height: 1;
-      letter-spacing: -0.04em;
+      font-size: 28px; font-weight: 800;
+      color: var(--green-deep); line-height: 1; letter-spacing: -0.04em;
     }
     .product-vscore-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--ink-faint);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-top: 2px;
+      font-size: 10px; font-weight: 600;
+      color: var(--ink-faint); letter-spacing: 0.06em;
+      text-transform: uppercase; margin-top: 2px;
     }
-
     .product-name {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--ink);
-      line-height: 1.4;
-      margin-bottom: 14px;
-      padding-right: 70px;
+      font-size: 15px; font-weight: 700;
+      color: var(--ink); line-height: 1.4;
+      margin-bottom: 14px; padding-right: 70px;
       letter-spacing: -0.02em;
     }
-
     .spec-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 14px;
-      padding: 12px;
-      background: var(--green-bg);
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 14px;
+      padding: 12px; background: var(--green-bg);
       border-radius: var(--radius-sm);
     }
-    .spec-item {
-      font-size: 12px;
-    }
+    .spec-item { font-size: 12px; }
     .spec-label {
-      color: var(--ink-faint);
-      font-size: 10px;
-      letter-spacing: 0.02em;
-      margin-bottom: 2px;
-      text-transform: uppercase;
-      font-weight: 600;
+      color: var(--ink-faint); font-size: 10px;
+      letter-spacing: 0.02em; margin-bottom: 2px;
+      text-transform: uppercase; font-weight: 600;
     }
     .spec-value {
-      color: var(--green-deep);
-      font-weight: 700;
-      letter-spacing: -0.01em;
+      color: var(--green-deep); font-weight: 700; letter-spacing: -0.01em;
     }
-
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 14px;
-    }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
     .tag {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 100px;
-      background: var(--green-light);
-      color: var(--green-deep);
+      font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 100px;
+      background: var(--green-light); color: var(--green-deep);
       letter-spacing: -0.01em;
     }
-    .tag.tag-warn {
-      background: rgba(201, 83, 61, 0.1);
-      color: var(--warn);
-    }
-    .tag.tag-tier-1 {
-      background: var(--gold);
-      color: white;
-    }
-    .tag.tag-tier-2 {
-      background: var(--silver);
-      color: white;
-    }
-    .tag.tag-tier-3 {
-      background: rgba(176, 113, 66, 0.15);
-      color: var(--bronze);
-    }
-
+    .tag.tag-warn { background: rgba(201, 83, 61, 0.1); color: var(--warn); }
+    .tag.tag-tier-1 { background: var(--gold); color: white; }
+    .tag.tag-tier-2 { background: var(--silver); color: white; }
+    .tag.tag-tier-3 { background: rgba(176, 113, 66, 0.15); color: var(--bronze); }
     .score-bars {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-      gap: 6px;
-      margin-bottom: 14px;
-      padding: 12px 6px;
-      background: var(--paper);
+      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+      gap: 6px; margin-bottom: 14px;
+      padding: 12px 6px; background: var(--paper);
       border: 1px solid var(--line-soft);
       border-radius: var(--radius-sm);
     }
-    .score-bar {
-      text-align: center;
-    }
+    .score-bar { text-align: center; }
     .score-bar-label {
-      font-size: 10px;
-      color: var(--ink-faint);
-      margin-bottom: 4px;
-      font-weight: 600;
+      font-size: 10px; color: var(--ink-faint);
+      margin-bottom: 4px; font-weight: 600;
     }
     .score-bar-value {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--green-deep);
-      letter-spacing: -0.02em;
+      font-size: 13px; font-weight: 800;
+      color: var(--green-deep); letter-spacing: -0.02em;
     }
     .score-bar-track {
-      height: 3px;
-      background: var(--line-soft);
-      border-radius: 2px;
-      margin-top: 4px;
-      overflow: hidden;
+      height: 3px; background: var(--line-soft);
+      border-radius: 2px; margin-top: 4px; overflow: hidden;
     }
     .score-bar-fill {
       height: 100%;
@@ -518,78 +370,48 @@
       border-radius: 2px;
       transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
-
     .product-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     }
     .btn {
-      padding: 11px 14px;
-      border: none;
+      padding: 11px 14px; border: none;
       border-radius: var(--radius-sm);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: -0.01em;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; letter-spacing: -0.01em;
       transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      text-decoration: none;
+      display: flex; align-items: center; justify-content: center;
+      gap: 4px; text-decoration: none;
     }
-    .btn-secondary {
-      background: var(--green-light);
-      color: var(--green-deep);
-    }
+    .btn-secondary { background: var(--green-light); color: var(--green-deep); }
     .btn-secondary:hover { background: #DCE9DF; }
-    .btn-primary {
-      background: var(--green-primary);
-      color: white;
-    }
+    .btn-primary { background: var(--green-primary); color: white; }
     .btn-primary:hover { background: var(--green-deep); }
     .btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
     .btn:active:not(:disabled) { transform: scale(0.97); }
-
     .explanation {
-      margin-top: 12px;
-      padding: 14px;
+      margin-top: 12px; padding: 14px;
       background: var(--green-bg);
       border-left: 3px solid var(--green-primary);
       border-radius: var(--radius-sm);
-      font-size: 13px;
-      line-height: 1.65;
-      color: var(--ink-soft);
-      display: none;
+      font-size: 13px; line-height: 1.65;
+      color: var(--ink-soft); display: none;
     }
     .explanation.active { display: block; animation: fadeIn 0.3s ease; }
     .explanation-loading {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--ink-faint);
-      font-size: 12px;
+      display: flex; align-items: center; gap: 8px;
+      color: var(--ink-faint); font-size: 12px;
     }
     .explanation-loading::before {
-      content: '';
-      width: 12px;
-      height: 12px;
+      content: ''; width: 12px; height: 12px;
       border: 2px solid var(--line);
       border-top-color: var(--green-primary);
       border-radius: 50%;
       animation: spin 0.6s linear infinite;
     }
-
-    .rest-section {
-      margin-top: 24px;
-    }
+    .rest-section { margin-top: 24px; }
     .rest-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--ink);
-      margin-bottom: 12px;
+      font-size: 13px; font-weight: 700;
+      color: var(--ink); margin-bottom: 12px;
     }
     .rest-list {
       background: white;
@@ -598,45 +420,29 @@
       overflow: hidden;
     }
     .rest-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      display: flex; align-items: center; gap: 12px;
       padding: 12px 16px;
       border-bottom: 1px solid var(--line-soft);
-      text-decoration: none;
-      color: inherit;
-      transition: background 0.15s ease;
-      cursor: pointer;
+      text-decoration: none; color: inherit;
+      transition: background 0.15s ease; cursor: pointer;
     }
     .rest-item:last-child { border-bottom: none; }
     .rest-item:hover { background: var(--green-bg); }
     .rest-rank {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--ink-faint);
-      width: 32px;
+      font-size: 12px; font-weight: 700;
+      color: var(--ink-faint); width: 32px;
     }
     .rest-name {
-      flex: 1;
-      font-size: 13px;
-      color: var(--ink);
-      letter-spacing: -0.01em;
+      flex: 1; font-size: 13px;
+      color: var(--ink); letter-spacing: -0.01em;
     }
     .rest-vscore {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--green-deep);
+      font-size: 13px; font-weight: 700; color: var(--green-deep);
     }
-
     .alert {
-      padding: 12px 14px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 16px;
-      font-size: 13px;
-      line-height: 1.5;
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
+      padding: 12px 14px; border-radius: var(--radius-sm);
+      margin-bottom: 16px; font-size: 13px; line-height: 1.5;
+      display: flex; gap: 10px; align-items: flex-start;
     }
     .alert-warn {
       background: rgba(201, 83, 61, 0.06);
@@ -644,21 +450,14 @@
       color: var(--warn);
     }
     .alert-icon { flex-shrink: 0; font-size: 16px; line-height: 1.3; }
-
     .disclaimer {
-      margin-top: 28px;
-      padding: 14px;
-      font-size: 11px;
-      color: var(--ink-faint);
-      text-align: center;
-      line-height: 1.6;
+      margin-top: 28px; padding: 14px;
+      font-size: 11px; color: var(--ink-faint);
+      text-align: center; line-height: 1.6;
       border-top: 1px solid var(--line-soft);
     }
-
     .error-box {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--warn);
+      text-align: center; padding: 40px 20px; color: var(--warn);
     }
     .error-box-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
     .error-box-detail { font-size: 12px; color: var(--ink-faint); margin-top: 8px; }
@@ -666,7 +465,6 @@
 </head>
 <body>
 <div class="app">
-
   <header class="header">
     <div class="header-back" id="backBtn" style="visibility:hidden">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -713,7 +511,6 @@
         <div class="profile-label">가성비</div>
         <div class="profile-desc">합리적인 가격</div>
       </div>
-
       <div class="profile-card" data-profile="pregnancy">
         <span class="profile-icon">🤰</span>
         <div class="profile-label">임산부·수유부</div>
@@ -724,7 +521,6 @@
         <div class="profile-label">시니어 (50+)</div>
         <div class="profile-desc">고함량·흡수율</div>
       </div>
-
       <div class="profile-card" data-profile="vegan">
         <span class="profile-icon">🌱</span>
         <div class="profile-label">비건·식물성</div>
@@ -735,10 +531,20 @@
         <div class="profile-label">어린이·자녀</div>
         <div class="profile-desc">안전성·맛</div>
       </div>
-
       <div class="profile-card" data-profile="balanced">
         <span class="profile-icon">⚖️</span>
         <span class="profile-label">균형형 추천 (기본)</span>
+      </div>
+    </div>
+
+    <!-- 비교 진입 (홈 화면) -->
+    <div class="compare-entry-section">
+      <div class="compare-entry-title">🔍 제품 직접 비교하기</div>
+      <div class="compare-entry-desc">관심 있는 제품 1~3개를 골라 함량·가격·인증을 한눈에 비교</div>
+      <div class="compare-entry-buttons">
+        <a class="compare-entry-btn primary" href="/compare.html?mode=select&profile=balanced">
+          ✏️ 직접 골라 비교
+        </a>
       </div>
     </div>
   </main>
@@ -754,62 +560,38 @@
       <div class="result-header-title" id="resultTitle">균형형 추천</div>
       <div class="result-header-meta" id="resultMeta">총 14개 제품 분석</div>
     </div>
-
     <div id="resultMedicalAlert"></div>
     <div id="resultProducts"></div>
+    <div id="resultCompareEntry"></div>
     <div id="resultRest"></div>
     <div class="disclaimer" id="resultDisclaimer"></div>
   </main>
-
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════════════════
 const API_BASE = window.location.origin;
 let currentScreen = 'home';
 let lastProfile = 'balanced';
 
-// ═══════════════════════════════════════════════════════════
-//  HELPERS — 안전 변환 함수
-// ═══════════════════════════════════════════════════════════
+// ─── HELPERS ─── 
 function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-
-// 배열 또는 문자열 → 첫 번째 항목
 function firstOf(value) {
   if (value == null) return '';
   if (Array.isArray(value)) return value[0] || '';
   if (typeof value === 'string') return value.split(',')[0].trim();
   return String(value);
 }
-
-// 배열 또는 문자열 → 모든 항목 배열
-function asArray(value) {
-  if (value == null) return [];
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') return value.split(',').map(s => s.trim()).filter(Boolean);
-  return [String(value)];
-}
-
-// 안전한 숫자
 function safeNum(value, fallback = 0) {
   if (value == null) return fallback;
   const n = Number(value);
   return isNaN(n) ? fallback : n;
 }
 
-// ═══════════════════════════════════════════════════════════
-//  SCREEN MANAGEMENT
-// ═══════════════════════════════════════════════════════════
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
@@ -817,12 +599,8 @@ function showScreen(name) {
   currentScreen = name;
   window.scrollTo(0, 0);
 }
-
 document.getElementById('backBtn').addEventListener('click', () => showScreen('home'));
 
-// ═══════════════════════════════════════════════════════════
-//  PROFILE CARD CLICK
-// ═══════════════════════════════════════════════════════════
 document.querySelectorAll('.profile-card').forEach(card => {
   card.addEventListener('click', () => {
     const profile = card.dataset.profile;
@@ -830,9 +608,6 @@ document.querySelectorAll('.profile-card').forEach(card => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════
-//  FREE INPUT
-// ═══════════════════════════════════════════════════════════
 const freeInput = document.getElementById('freeInput');
 const freeInputBtn = document.getElementById('freeInputBtn');
 const freeInputHint = document.getElementById('freeInputHint');
@@ -840,19 +615,15 @@ const freeInputHint = document.getElementById('freeInputHint');
 async function handleFreeInput() {
   const query = freeInput.value.trim();
   if (!query) return;
-
   showScreen('loading');
   document.getElementById('loadingText').textContent = '질문을 분석하고 있어요…';
-
   try {
     const matchRes = await fetch(`${API_BASE}/match-profile?q=${encodeURIComponent(query)}`);
     const matchData = await matchRes.json();
-
     if (matchData.error || !matchData.matchedProfile) {
       fetchRecommendation('balanced', query);
       return;
     }
-
     fetchRecommendation(matchData.matchedProfile, query, matchData);
   } catch (err) {
     showScreen('home');
@@ -860,26 +631,20 @@ async function handleFreeInput() {
     freeInputHint.style.color = 'var(--warn)';
   }
 }
-
 freeInputBtn.addEventListener('click', handleFreeInput);
 freeInput.addEventListener('keypress', e => {
   if (e.key === 'Enter') handleFreeInput();
 });
 
-// ═══════════════════════════════════════════════════════════
-//  FETCH RECOMMENDATION
-// ═══════════════════════════════════════════════════════════
 async function fetchRecommendation(profile, query, matchInfo) {
   lastProfile = profile;
   showScreen('loading');
   document.getElementById('loadingText').textContent = '맞춤 제품을 찾고 있어요…';
-
   try {
     const url = `${API_BASE}/recommend?profile=${profile}${query ? '&query=' + encodeURIComponent(query) : ''}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Server error: ' + res.status);
     const data = await res.json();
-
     renderResult(data, matchInfo);
     showScreen('result');
   } catch (err) {
@@ -889,23 +654,19 @@ async function fetchRecommendation(profile, query, matchInfo) {
         <div class="error-box-title">⚠️ 데이터를 불러올 수 없어요</div>
         <div class="error-box-detail">${escapeHtml(err.message)}</div>
       </div>`;
+    document.getElementById('resultCompareEntry').innerHTML = '';
     document.getElementById('resultRest').innerHTML = '';
     document.getElementById('resultDisclaimer').textContent = '';
     showScreen('result');
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  RENDER RESULT (안전 강화)
-// ═══════════════════════════════════════════════════════════
 function renderResult(data, matchInfo) {
-  // 헤더
   const profileLabel = (data.profile && data.profile.label) || '추천 결과';
   document.getElementById('resultTitle').textContent = profileLabel;
   document.getElementById('resultMeta').textContent =
     `총 ${data.totalProducts || 0}개 중 ${data.filteredCount || 0}개 분석 · ${data.excludedCount || 0}개 제외`;
 
-  // 의료 자문 알림
   const alertBox = document.getElementById('resultMedicalAlert');
   if (data.medicalConsult) {
     alertBox.innerHTML = `
@@ -918,16 +679,37 @@ function renderResult(data, matchInfo) {
     alertBox.innerHTML = '';
   }
 
-  // Top 3
   const products = document.getElementById('resultProducts');
   if (!data.top3 || data.top3.length === 0) {
     products.innerHTML = '<div class="alert"><span class="alert-icon">🌿</span>해당 조건에 맞는 제품을 찾을 수 없어요.</div>';
+    document.getElementById('resultCompareEntry').innerHTML = '';
     document.getElementById('resultRest').innerHTML = '';
   } else {
     products.innerHTML = data.top3.map(renderProductCard).join('');
+    
+    // ─── 비교 진입 카드 (Top 3 자동 + 직접 선택) ───
+    const compareEntry = document.getElementById('resultCompareEntry');
+    if (data.top3.length >= 2) {
+      const top3Ids = data.top3.map(p => p.id).join(',');
+      const profileId = (data.profile && data.profile.id) || 'balanced';
+      compareEntry.innerHTML = `
+        <div class="compare-entry-section">
+          <div class="compare-entry-title">🔍 한눈에 비교하기</div>
+          <div class="compare-entry-desc">Top ${data.top3.length} 자동 비교 또는 직접 골라서 비교할 수 있어요</div>
+          <div class="compare-entry-buttons">
+            <a class="compare-entry-btn primary" href="/compare.html?ids=${top3Ids}&profile=${profileId}">
+              🥇 Top ${data.top3.length} 비교
+            </a>
+            <a class="compare-entry-btn" href="/compare.html?mode=select&profile=${profileId}">
+              ✏️ 직접 선택
+            </a>
+          </div>
+        </div>`;
+    } else {
+      compareEntry.innerHTML = '';
+    }
   }
 
-  // 그 외 제품
   const restEl = document.getElementById('resultRest');
   if (data.rest && data.rest.length > 0) {
     restEl.innerHTML = `
@@ -951,27 +733,20 @@ function renderResult(data, matchInfo) {
     restEl.innerHTML = '';
   }
 
-  // 면책
   document.getElementById('resultDisclaimer').textContent = data.disclaimer || '';
 }
 
 function renderProductCard(p) {
   const keySpec = p.keySpec || {};
-  
-  // 안전한 태그 생성
   const tierStr = keySpec.tier || '';
   const tierTag = tierStr
     ? `<span class="tag tag-tier-${tierStr.replace('Tier', '')}">${escapeHtml(tierStr)}</span>` : '';
   const formTag = keySpec.form ? `<span class="tag">${escapeHtml(keySpec.form)}</span>` : '';
   const supplierTag = keySpec.supplier ? `<span class="tag">${escapeHtml(keySpec.supplier)}</span>` : '';
-  
-  // 인증 ─ 배열·문자열 둘 다 안전 처리
   const firstCert = firstOf(keySpec.certs);
   const certsTag = firstCert ? `<span class="tag">${escapeHtml(firstCert)}</span>` : '';
-  
   const highDoseTag = p.highDoseFlag ? '<span class="tag tag-warn">⚠️ 고함량</span>' : '';
 
-  // 점수 바
   const scores = p.detailScores || {};
   const scoreBars = [
     { label: '함량', value: safeNum(scores.dose) },
@@ -999,7 +774,6 @@ function renderProductCard(p) {
         <div class="product-vscore-label">V-Score</div>
       </div>
       <h3 class="product-name">${escapeHtml(p.name || '제품명 미상')}</h3>
-
       <div class="spec-grid">
         <div class="spec-item">
           <div class="spec-label">1일 EPA+DHA</div>
@@ -1010,15 +784,9 @@ function renderProductCard(p) {
           <div class="spec-value">${safeNum(keySpec.dailyCost).toLocaleString()}원</div>
         </div>
       </div>
-
-      <div class="tags">
-        ${tierTag}${formTag}${supplierTag}${certsTag}${highDoseTag}
-      </div>
-
+      <div class="tags">${tierTag}${formTag}${supplierTag}${certsTag}${highDoseTag}</div>
       <div class="score-bars">${scoreBars}</div>
-
       <div class="explanation" id="exp-${productId}"></div>
-
       <div class="product-actions">
         <button class="btn btn-secondary" onclick="explainProduct('${productId}')">
           💬 왜 이 점수?
@@ -1030,25 +798,18 @@ function renderProductCard(p) {
     </article>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-//  EXPLAIN PRODUCT (LLM)
-// ═══════════════════════════════════════════════════════════
 async function explainProduct(productId) {
   const expEl = document.getElementById('exp-' + productId);
   if (!expEl) return;
-  
   if (expEl.classList.contains('active')) {
     expEl.classList.remove('active');
     return;
   }
-
   expEl.classList.add('active');
   expEl.innerHTML = '<div class="explanation-loading">AI가 분석하고 있어요…</div>';
-
   try {
     const res = await fetch(`${API_BASE}/explain-recommendation?profile=${lastProfile}&id=${productId}`);
     const data = await res.json();
-
     if (data.error) {
       if (String(data.error).indexOf('claude') !== -1) {
         expEl.innerHTML = '⏳ <strong>AI 설명 기능 준비 중</strong><br><small>곧 더 자세한 설명을 제공해드릴게요.</small>';
@@ -1057,7 +818,6 @@ async function explainProduct(productId) {
       }
       return;
     }
-
     expEl.innerHTML = escapeHtml(data.explanation || '').replace(/\n/g, '<br>');
   } catch (err) {
     expEl.innerHTML = '⚠️ 일시적인 오류가 발생했어요.';
