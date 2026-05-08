@@ -421,7 +421,7 @@ async function loadConsultation(q) {
   document.getElementById('loadingText').textContent = 'ingredi가 답변을 준비하고 있어요…';
 
   try {
-    const res = await fetch(`${API_BASE}/consult?q=${encodeURIComponent(q)}`);
+    const res = await fetch(`${API_BASE}/counsel-api?q=${encodeURIComponent(q)}`);
     const data = await res.json();
     
     if (data.error) {
