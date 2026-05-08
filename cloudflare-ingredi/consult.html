@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ingredi · AI 카운슬링</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --green-deep: #1B3A2E;
+      --green-primary: #2D5F3F;
+      --green-mid: #4A7C5A;
+      --green-light: #E8F1EA;
+      --green-bg: #F5F9F6;
+      --paper: #FAF8F3;
+      --ink: #1A1F1B;
+      --ink-soft: #4F564E;
+      --ink-faint: #8B928A;
+      --line: #D9DDD7;
+      --line-soft: #ECEFEA;
+      --gold: #B8902F;
+      --silver: #8B8E91;
+      --bronze: #B07142;
+      --warn: #C9533D;
+      --shadow-sm: 0 1px 2px rgba(27, 58, 46, 0.06);
+      --shadow-md: 0 4px 12px rgba(27, 58, 46, 0.08);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--paper);
+      box-shadow: 0 0 40px rgba(27, 58, 46, 0.05);
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line-soft);
+      background: var(--paper);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .header-back {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--ink-soft);
+      border-radius: var(--radius-sm); text-decoration: none;
+    }
+    .header-back:hover { background: var(--green-light); }
+    .header-back svg { width: 22px; height: 22px; }
+    .header-title { font-size: 16px; font-weight: 700; color: var(--green-deep); }
+    .header-action {
+      font-size: 12px; color: var(--green-primary);
+      cursor: pointer; padding: 6px 10px;
+      border-radius: 6px; transition: background 0.15s ease;
+      font-weight: 600;
+    }
+    .header-action:hover { background: var(--green-light); }
+
+    .screen { display: none; padding: 20px; }
+    .screen.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .loading-screen { text-align: center; padding: 60px 20px; }
+    .loading-spinner {
+      display: inline-block; width: 32px; height: 32px;
+      border: 3px solid var(--line);
+      border-top-color: var(--green-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 13px; color: var(--ink-soft); }
+    .loading-detail { font-size: 11px; color: var(--ink-faint); margin-top: 6px; }
+
+    /* 질문 헤더 */
+    .query-header {
+      background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-primary) 100%);
+      color: white;
+      padding: 18px 20px 22px;
+      margin: -20px -20px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .query-header::before {
+      content: ''; position: absolute;
+      top: -40%; right: -10%;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    }
+    .query-eyebrow {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.08em; opacity: 0.7;
+      margin-bottom: 6px; text-transform: uppercase;
+    }
+    .query-text {
+      font-size: 16px; font-weight: 700;
+      letter-spacing: -0.02em; line-height: 1.45;
+      margin-bottom: 6px;
+    }
+    .query-meta {
+      font-size: 11px; opacity: 0.75;
+    }
+
+    /* 의료 알림 */
+    .alert {
+      padding: 12px 14px; border-radius: var(--radius-sm);
+      margin-bottom: 16px; font-size: 13px; line-height: 1.5;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .alert-warn {
+      background: rgba(201, 83, 61, 0.06);
+      border: 1px solid rgba(201, 83, 61, 0.2);
+      color: var(--warn);
+    }
+    .alert-icon { flex-shrink: 0; font-size: 16px; line-height: 1.3; }
+
+    /* 답변 카드 */
+    .answer-section {
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-md);
+      padding: 18px 18px 14px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+    .answer-eyebrow {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700;
+      color: var(--green-primary);
+      letter-spacing: 0.04em; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .answer-eyebrow-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green-primary);
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .answer-text {
+      font-size: 14px; line-height: 1.7;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      white-space: pre-wrap;
+    }
+    .answer-text strong { color: var(--green-deep); font-weight: 700; }
+    .answer-sources {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--line);
+    }
+    .answer-sources-title {
+      font-size: 10px; font-weight: 700;
+      color: var(--ink-faint);
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .source-list {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .source-chip {
+      font-size: 10px; font-weight: 600;
+      padding: 3px 8px; border-radius: 100px;
+      background: var(--green-bg);
+      color: var(--green-deep);
+      letter-spacing: -0.01em;
+    }
+
+    /* 추천 섹션 */
+    .recommend-section {
+      margin-top: 4px;
+    }
+    .recommend-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      margin-bottom: 14px;
+      padding: 0 4px;
+    }
+    .recommend-title {
+      font-size: 14px; font-weight: 700;
+      color: var(--green-deep);
+      letter-spacing: -0.01em;
+    }
+    .recommend-subtitle {
+      font-size: 10px; color: var(--ink-faint);
+      margin-top: 2px;
+    }
+    .profile-tag {
+      font-size: 10px; font-weight: 700;
+      padding: 4px 10px; border-radius: 100px;
+      background: var(--green-light);
+      color: var(--green-deep);
+      letter-spacing: -0.01em;
+    }
+
+    /* 제품 카드 (간소화) */
+    .product-card {
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 10px;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s ease;
+    }
+    .product-card.rank-1 {
+      border: 1.5px solid var(--gold);
+      background: linear-gradient(180deg, #FEFAF1 0%, white 60%);
+    }
+    .product-card.rank-2 { border-color: var(--silver); }
+    .product-card.rank-3 { border-color: var(--bronze); }
+
+    .product-card-row {
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .product-rank-badge {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700;
+      color: white;
+    }
+    .rank-1 .product-rank-badge { background: var(--gold); }
+    .rank-2 .product-rank-badge { background: var(--silver); }
+    .rank-3 .product-rank-badge { background: var(--bronze); }
+
+    .product-info { flex: 1; min-width: 0; }
+    .product-name {
+      font-size: 13px; font-weight: 700;
+      color: var(--ink); line-height: 1.3;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .product-meta {
+      font-size: 11px; color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+    .product-tags {
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .product-tag {
+      font-size: 10px; font-weight: 600;
+      padding: 2px 7px; border-radius: 100px;
+      background: var(--green-light);
+      color: var(--green-deep);
+    }
+
+    .product-vscore-side {
+      flex-shrink: 0;
+      text-align: right;
+    }
+    .product-vscore-num {
+      font-size: 22px; font-weight: 800;
+      color: var(--green-deep);
+      line-height: 1; letter-spacing: -0.04em;
+    }
+    .product-vscore-cap {
+      font-size: 9px; font-weight: 600;
+      color: var(--ink-faint);
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .product-card-actions {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 6px; margin-top: 10px;
+    }
+    .btn-mini {
+      padding: 8px 10px;
+      border: none; border-radius: 6px;
+      font-family: inherit; font-size: 11px; font-weight: 600;
+      cursor: pointer; letter-spacing: -0.01em;
+      transition: all 0.15s ease;
+      text-decoration: none; text-align: center;
+      display: flex; align-items: center; justify-content: center;
+      gap: 4px;
+    }
+    .btn-mini.secondary { background: var(--green-light); color: var(--green-deep); }
+    .btn-mini.secondary:hover { background: #DCE9DF; }
+    .btn-mini.primary { background: var(--green-primary); color: white; }
+    .btn-mini.primary:hover { background: var(--green-deep); }
+    .btn-mini:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
+
+    /* 비교 진입 */
+    .compare-cta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 16px 0;
+    }
+    .compare-cta-btn {
+      padding: 11px;
+      border: 1.5px solid var(--green-primary);
+      border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      cursor: pointer; letter-spacing: -0.01em;
+      transition: all 0.15s ease;
+      text-decoration: none; text-align: center;
+      background: white; color: var(--green-primary);
+    }
+    .compare-cta-btn:hover { background: var(--green-light); }
+    .compare-cta-btn.primary {
+      background: var(--green-primary); color: white;
+    }
+    .compare-cta-btn.primary:hover { background: var(--green-deep); }
+
+    .disclaimer {
+      margin-top: 24px;
+      padding: 14px;
+      font-size: 11px;
+      color: var(--ink-faint);
+      text-align: center;
+      line-height: 1.6;
+      border-top: 1px solid var(--line-soft);
+    }
+
+    .empty-recommendation {
+      text-align: center;
+      padding: 24px 16px;
+      background: var(--green-bg);
+      border-radius: var(--radius-md);
+      color: var(--ink-soft);
+      font-size: 13px;
+    }
+
+    .error-box {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--warn);
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <a class="header-back" href="/app.html" aria-label="홈으로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </a>
+    <div class="header-title">AI 카운슬링</div>
+    <a class="header-action" href="/app.html">새 질문</a>
+  </header>
+
+  <div class="screen loading-screen active" id="screenLoading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">ingredi가 답변을 준비하고 있어요…</div>
+    <div class="loading-detail">잠시만 기다려주세요 (5~10초)</div>
+  </div>
+
+  <main class="screen" id="screenResult">
+    <div class="query-header">
+      <div class="query-eyebrow">💬 ingredi 카운슬링</div>
+      <div class="query-text" id="queryText">질문 내용</div>
+      <div class="query-meta" id="queryMeta">분석 결과</div>
+    </div>
+
+    <div id="medicalAlert"></div>
+    <div id="answerContent"></div>
+    <div id="recommendContent"></div>
+    <div class="disclaimer" id="disclaimer"></div>
+  </main>
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+const params = new URLSearchParams(window.location.search);
+const query = params.get('q') || '';
+
+if (!query) {
+  // 질문이 없으면 홈으로
+  window.location.href = '/app.html';
+} else {
+  loadConsultation(query);
+}
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function safeNum(v, fb = 0) {
+  if (v == null) return fb;
+  const n = Number(v);
+  return isNaN(n) ? fb : n;
+}
+function firstOf(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v[0] || '';
+  if (typeof v === 'string') return v.split(',')[0].trim();
+  return String(v);
+}
+
+async function loadConsultation(q) {
+  document.getElementById('queryText').textContent = q;
+  document.getElementById('loadingText').textContent = 'ingredi가 답변을 준비하고 있어요…';
+
+  try {
+    const res = await fetch(`${API_BASE}/consult?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    
+    if (data.error) {
+      showError(data.message || '답변을 불러올 수 없습니다.');
+      return;
+    }
+    
+    renderResult(data);
+    document.getElementById('screenLoading').classList.remove('active');
+    document.getElementById('screenResult').classList.add('active');
+  } catch (err) {
+    showError('네트워크 오류가 발생했어요.');
+  }
+}
+
+function renderResult(data) {
+  // 질문 메타
+  if (data.category === 'out_of_scope') {
+    document.getElementById('queryMeta').textContent = '⚠️ 지원하지 않는 카테고리';
+  } else {
+    const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
+    const fCount = data.flags ? data.flags.faqCount || 0 : 0;
+    document.getElementById('queryMeta').textContent = 
+      `📚 관련 정보 ${kCount + fCount}건 검색`;
+  }
+
+  // 의료 알림
+  const alertBox = document.getElementById('medicalAlert');
+  if (data.flags && data.flags.requiresMedicalConsult) {
+    const risks = (data.flags.detectedRisks || []).map(r => {
+      const map = {
+        pregnancy: '임산부·수유부',
+        surgery: '수술 관련',
+        bleeding: '출혈 위험',
+        highDose: '고함량',
+        chronicDisease: '만성질환'
+      };
+      return map[r] || r;
+    }).join(', ');
+    alertBox.innerHTML = `
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <div><strong>의사·약사 상담을 권장합니다</strong><br>
+        ${escapeHtml(risks)} 관련 키워드가 감지되었어요. 복용 전 전문가와 상담하세요.</div>
+      </div>`;
+  } else {
+    alertBox.innerHTML = '';
+  }
+
+  // 답변
+  const answerEl = document.getElementById('answerContent');
+  if (data.answer) {
+    let sourcesHtml = '';
+    if (data.sources && (data.sources.knowledge && data.sources.knowledge.length > 0 || data.sources.faq && data.sources.faq.length > 0)) {
+      const allSources = [];
+      (data.sources.knowledge || []).forEach(k => {
+        allSources.push(`<span class="source-chip">📚 ${escapeHtml(k.id)}</span>`);
+      });
+      (data.sources.faq || []).forEach(f => {
+        allSources.push(`<span class="source-chip">💬 ${escapeHtml(f.id)}</span>`);
+      });
+      if (allSources.length > 0) {
+        sourcesHtml = `
+          <div class="answer-sources">
+            <div class="answer-sources-title">근거 출처</div>
+            <div class="source-list">${allSources.join('')}</div>
+          </div>`;
+      }
+    }
+    
+    answerEl.innerHTML = `
+      <article class="answer-section">
+        <div class="answer-eyebrow">
+          <span class="answer-eyebrow-dot"></span>
+          AI 답변
+        </div>
+        <div class="answer-text">${escapeHtml(data.answer)}</div>
+        ${sourcesHtml}
+      </article>`;
+  } else {
+    answerEl.innerHTML = '';
+  }
+
+  // 추천
+  const recEl = document.getElementById('recommendContent');
+  if (data.recommendation && data.recommendation.top3 && data.recommendation.top3.length > 0) {
+    const rec = data.recommendation;
+    const top3Html = rec.top3.map(p => {
+      const ks = p.keySpec || {};
+      const tier = ks.tier || '';
+      const tags = [];
+      if (tier) tags.push(`<span class="product-tag">${escapeHtml(tier)}</span>`);
+      if (ks.form) tags.push(`<span class="product-tag">${escapeHtml(ks.form)}</span>`);
+      const firstCert = firstOf(ks.certs);
+      if (firstCert) tags.push(`<span class="product-tag">${escapeHtml(firstCert)}</span>`);
+      
+      return `
+        <article class="product-card rank-${p.rank}">
+          <div class="product-card-row">
+            <div class="product-rank-badge">${p.rank}</div>
+            <div class="product-info">
+              <div class="product-name">${escapeHtml(p.name)}</div>
+              <div class="product-meta">
+                1일 ${safeNum(ks.dailyMg).toLocaleString()}mg · ${safeNum(ks.dailyCost).toLocaleString()}원
+              </div>
+              <div class="product-tags">${tags.join('')}</div>
+            </div>
+            <div class="product-vscore-side">
+              <div class="product-vscore-num">${p.vScore}</div>
+              <div class="product-vscore-cap">V-Score</div>
+            </div>
+          </div>
+          <div class="product-card-actions">
+            ${p.coupangLink
+              ? `<a class="btn-mini primary" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">🛒 쿠팡에서 보기</a>`
+              : `<button class="btn-mini primary" disabled>링크 없음</button>`}
+            <a class="btn-mini secondary" href="/app.html?profile=${rec.profile.id}">📋 자세히 보기</a>
+          </div>
+        </article>`;
+    }).join('');
+
+    const top3Ids = rec.top3.map(p => p.id).join(',');
+    
+    recEl.innerHTML = `
+      <section class="recommend-section">
+        <div class="recommend-header">
+          <div>
+            <div class="recommend-title">💊 관련 제품 추천</div>
+            <div class="recommend-subtitle">${rec.totalCount}개 중 ${rec.filteredCount}개 분석</div>
+          </div>
+          <span class="profile-tag">${escapeHtml(rec.profile.label)}</span>
+        </div>
+        ${top3Html}
+        <div class="compare-cta">
+          <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${rec.profile.id}">
+            🔍 Top 3 비교
+          </a>
+          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${rec.profile.id}">
+            ✏️ 직접 선택
+          </a>
+        </div>
+      </section>`;
+  } else if (data.category !== 'out_of_scope') {
+    recEl.innerHTML = `
+      <div class="empty-recommendation">
+        💊 추천할 제품이 없어요. 다른 키워드로 검색해보세요.
+      </div>`;
+  } else {
+    recEl.innerHTML = '';
+  }
+
+  // 면책
+  document.getElementById('disclaimer').textContent = data.disclaimer || '';
+}
+
+function showError(msg) {
+  document.getElementById('answerContent').innerHTML = `
+    <div class="error-box">⚠️ ${escapeHtml(msg)}</div>`;
+  document.getElementById('screenLoading').classList.remove('active');
+  document.getElementById('screenResult').classList.add('active');
+}
+</script>
+</body>
+</html>
