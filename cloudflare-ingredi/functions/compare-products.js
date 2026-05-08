@@ -157,7 +157,15 @@ export async function onRequest(context) {
 
     const f = found.fields || {};
     const productName = getField(f, "\uC81C\uD488\uBA85", "name") || "";
-    const imageUrl = getField(f, "\uC774\uBBF8\uC9C0URL", "imageUrl") || "";
+    let imageUrl = getField(f, "이미지URL", "imageUrl", "image", "이미지", "photo") || "";
+    if (Array.isArray(imageUrl) && imageUrl.length > 0) {
+      const att = imageUrl[0];
+      if (att.thumbnails && att.thumbnails.large) imageUrl = att.thumbnails.large.url;
+      else if (att.url) imageUrl = att.url;
+      else imageUrl = "";
+    } else if (typeof imageUrl === 'object' && imageUrl !== null) {
+      imageUrl = imageUrl.url || "";
+    }
     const dailyMg = parseFloat(getField(f, "EPA_DHA_\uD569\uACC4_mg")) || 0;
     const epaMg = parseFloat(getField(f, "EPA_mg")) || 0;
     const dhaMg = parseFloat(getField(f, "DHA_mg")) || 0;
