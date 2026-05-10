@@ -567,7 +567,13 @@ async function loadComparison(ids) {
   showScreen('Loading');
   try {
     const res = await fetch(`${API_BASE}/compare-products?ids=${ids}&profile=${profile}`);
+    if (!res.ok) {
+      console.error('compare-products API status:', res.status);
+      showError('API 응답 오류: ' + res.status);
+      return;
+    }
     const data = await res.json();
+    console.log('compare-products data received:', data);
     
     if (data.error) {
       showError(data.message || '비교 데이터를 불러올 수 없습니다.');
@@ -577,26 +583,33 @@ async function loadComparison(ids) {
     renderComparison(data);
     showScreen('Compare');
   } catch (err) {
-    showError('비교 데이터를 불러올 수 없습니다.');
+    console.error('loadComparison error:', err);
+    showError('에러: ' + (err.message || '비교 데이터를 불러올 수 없습니다.'));
   }
 }
 
 function renderComparison(data) {
-  document.getElementById('compareTitle').textContent = 
-    `${data.products.filter(p => !p.error).length}개 제품 비교`;
-  document.getElementById('compareMeta').textContent = 
-    `${data.profile.label} 기준`;
-  document.getElementById('changeBtn').onclick = () => {
-    window.location.href = `/compare.html?mode=select&profile=${data.profile.id}`;
-  };
-  
-  const valid = data.products.filter(p => !p.error);
-  const winners = data.winners || {};
-  const cols = valid.length;
-  
-  let html = '';
-  
-  html += `<div class="product-headers" style="grid-template-columns: repeat(${cols}, 1fr);">`;
+  try {
+    document.getElementById('compareTitle').textContent = 
+      `${data.products.filter(p => !p.error).length}개 제품 비교`;
+    document.getElementById('compareMeta').textContent = 
+      `${data.profile.label} 기준`;
+    document.getElementById('changeBtn').onclick = () => {
+      window.location.href = `/compare.html?mode=select&profile=${data.profile.id}`;
+    };
+    
+    const valid = data.products.filter(p => !p.error);
+    const winners = data.winners || {};
+    const cols = valid.length;
+    
+    if (valid.length === 0) {
+      showError('비교할 수 있는 제품이 없습니다.');
+      return;
+    }
+    
+    let html = '';
+    
+    html += `<div class="product-headers" style="grid-template-columns: repeat(${cols}, 1fr);">`;
   valid.forEach((p, idx) => {
     const imageHtml = p.image
       ? `<img class="product-header-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'product-header-image-fallback\\'>💊</div>'">`
@@ -731,6 +744,10 @@ function renderComparison(data) {
   
   document.getElementById('compareContent').innerHTML = html;
   document.getElementById('compareDisclaimer').textContent = data.disclaimer || '';
+  } catch (err) {
+    console.error('renderComparison error:', err);
+    showError('렌더링 에러: ' + (err.message || ''));
+  }
 }
 
 function renderInsights(products, winners) {
