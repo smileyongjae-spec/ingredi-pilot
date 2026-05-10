@@ -544,10 +544,6 @@
       padding: 10px;
       margin-bottom: 8px;
       transition: box-shadow 0.2s ease;
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-      display: block;
     }
     .rest-card:hover { box-shadow: var(--shadow-sm); }
     .rest-card-row {
@@ -573,7 +569,7 @@
       justify-content: center;
       font-size: 22px;
     }
-    .rest-info { flex: 1; min-width: 0; }
+    .rest-info { flex: 1; min-width: 0; position: relative; }
     .rest-meta-row {
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 3px;
@@ -594,10 +590,176 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      padding-right: 50px;
     }
     .rest-detail {
       font-size: 10px; color: var(--ink-soft);
     }
+    .rest-expand-btn {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      background: transparent;
+      color: #B4B2A9;
+      border: 1px solid var(--line-soft);
+      border-radius: 100px;
+      font-size: 9px;
+      font-weight: 400;
+      padding: 2px 7px;
+      cursor: pointer;
+      font-family: inherit;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 1px;
+      white-space: nowrap;
+      height: 14px;
+      transition: all 0.15s ease;
+    }
+    .rest-expand-btn:hover {
+      background: var(--green-bg);
+      color: var(--green-primary);
+      border-color: var(--green-primary);
+    }
+    
+    /* 펼침 상태 - Top 3와 동일 가로형 카드 */
+    .rest-card.expanded {
+      background: white;
+      border: 1.5px solid var(--green-primary);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: var(--shadow-md);
+    }
+    .rest-card.expanded .rest-card-row { display: none; }
+    .rest-card.expanded .expanded-content { display: block; animation: expandIn 0.3s ease; }
+    .rest-card .expanded-content { display: none; }
+    @keyframes expandIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .expanded-card-row {
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .expanded-image-wrap {
+      width: 96px; flex-shrink: 0; position: relative;
+    }
+    .expanded-image {
+      width: 96px; height: 120px;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+      background: var(--green-bg);
+      display: block;
+    }
+    .expanded-image-fallback {
+      width: 96px; height: 120px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #E8F1EA 0%, #D9DDD7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+    .expanded-rank-badge {
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--green-primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      z-index: 2;
+    }
+    .expanded-info {
+      flex: 1; min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .expanded-info-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 8px;
+    }
+    .expanded-rank-pill {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 4px;
+      background: var(--green-primary);
+      color: white;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+    .expanded-name {
+      font-size: 13px; font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      line-height: 1.35;
+    }
+    .expanded-spec {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 8px;
+      background: var(--green-bg);
+      border-radius: 6px;
+    }
+    .expanded-spec-label {
+      font-size: 9px;
+      color: var(--ink-faint);
+      letter-spacing: 0.02em;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 1px;
+    }
+    .expanded-spec-value {
+      font-size: 11px;
+      color: var(--green-deep);
+      font-weight: 700;
+    }
+    .expanded-tags {
+      display: flex; flex-wrap: wrap; gap: 3px;
+    }
+    .expanded-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .btn-collapse {
+      background: var(--line-soft);
+      color: var(--ink-soft);
+      border: none;
+      border-radius: 6px;
+      padding: 9px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: -0.01em;
+      transition: all 0.15s ease;
+    }
+    .btn-collapse:hover { background: var(--line); }
+    .btn-coupang-expanded {
+      background: var(--green-primary);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      padding: 9px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      transition: all 0.15s ease;
+    }
+    .btn-coupang-expanded:hover { background: var(--green-deep); }
     
     .alert {
       padding: 12px 14px; border-radius: var(--radius-sm);
@@ -952,18 +1114,28 @@ function renderProductCard(p) {
     </article>`;
 }
 
-// ========== 4위 이하 카드 (작은 가로형) ==========
+// ========== 4위 이하 카드 (자세히 버튼 + 펼치기) ==========
 function renderRestCard(r) {
   const link = r.coupangLink || '';
-  const linkAttr = link ? `href="${escapeHtml(link)}" target="_blank" rel="noopener"` : 'href="#" onclick="return false;"';
   const imageHtml = r.image
     ? `<img class="rest-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name || '')}" onerror="this.outerHTML='<div class=\\'rest-image-fallback\\'>💊</div>'">`
     : `<div class="rest-image-fallback">💊</div>`;
+  const expandedImageHtml = r.image
+    ? `<img class="expanded-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name || '')}" onerror="this.outerHTML='<div class=\\'expanded-image-fallback\\'>💊</div>'">`
+    : `<div class="expanded-image-fallback">💊</div>`;
   
   const tier = r.tier ? ` · ${escapeHtml(r.tier)}` : '';
+  const productId = r.id || `rest-${r.rank}`;
+  
+  // 태그 생성 (Tier, 제형, 원료사)
+  const tags = [];
+  if (r.tier) tags.push(`<span class="product-tag">${escapeHtml(r.tier)}</span>`);
+  if (r.form) tags.push(`<span class="product-tag">${escapeHtml(r.form)}</span>`);
+  if (r.supplier) tags.push(`<span class="product-tag">${escapeHtml(r.supplier)}</span>`);
+  const tagsHtml = tags.join('');
   
   return `
-    <a class="rest-card" ${linkAttr}>
+    <article class="rest-card" id="rest-${productId}">
       <div class="rest-card-row">
         <div class="rest-image-wrap">
           ${imageHtml}
@@ -975,10 +1147,54 @@ function renderRestCard(r) {
           </div>
           <div class="rest-name">${escapeHtml(r.name || '제품명 미상')}</div>
           <div class="rest-detail">V-Score${tier}</div>
+          <button class="rest-expand-btn" onclick="toggleExpand('${productId}')">자세히 ▼</button>
         </div>
       </div>
-    </a>`;
+      <div class="expanded-content">
+        <div class="expanded-card-row">
+          <div class="expanded-image-wrap">
+            ${expandedImageHtml}
+            <span class="expanded-rank-badge">${r.rank}</span>
+          </div>
+          <div class="expanded-info">
+            <div class="expanded-info-top">
+              <span class="expanded-rank-pill">${r.rank}위</span>
+              <div class="product-vscore-block">
+                <div class="product-vscore-num">${r.vScore || 0}</div>
+                <div class="product-vscore-cap">V-SCORE</div>
+              </div>
+            </div>
+            <div class="expanded-name">${escapeHtml(r.name || '제품명 미상')}</div>
+            <div class="expanded-spec">
+              <div>
+                <div class="expanded-spec-label">EPA+DHA</div>
+                <div class="expanded-spec-value">${safeNum(r.dailyMg).toLocaleString()}mg</div>
+              </div>
+              <div>
+                <div class="expanded-spec-label">1일 비용</div>
+                <div class="expanded-spec-value">${safeNum(r.dailyCost).toLocaleString()}원</div>
+              </div>
+            </div>
+            <div class="expanded-tags">${tagsHtml}</div>
+          </div>
+        </div>
+        <div class="expanded-actions">
+          <button class="btn-collapse" onclick="toggleExpand('${productId}')">▲ 접기</button>
+          ${link
+            ? `<a class="btn-coupang-expanded" href="${escapeHtml(link)}" target="_blank" rel="noopener">🛒 쿠팡에서 보기</a>`
+            : `<button class="btn-coupang-expanded" disabled style="background:var(--line);color:var(--ink-faint);">링크 없음</button>`}
+        </div>
+      </div>
+    </article>`;
 }
+
+// 4위 이하 카드 펼치기/접기 토글
+function toggleExpand(productId) {
+  const card = document.getElementById('rest-' + productId);
+  if (!card) return;
+  card.classList.toggle('expanded');
+}
+window.toggleExpand = toggleExpand;
 
 async function explainProduct(productId) {
   const expEl = document.getElementById('exp-' + productId);
