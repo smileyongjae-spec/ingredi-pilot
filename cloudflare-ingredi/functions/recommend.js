@@ -382,6 +382,10 @@ export async function onRequest(context) {
       image: item.imageUrl || "",
       vScore: item.scores.total,
       tier: item.tier || "",
+      dailyMg: item.dailyMg || 0,
+      dailyCost: item.dailyCost || 0,
+      form: item.form || "",
+      supplier: item.supplier || "",
       coupangLink: item.coupangLink
     };
   });
