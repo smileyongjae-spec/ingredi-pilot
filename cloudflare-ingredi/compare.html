@@ -206,6 +206,247 @@
     }
     .compare-action-btn:hover { background: rgba(255,255,255,0.25); }
 
+    /* ========== 통합 그리드 (헤더 + 핵심 스펙 일관) ========== */
+    .unified-grid {
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .unified-header {
+      display: grid;
+      gap: 1px;
+      background: var(--line-soft);
+    }
+    .unified-row {
+      display: grid;
+      gap: 1px;
+      background: var(--line-soft);
+      border-top: 1px solid var(--line-soft);
+    }
+    .unified-row.unified-last {
+      border-bottom: none;
+    }
+    .unified-cell {
+      background: white;
+      padding: 9px 6px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+    }
+    .unified-cell.label-cell {
+      background: var(--green-bg);
+      font-size: 10px;
+      color: var(--ink-soft);
+      font-weight: 600;
+      justify-content: center;
+      align-items: flex-start;
+      padding-left: 12px;
+    }
+    .unified-cell.unified-product-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .unified-cell.winner {
+      background: var(--winner-bg);
+      font-weight: 700;
+      position: relative;
+    }
+    .unified-cell.winner::after {
+      content: '🏆';
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 9px;
+    }
+    .unified-cell-main {
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 12px;
+    }
+    
+    /* 헤더 셀 (제품 이미지 + 정보) */
+    .unified-h-cell {
+      padding: 8px 6px;
+      min-height: auto;
+    }
+    .unified-h-cell.rank-1 {
+      background: #FEFAF1;
+      border-top: 2px solid var(--gold);
+    }
+    .unified-h-cell.rank-2 {
+      background: white;
+      border-top: 2px solid var(--silver);
+    }
+    .unified-h-cell.rank-3 {
+      background: white;
+      border-top: 2px solid var(--bronze);
+    }
+    .unified-rank-pill {
+      display: inline-block;
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: white;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: 0.04em;
+    }
+    .unified-rank-pill.rank-1 { background: var(--gold); }
+    .unified-rank-pill.rank-2 { background: var(--silver); }
+    .unified-rank-pill.rank-3 { background: var(--bronze); }
+    
+    .unified-h-image {
+      width: 70px;
+      height: 90px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: var(--green-bg);
+      display: block;
+      margin: 0 auto 5px;
+    }
+    .unified-h-image-fallback {
+      width: 70px;
+      height: 90px;
+      border-radius: 6px;
+      background: var(--green-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 5px;
+    }
+    .unified-h-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.3;
+      min-height: 26px;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .unified-h-score {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--green-deep);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .unified-h-score-cap {
+      font-size: 8px;
+      color: var(--ink-faint);
+      letter-spacing: 0.06em;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    
+    /* ========== V-Score 등급 (옵션 2) ========== */
+    .section-title-grade {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--green-deep);
+      letter-spacing: 0.04em;
+      padding-left: 4px;
+      margin: 16px 0 8px;
+    }
+    .grade-grid {
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .grade-row {
+      display: grid;
+      gap: 1px;
+      background: var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .grade-row:last-child { border-bottom: none; }
+    .grade-row.grade-first { border-top: none; }
+    
+    .grade-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 24px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: -0.02em;
+      border: 1px solid;
+    }
+    .pill-A {
+      background: var(--green-bg);
+      color: var(--green-deep);
+      border-color: #C0DDC8;
+    }
+    .pill-B {
+      background: white;
+      color: var(--green-primary);
+      border-color: var(--line);
+    }
+    .pill-C {
+      background: white;
+      color: var(--ink-faint);
+      border-color: var(--line-soft);
+    }
+    .pill-D {
+      background: white;
+      color: #B4B2A9;
+      border-color: var(--line-soft);
+    }
+    .pill-F {
+      background: #FAFAF8;
+      color: #D9DDD7;
+      border-color: var(--line-soft);
+    }
+    
+    .grade-row.grade-total .unified-cell {
+      background: var(--green-light);
+    }
+    .grade-row.grade-total .unified-cell.label-cell {
+      background: var(--green-light);
+      font-weight: 700;
+    }
+    .grade-row.grade-total .unified-cell.winner {
+      background: var(--winner-bg);
+    }
+    .grade-row.grade-total .total-label {
+      font-weight: 700;
+    }
+    .total-num {
+      font-weight: 800;
+      color: var(--green-deep);
+      font-size: 16px;
+    }
+    
+    .grade-legend-simple {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      font-size: 10px;
+      color: var(--ink-soft);
+      margin: 8px 0 0;
+    }
+    .grade-legend-simple span {
+      white-space: nowrap;
+    }
+
     /* ========== 제품 헤더 카드 (이미지 포함) ========== */
     .product-headers {
       display: grid; gap: 8px;
@@ -607,147 +848,167 @@ function renderComparison(data) {
       return;
     }
     
+    const labelColW = '80px';
+    const gridCols = `${labelColW} repeat(${cols}, 1fr)`;
+    
     let html = '';
     
-    html += `<div class="product-headers" style="grid-template-columns: repeat(${cols}, 1fr);">`;
-  valid.forEach((p, idx) => {
-    const imageHtml = p.image
-      ? `<img class="product-header-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'product-header-image-fallback\\'>💊</div>'">`
-      : `<div class="product-header-image-fallback">💊</div>`;
-    html += `
-      <div class="product-header-card rank-${idx + 1}">
-        <span class="product-header-rank">${idx + 1}위</span>
-        ${imageHtml}
-        <div class="product-header-name">${escapeHtml(p.name)}</div>
-        <div class="product-header-score">${p.vScore}</div>
-        <div class="product-header-score-label">V-SCORE</div>
-      </div>`;
-  });
-  html += '</div>';
-  
-  html += `<section class="compare-section">
-    <h3 class="compare-section-title">📊 핵심 스펙</h3>
-    <div class="compare-table">`;
-  
-  const specRows = [
-    {
-      label: '1일 EPA+DHA',
-      values: valid.map(p => p.keySpec.dailyMg ? `${p.keySpec.dailyMg.toLocaleString()}mg` : '-'),
-      winnerIds: winners.dose || []
-    },
-    {
-      label: '1일 비용',
-      values: valid.map(p => p.keySpec.dailyCost ? `${p.keySpec.dailyCost.toLocaleString()}원` : '-'),
-      winnerIds: winners.price || []
-    },
-    {
-      label: '1일 캡슐',
-      values: valid.map(p => p.keySpec.dailyCapsules ? `${p.keySpec.dailyCapsules}캡슐` : '-')
-    },
-    {
-      label: '제형',
-      values: valid.map(p => p.keySpec.form || '-')
-    },
-    {
-      label: '원료사',
-      values: valid.map(p => p.keySpec.supplier || '-')
-    },
-    {
-      label: '인증',
-      values: valid.map(p => p.keySpec.certs || '-'),
-      winnerIds: winners.cert || []
-    },
-    {
-      label: '리뷰수',
-      values: valid.map(p => p.keySpec.reviews ? p.keySpec.reviews.toLocaleString() : '-'),
-      winnerIds: winners.reviews || []
-    },
-    {
-      label: 'Tier',
-      values: valid.map(p => p.tier || '-')
-    }
-  ];
-  
-  specRows.forEach(row => {
-    html += `<div class="compare-row" style="grid-template-columns: 92px repeat(${cols}, 1fr);">`;
-    html += `<div class="compare-cell label-cell">${row.label}</div>`;
+    html += `<section class="unified-grid">`;
+    html += `<div class="unified-header" style="grid-template-columns: ${gridCols};">`;
+    html += `<div class="unified-cell label-cell unified-product-label">제품</div>`;
     valid.forEach((p, idx) => {
-      const isWinner = row.winnerIds && row.winnerIds.indexOf(p.id) !== -1 && row.winnerIds.length < cols;
-      html += `<div class="compare-cell ${isWinner ? 'winner' : ''}">
-        <span class="compare-cell-main">${escapeHtml(row.values[idx])}</span>
-      </div>`;
+      const rankClass = `rank-${idx + 1}`;
+      const rankLabel = `${idx + 1}위`;
+      const imageHtml = p.image
+        ? `<img class="unified-h-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'unified-h-image-fallback\\'>💊</div>'">`
+        : `<div class="unified-h-image-fallback">💊</div>`;
+      html += `
+        <div class="unified-cell unified-h-cell ${rankClass}">
+          <span class="unified-rank-pill ${rankClass}">${rankLabel}</span>
+          ${imageHtml}
+          <div class="unified-h-name">${escapeHtml(p.name)}</div>
+          <div class="unified-h-score">${p.vScore}</div>
+          <div class="unified-h-score-cap">V-SCORE</div>
+        </div>`;
     });
-    html += '</div>';
-  });
-  
-  html += '</div></section>';
-  
-  html += `<section class="compare-section">
-    <h3 class="compare-section-title">📈 V-Score 세부</h3>
-    <div class="compare-table">`;
-  
-  const scoreLabels = [
-    { key: 'dose', label: '함량' },
-    { key: 'form', label: '제형' },
-    { key: 'source', label: '원료' },
-    { key: 'cert', label: '인증' },
-    { key: 'price', label: '가격' }
-  ];
-  
-  scoreLabels.forEach(s => {
-    const values = valid.map(p => p.detailScores[s.key] || 0);
-    const maxVal = Math.max(...values);
+    html += `</div>`;
     
-    html += `<div class="compare-row" style="grid-template-columns: 92px repeat(${cols}, 1fr);">`;
-    html += `<div class="compare-cell label-cell">${s.label}</div>`;
-    values.forEach((v, idx) => {
-      const isWinner = v === maxVal && values.filter(x => x === maxVal).length < cols && maxVal > 0;
-      html += `<div class="compare-cell ${isWinner ? 'winner' : ''}">
-        <span class="compare-cell-main">${v}</span>
-        <div class="score-bar-mini"><div class="score-bar-mini-fill" style="width:${v}%"></div></div>
+    const specRows = [
+      {
+        label: '1일 EPA+DHA',
+        values: valid.map(p => p.keySpec.dailyMg ? `${p.keySpec.dailyMg.toLocaleString()}mg` : '-'),
+        winnerIds: winners.dose || []
+      },
+      {
+        label: '1일 비용',
+        values: valid.map(p => p.keySpec.dailyCost ? `${p.keySpec.dailyCost.toLocaleString()}원` : '-'),
+        winnerIds: winners.price || []
+      },
+      {
+        label: '1일 캡슐',
+        values: valid.map(p => p.keySpec.dailyCapsules ? `${p.keySpec.dailyCapsules}캡슐` : '-')
+      },
+      {
+        label: '제형',
+        values: valid.map(p => p.keySpec.form || '-')
+      },
+      {
+        label: '원료사',
+        values: valid.map(p => p.keySpec.supplier || '-')
+      },
+      {
+        label: '인증',
+        values: valid.map(p => p.keySpec.certs || '-'),
+        winnerIds: winners.cert || []
+      },
+      {
+        label: '리뷰수',
+        values: valid.map(p => p.keySpec.reviews ? p.keySpec.reviews.toLocaleString() : '-'),
+        winnerIds: winners.reviews || []
+      },
+      {
+        label: 'Tier',
+        values: valid.map(p => p.tier || '-')
+      }
+    ];
+    
+    specRows.forEach((row, rowIdx) => {
+      const isLast = rowIdx === specRows.length - 1;
+      const lastClass = isLast ? ' unified-last' : '';
+      html += `<div class="unified-row${lastClass}" style="grid-template-columns: ${gridCols};">`;
+      html += `<div class="unified-cell label-cell">${row.label}</div>`;
+      valid.forEach((p, idx) => {
+        const isWinner = row.winnerIds && row.winnerIds.indexOf(p.id) !== -1 && row.winnerIds.length < cols;
+        html += `<div class="unified-cell ${isWinner ? 'winner' : ''}">
+          <span class="unified-cell-main">${escapeHtml(row.values[idx])}</span>
+        </div>`;
+      });
+      html += '</div>';
+    });
+    html += `</section>`;
+    
+    html += `<div class="section-title-grade">📈 V-Score 세부</div>`;
+    html += `<section class="grade-grid">`;
+    
+    const scoreLabels = [
+      { key: 'dose', label: '함량' },
+      { key: 'form', label: '제형' },
+      { key: 'source', label: '원료' },
+      { key: 'cert', label: '인증' },
+      { key: 'price', label: '가격' }
+    ];
+    
+    scoreLabels.forEach((s, idx) => {
+      const values = valid.map(p => p.detailScores[s.key] || 0);
+      const maxVal = Math.max.apply(null, values);
+      const isFirst = idx === 0;
+      const firstClass = isFirst ? ' grade-first' : '';
+      
+      html += `<div class="grade-row${firstClass}" style="grid-template-columns: ${gridCols};">`;
+      html += `<div class="unified-cell label-cell">${s.label}</div>`;
+      values.forEach((v, vIdx) => {
+        const isWinner = v === maxVal && values.filter(x => x === maxVal).length < cols && maxVal > 0;
+        const grade = scoreToGrade(v);
+        html += `<div class="unified-cell ${isWinner ? 'winner' : ''}">
+          <span class="grade-pill pill-${grade}">${grade}</span>
+        </div>`;
+      });
+      html += '</div>';
+    });
+    
+    const totals = valid.map(p => p.vScore);
+    const maxTotal = Math.max.apply(null, totals);
+    html += `<div class="grade-row grade-total" style="grid-template-columns: ${gridCols};">`;
+    html += `<div class="unified-cell label-cell total-label">종합</div>`;
+    totals.forEach((t, idx) => {
+      const isWinner = t === maxTotal && totals.filter(x => x === maxTotal).length < cols;
+      html += `<div class="unified-cell ${isWinner ? 'winner' : ''}">
+        <span class="total-num">${t}</span>
       </div>`;
     });
     html += '</div>';
-  });
-  
-  const totals = valid.map(p => p.vScore);
-  const maxTotal = Math.max(...totals);
-  html += `<div class="compare-row" style="grid-template-columns: 92px repeat(${cols}, 1fr); border-top: 2px solid var(--green-primary);">`;
-  html += `<div class="compare-cell label-cell" style="background: var(--green-light); font-weight: 700;">종합</div>`;
-  totals.forEach((t, idx) => {
-    const isWinner = t === maxTotal && totals.filter(x => x === maxTotal).length < cols;
-    html += `<div class="compare-cell ${isWinner ? 'winner' : ''}" style="background: ${isWinner ? 'var(--winner-bg)' : 'var(--green-light)'};">
-      <span class="compare-cell-main" style="font-size: 16px; color: var(--green-deep);">${t}</span>
+    html += `</section>`;
+    
+    html += `<div class="grade-legend-simple">
+      <span>A&nbsp;90~100</span>
+      <span>B&nbsp;75~89</span>
+      <span>C&nbsp;60~74</span>
+      <span>D&nbsp;40~59</span>
+      <span>F&nbsp;0~39</span>
     </div>`;
-  });
-  html += '</div>';
-  
-  html += '</div></section>';
-  
-  html += renderInsights(valid, winners);
-  
-  html += '<div class="compare-actions">';
-  valid.forEach((p, idx) => {
-    if (p.coupangLink) {
-      html += `<a class="compare-action-link" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">
-        <span class="compare-action-link-name">${idx + 1}위 · ${escapeHtml(p.name)}</span>
-        🛒 쿠팡에서 보기
-      </a>`;
-    } else {
-      html += `<div class="compare-action-link disabled">
-        <span class="compare-action-link-name">${idx + 1}위 · ${escapeHtml(p.name)}</span>
-        링크 없음
-      </div>`;
-    }
-  });
-  html += '</div>';
-  
-  document.getElementById('compareContent').innerHTML = html;
-  document.getElementById('compareDisclaimer').textContent = data.disclaimer || '';
+    
+    html += renderInsights(valid, winners);
+    
+    html += '<div class="compare-actions">';
+    valid.forEach((p, idx) => {
+      if (p.coupangLink) {
+        html += `<a class="compare-action-link" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">
+          <span class="compare-action-link-name">${idx + 1}위 · ${escapeHtml(p.name)}</span>
+          🛒 쿠팡에서 보기
+        </a>`;
+      } else {
+        html += `<div class="compare-action-link disabled">
+          <span class="compare-action-link-name">${idx + 1}위 · ${escapeHtml(p.name)}</span>
+          링크 없음
+        </div>`;
+      }
+    });
+    html += '</div>';
+    
+    document.getElementById('compareContent').innerHTML = html;
+    document.getElementById('compareDisclaimer').textContent = data.disclaimer || '';
   } catch (err) {
     console.error('renderComparison error:', err);
     showError('렌더링 에러: ' + (err.message || ''));
   }
+}
+
+function scoreToGrade(score) {
+  if (score >= 90) return 'A';
+  if (score >= 75) return 'B';
+  if (score >= 60) return 'C';
+  if (score >= 40) return 'D';
+  return 'F';
 }
 
 function renderInsights(products, winners) {
