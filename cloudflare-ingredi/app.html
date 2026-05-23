@@ -431,6 +431,52 @@
       flex-wrap: wrap;
       gap: 3px;
     }
+    /* 캡슐 크기 미니 띠 */
+    .capsule-bar {
+      margin-top: 8px;
+    }
+    .capsule-bar-label {
+      font-size: 9px;
+      color: var(--ink-faint);
+      font-weight: 600;
+      margin-bottom: 5px;
+      letter-spacing: -0.01em;
+    }
+    .capsule-bar-label b {
+      color: var(--ink-soft);
+      font-weight: 700;
+    }
+    .capsule-bar-track {
+      position: relative;
+      height: 18px;
+    }
+    .capsule-bar-line {
+      position: absolute;
+      top: 4px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--line);
+    }
+    .capsule-bar-dot {
+      position: absolute;
+      top: -1px;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--ink);
+      border: 2px solid white;
+      transform: translateX(-50%);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .capsule-bar-ends {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 7px;
+      font-size: 9px;
+      color: var(--ink-faint);
+    }
     .product-tag {
       font-size: 9px;
       font-weight: 600;
@@ -923,6 +969,29 @@ function safeNum(value, fallback = 0) {
   return isNaN(n) ? fallback : n;
 }
 
+// 캡슐 크기 미니 띠 (인바디 스타일 - 점 하나)
+let capsuleDist = { min: 0, max: 0, count: 0 };
+function renderCapsuleBar(keySpec) {
+  const mg = safeNum(keySpec.capsuleMg);
+  const pos = keySpec.capsulePosition;
+  if (!mg || pos == null) return '';
+  const grade = keySpec.capsuleGrade || '';
+  const minV = capsuleDist.min || 0;
+  const maxV = capsuleDist.max || 0;
+  return `
+    <div class="capsule-bar">
+      <div class="capsule-bar-label">캡슐 크기 <b>${mg.toLocaleString()}mg</b>${grade ? ' · ' + escapeHtml(grade) : ''}</div>
+      <div class="capsule-bar-track">
+        <div class="capsule-bar-line"></div>
+        <div class="capsule-bar-dot" style="left:${pos}%"></div>
+      </div>
+      <div class="capsule-bar-ends">
+        <span>작음 ${minV.toLocaleString()}mg</span>
+        <span>${maxV.toLocaleString()}mg 큼</span>
+      </div>
+    </div>`;
+}
+
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
@@ -965,6 +1034,7 @@ async function fetchRecommendation(profile) {
     const res = await fetch(url);
     if (!res.ok) throw new Error('Server error: ' + res.status);
     const data = await res.json();
+    if (data.capsuleDistribution) capsuleDist = data.capsuleDistribution;
     renderResult(data);
     showScreen('result');
   } catch (err) {
@@ -1099,6 +1169,7 @@ function renderProductCard(p) {
             </div>
           </div>
           <div class="product-tags">${tierTag}${formTag}${certsTag}${highDoseTag}</div>
+          ${renderCapsuleBar(keySpec)}
         </div>
       </div>
       <div class="product-scores" id="scores-${productId}">${scoreBars}</div>
@@ -1176,6 +1247,7 @@ function renderRestCard(r) {
               </div>
             </div>
             <div class="expanded-tags">${tagsHtml}</div>
+            ${renderCapsuleBar({ capsuleMg: r.capsuleMg, capsulePosition: r.capsulePosition, capsuleGrade: r.capsuleGrade })}
           </div>
         </div>
         <div class="expanded-actions">
