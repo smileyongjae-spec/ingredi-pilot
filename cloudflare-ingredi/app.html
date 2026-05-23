@@ -560,6 +560,32 @@
     .btn-secondary:hover { background: #DCE9DF; }
     .btn-primary { background: var(--green-primary); color: white; }
     .btn-primary:hover { background: var(--green-deep); }
+    .btn-fit {
+      display: flex; align-items: center; justify-content: center; gap: 3px;
+      width: 100%; margin-top: 6px; padding: 9px 10px;
+      border: 1px solid #97C459; border-radius: 6px;
+      background: #EAF3DE; color: #27500A;
+      font-family: inherit; font-size: 11px; font-weight: 700;
+      letter-spacing: -0.01em; text-decoration: none; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-fit:hover { background: #DCEEC8; }
+    .profile-switch {
+      display: flex; gap: 6px; overflow-x: auto; padding: 0 0 4px;
+      margin-bottom: 14px; -webkit-overflow-scrolling: touch;
+    }
+    .profile-switch::-webkit-scrollbar { display: none; }
+    .profile-switch-btn {
+      flex-shrink: 0; padding: 7px 13px; border-radius: 100px;
+      border: 1.5px solid var(--line-soft); background: white;
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      color: var(--ink-soft); cursor: pointer; white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .profile-switch-btn:hover { border-color: var(--green-mid); }
+    .profile-switch-btn.active {
+      background: var(--green-primary); border-color: var(--green-primary); color: white;
+    }
     .btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
     .btn:active:not(:disabled) { transform: scale(0.97); }
     
@@ -959,6 +985,7 @@
       <div class="result-header-title" id="resultTitle">균형형 추천</div>
       <div class="result-header-meta" id="resultMeta">총 14개 제품 분석</div>
     </div>
+    <div class="profile-switch" id="profileSwitch"></div>
     <div id="resultMedicalAlert"></div>
     <div id="resultProducts"></div>
     <div id="resultCompareEntry"></div>
@@ -1071,10 +1098,31 @@ async function fetchRecommendation(profile) {
   }
 }
 
+// 결과 화면 프로필 전환 버튼 (주요 프로필 + 현재 선택 강조)
+var SWITCH_PROFILES = [
+  { id: 'premium_seeker', label: '⭐ 최고품질' },
+  { id: 'budget_seeker', label: '💰 가성비' },
+  { id: 'balanced', label: '⚖️ 균형형' },
+  { id: 'senior', label: '👴 시니어' },
+  { id: 'pregnancy', label: '🤰 임산부' },
+  { id: 'vegan', label: '🌱 비건' },
+  { id: 'kid', label: '👶 어린이' }
+];
+function renderProfileSwitch(current) {
+  var box = document.getElementById('profileSwitch');
+  if (!box) return;
+  box.innerHTML = SWITCH_PROFILES.map(function(p) {
+    var active = (p.id === current) ? ' active' : '';
+    return '<button class="profile-switch-btn' + active + '" onclick="fetchRecommendation(\'' + p.id + '\')">' + p.label + '</button>';
+  }).join('');
+}
+
 function renderResult(data) {
   document.getElementById('resultTitle').textContent = (data.profile && data.profile.label) || '추천 결과';
   document.getElementById('resultMeta').textContent =
     `총 ${data.totalProducts || 0}개 중 ${data.filteredCount || 0}개 분석 · ${data.excludedCount || 0}개 제외`;
+
+  renderProfileSwitch((data.profile && data.profile.id) || lastProfile);
 
   const alertBox = document.getElementById('resultMedicalAlert');
   if (data.medicalConsult) {
@@ -1202,6 +1250,9 @@ function renderProductCard(p) {
           ? `<a class="btn btn-primary" href="${escapeHtml(link)}" target="_blank" rel="noopener">🛒 쿠팡에서 보기</a>`
           : `<button class="btn btn-primary" disabled>링크 없음</button>`}
       </div>
+      <a class="btn btn-fit" href="/fit.html?add=${encodeURIComponent('오메가3')}">
+        🧩 지금 먹는 영양제와 같이 먹어도 될까?
+      </a>
     </article>`;
 }
 
