@@ -193,7 +193,7 @@ export async function onRequest(context) {
     const knowledgeUrl = "https://api.airtable.com/v0/" + BASE_ID + "/knowledge?maxRecords=100";
     const faqTableName = encodeURIComponent("FAQ_\uC624\uBA54\uAC003");
     const faqUrl = "https://api.airtable.com/v0/" + BASE_ID + "/" + faqTableName + "?maxRecords=100";
-    const productUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product?maxRecords=100";
+    const productUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=100";
 
     const [kRes, fRes, pRes] = await Promise.all([
       fetch(knowledgeUrl, { headers: { Authorization: "Bearer " + TOKEN } }).then(r => r.ok ? r.json() : { records: [] }).catch(() => ({ records: [] })),
