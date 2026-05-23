@@ -91,7 +91,7 @@ export async function onRequest(context) {
   }
 
   // ─── FETCH PRODUCTS FROM AIRTABLE ────────────────
-  const productsUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product?maxRecords=100";
+  const productsUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=100";
   const res = await fetch(productsUrl, {
     headers: { Authorization: "Bearer " + TOKEN }
   });
@@ -262,6 +262,8 @@ export async function onRequest(context) {
     }
     const dailyMg = parseFloat(getField(f, "EPA_DHA_\uD569\uACC4_mg", "epaDha", "EPA_DHA")) || 0;
     const dailyCapsules = parseFloat(getField(f, "1\uC77C_\uCEA1\uC290\uC218", "dailyCapsules")) || 1;
+    // \uCEA1\uC290 1\uC54C \uCD1D \uC911\uB7C9(mg) \u2014 \uCEA1\uC290 \uD06C\uAE30 \uC9C0\uD45C
+    const capsuleMg = parseFloat(getField(f, "\uCEA1\uC290\uC6A9\uB7C9_mg", "capsuleMg", "\uCEA1\uC290 \uC6A9\uB7C9 (mg)")) || 0;
     const purity = getField(f, "\uC21C\uB3C4", "purity");
     const form = getField(f, "\uC81C\uD615", "form");
     const supplier = getField(f, "\uC6D0\uB8CC\uC0AC", "supplier");
@@ -317,6 +319,7 @@ export async function onRequest(context) {
       certs: certs,
       purity: purity,
       dailyMg: dailyMg,
+      capsuleMg: capsuleMg,
       dailyCost: Math.round(dailyCost),
       scores: {
         dose: dose,
@@ -328,6 +331,41 @@ export async function onRequest(context) {
       },
       highDoseFlag: highDoseFlag
     };
+  });
+
+  // ─── \uCEA1\uC290 \uD06C\uAE30 \uBD84\uD3EC \uACC4\uC0B0 (\uCEA1\uC290\uC6A9\uB7C9 \uC788\uB294 \uC81C\uD488 \uC804\uCCB4 \uAE30\uC900) ───
+  var capsuleMgList = scored
+    .map(function(it) { return it.capsuleMg; })
+    .filter(function(m) { return m && m > 0; })
+    .sort(function(a, b) { return a - b; });
+  var capMin = capsuleMgList.length ? capsuleMgList[0] : 0;
+  var capMax = capsuleMgList.length ? capsuleMgList[capsuleMgList.length - 1] : 0;
+  var capCount = capsuleMgList.length;
+
+  function capsuleGrade(mg) {
+    if (!mg || mg <= 0) return null;
+    if (mg < 900) return "\uC791\uC74C";
+    if (mg < 1250) return "\uBCF4\uD1B5";
+    return "\uD070";
+  }
+  // \uB744 \uC704\uCE58(0~100%) \u2014 \uC120\uD615 \uC2A4\uCF00\uC77C
+  function capsulePosition(mg) {
+    if (!mg || mg <= 0 || capMax === capMin) return null;
+    var pos = (mg - capMin) / (capMax - capMin) * 100;
+    return Math.max(0, Math.min(100, Math.round(pos)));
+  }
+  // \uBC31\uBD84\uC704(\uD558\uC704 %) \u2014 \uC774\uBCF4\uB2E4 \uC791\uC740 \uC81C\uD488 \uBE44\uC728
+  function capsulePercentile(mg) {
+    if (!mg || mg <= 0 || capCount === 0) return null;
+    var below = capsuleMgList.filter(function(x) { return x < mg; }).length;
+    return Math.round(below / capCount * 100);
+  }
+
+  // \uAC01 \uC81C\uD488\uC5D0 \uCEA1\uC290 \uD06C\uAE30 \uC815\uBCF4 \uBD80\uC5EC
+  scored.forEach(function(it) {
+    it.capsuleGrade = capsuleGrade(it.capsuleMg);
+    it.capsulePosition = capsulePosition(it.capsuleMg);
+    it.capsulePercentile = capsulePercentile(it.capsuleMg);
   });
 
   // ─── APPLY FILTERS ──────────────────────────────
@@ -365,7 +403,11 @@ export async function onRequest(context) {
         supplier: item.supplier || "",
         certs: item.certs || "",
         purity: item.purity,
-        tier: item.tier || ""
+        tier: item.tier || "",
+        capsuleMg: item.capsuleMg || 0,
+        capsuleGrade: item.capsuleGrade,
+        capsulePosition: item.capsulePosition,
+        capsulePercentile: item.capsulePercentile
       },
       vScore: item.scores.total,
       detailScores: item.scores,
@@ -386,6 +428,10 @@ export async function onRequest(context) {
       dailyCost: item.dailyCost || 0,
       form: item.form || "",
       supplier: item.supplier || "",
+      capsuleMg: item.capsuleMg || 0,
+      capsuleGrade: item.capsuleGrade,
+      capsulePosition: item.capsulePosition,
+      capsulePercentile: item.capsulePercentile,
       coupangLink: item.coupangLink
     };
   });
@@ -397,6 +443,11 @@ export async function onRequest(context) {
       weights: profile.weights
     },
     query: query,
+    capsuleDistribution: {
+      min: capMin,
+      max: capMax,
+      count: capCount
+    },
     totalProducts: records.length,
     filteredCount: filtered.length,
     excludedCount: records.length - filtered.length,
