@@ -180,6 +180,7 @@ export async function onRequest(context) {
     const listPrice = parseFloat(getField(f, "\uC815\uAC00_\uC6D0")) || 0;
     const salePrice = parseFloat(getField(f, "\uD560\uC778\uAC00_\uC6D0")) || 0;
     const capsulesPerBottle = parseFloat(getField(f, "1\uD1B5_\uCEA1\uC290\uC218")) || 0;
+    const capsuleMg = parseFloat(getField(f, "\uCEA1\uC290\uC6A9\uB7C9_mg", "capsuleMg", "\uCEA1\uC290 \uC6A9\uB7C9 (mg)")) || 0;
     const reviews = parseFloat(getField(f, "\uB9AC\uBDF0\uC218")) || 0;
     const tier = getField(f, "Tier\uB4F1\uAE09", "tier") || "";
     const passFail = getField(f, "\uD568\uB7C9_Pass_Fail") || "";
@@ -236,7 +237,9 @@ export async function onRequest(context) {
         supplier: supplier,
         certs: certs,
         certCount: certCount,
-        reviews: reviews
+        reviews: reviews,
+        capsuleMg: capsuleMg,
+        capsuleGrade: (capsuleMg <= 0 ? null : (capsuleMg < 900 ? "\uC791\uC74C" : (capsuleMg < 1250 ? "\uBCF4\uD1B5" : "\uD070")))
       },
       highDoseFlag: highDoseFlag
     });
