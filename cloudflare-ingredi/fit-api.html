@@ -223,7 +223,7 @@
   function analyze() {
     if (supplements.length === 0) return;
     show('loadingScreen');
-    fetch('/fit', {
+    fetch('/fit-api', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ supplements: supplements, takingMedication: takingMedication })
