@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: Supplement combination fit analysis (v1)
-// File path: functions/fit.js
-// URL: /fit  (POST with JSON body: { supplements: [...], takingMedication: bool })
+// File path: functions/fit-api.js
+// URL: /fit-api  (POST with JSON body: { supplements: [...], takingMedication: bool })
 //
 // AI(Claude)가 복용 중인 영양제 조합을 받아 4개 카테고리로 분석:
 //   중복(duplication) / 과잉(excess) / 상호작용(interaction) / 시너지(synergy)
