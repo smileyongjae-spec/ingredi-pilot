@@ -128,7 +128,7 @@ export async function onRequest(context) {
   }
 
   // ─── FETCH ALL PRODUCTS ─────────────────────────
-  const productsUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product?maxRecords=100";
+  const productsUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=100";
   const res = await fetch(productsUrl, {
     headers: { Authorization: "Bearer " + TOKEN }
   });
