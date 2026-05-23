@@ -889,6 +889,11 @@ function renderComparison(data) {
         values: valid.map(p => p.keySpec.dailyCapsules ? `${p.keySpec.dailyCapsules}캡슐` : '-')
       },
       {
+        label: '캡슐 크기',
+        values: valid.map(p => p.keySpec.capsuleMg ? `${p.keySpec.capsuleMg.toLocaleString()}mg<br><span style="font-size:11px;color:var(--ink-faint);">${p.keySpec.capsuleGrade || ''}</span>` : '-'),
+        isHtml: true
+      },
+      {
         label: '제형',
         values: valid.map(p => p.keySpec.form || '-')
       },
@@ -919,8 +924,9 @@ function renderComparison(data) {
       html += `<div class="unified-cell label-cell">${row.label}</div>`;
       valid.forEach((p, idx) => {
         const isWinner = row.winnerIds && row.winnerIds.indexOf(p.id) !== -1 && row.winnerIds.length < cols;
+        const cellVal = row.isHtml ? row.values[idx] : escapeHtml(row.values[idx]);
         html += `<div class="unified-cell ${isWinner ? 'winner' : ''}">
-          <span class="unified-cell-main">${escapeHtml(row.values[idx])}</span>
+          <span class="unified-cell-main">${cellVal}</span>
         </div>`;
       });
       html += '</div>';
