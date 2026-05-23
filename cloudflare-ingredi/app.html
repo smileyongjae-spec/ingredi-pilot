@@ -570,21 +570,38 @@
       transition: all 0.15s ease;
     }
     .btn-fit:hover { background: #DCEEC8; }
-    .profile-switch {
-      display: flex; gap: 6px; overflow-x: auto; padding: 0 0 4px;
-      margin-bottom: 14px; -webkit-overflow-scrolling: touch;
+    .result-profile-head {
+      background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
+      border: 1.5px solid var(--green-mid);
+      border-radius: var(--radius-md);
+      padding: 14px; margin-bottom: 16px;
     }
-    .profile-switch::-webkit-scrollbar { display: none; }
-    .profile-switch-btn {
-      flex-shrink: 0; padding: 7px 13px; border-radius: 100px;
-      border: 1.5px solid var(--line-soft); background: white;
-      font-family: inherit; font-size: 12px; font-weight: 700;
-      color: var(--ink-soft); cursor: pointer; white-space: nowrap;
-      transition: all 0.15s ease;
+    .result-profile-eyebrow {
+      font-size: 11px; color: var(--green-primary); font-weight: 700;
+      text-align: center; margin-bottom: 10px; letter-spacing: -0.01em;
     }
-    .profile-switch-btn:hover { border-color: var(--green-mid); }
-    .profile-switch-btn.active {
-      background: var(--green-primary); border-color: var(--green-primary); color: white;
+    .profile-switch-grid { display: flex; flex-direction: column; gap: 7px; }
+    .psw-row { display: grid; gap: 7px; }
+    .psw-row.top { grid-template-columns: repeat(3, 1fr); }
+    .psw-row.bottom { grid-template-columns: repeat(4, 1fr); }
+    .psw-btn {
+      background: white; border: 1.5px solid var(--line-soft);
+      border-radius: 10px; cursor: pointer; text-align: center;
+      font-family: inherit; transition: all 0.15s ease; padding: 10px 4px;
+    }
+    .psw-btn:hover { border-color: var(--green-mid); }
+    .psw-btn:active { transform: scale(0.97); }
+    .psw-btn .psw-icon { display: block; line-height: 1; }
+    .psw-btn .psw-label { font-weight: 700; color: var(--ink-soft); }
+    .psw-row.top .psw-icon { font-size: 20px; margin-bottom: 3px; }
+    .psw-row.top .psw-label { font-size: 12px; }
+    .psw-row.bottom .psw-btn { padding: 8px 3px; }
+    .psw-row.bottom .psw-icon { font-size: 16px; margin-bottom: 2px; }
+    .psw-row.bottom .psw-label { font-size: 10px; }
+    .psw-btn.active { background: var(--green-primary); border-color: var(--green-primary); }
+    .psw-btn.active .psw-label { color: white; }
+    .result-profile-meta {
+      font-size: 11px; color: var(--ink-faint); text-align: center; margin-top: 10px;
     }
     .btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
     .btn:active:not(:disabled) { transform: scale(0.97); }
@@ -980,12 +997,11 @@
   </div>
 
   <main class="screen" id="screenResult">
-    <div class="result-header">
-      <div class="result-header-eyebrow">ingredi V-Score</div>
-      <div class="result-header-title" id="resultTitle">균형형 추천</div>
-      <div class="result-header-meta" id="resultMeta">총 14개 제품 분석</div>
+    <div class="result-profile-head">
+      <div class="result-profile-eyebrow">ingredi V-Score · 어떤 기준으로 볼까요?</div>
+      <div class="profile-switch-grid" id="profileSwitch"></div>
+      <div class="result-profile-meta" id="resultMeta">총 14개 제품 분석</div>
     </div>
-    <div class="profile-switch" id="profileSwitch"></div>
     <div id="resultMedicalAlert"></div>
     <div id="resultProducts"></div>
     <div id="resultCompareEntry"></div>
@@ -1098,27 +1114,33 @@ async function fetchRecommendation(profile) {
   }
 }
 
-// 결과 화면 프로필 전환 버튼 (주요 프로필 + 현재 선택 강조)
-var SWITCH_PROFILES = [
-  { id: 'premium_seeker', label: '⭐ 최고품질' },
-  { id: 'budget_seeker', label: '💰 가성비' },
-  { id: 'balanced', label: '⚖️ 균형형' },
-  { id: 'senior', label: '👴 시니어' },
-  { id: 'pregnancy', label: '🤰 임산부' },
-  { id: 'vegan', label: '🌱 비건' },
-  { id: 'kid', label: '👶 어린이' }
+// 결과 화면 프로필 전환 그리드 (상단 주요 3개 + 하단 4개, 현재 선택 강조)
+var SWITCH_TOP = [
+  { id: 'premium_seeker', icon: '⭐', label: '최고품질' },
+  { id: 'budget_seeker', icon: '💰', label: '가성비' },
+  { id: 'balanced', icon: '⚖️', label: '균형형' }
 ];
+var SWITCH_BOTTOM = [
+  { id: 'senior', icon: '👴', label: '시니어' },
+  { id: 'pregnancy', icon: '🤰', label: '임산부' },
+  { id: 'vegan', icon: '🌱', label: '비건' },
+  { id: 'kid', icon: '👶', label: '어린이' }
+];
+function pswBtn(p, current) {
+  var active = (p.id === current) ? ' active' : '';
+  return '<button class="psw-btn' + active + '" onclick="fetchRecommendation(\'' + p.id + '\')">' +
+    '<span class="psw-icon">' + p.icon + '</span>' +
+    '<span class="psw-label">' + p.label + '</span></button>';
+}
 function renderProfileSwitch(current) {
   var box = document.getElementById('profileSwitch');
   if (!box) return;
-  box.innerHTML = SWITCH_PROFILES.map(function(p) {
-    var active = (p.id === current) ? ' active' : '';
-    return '<button class="profile-switch-btn' + active + '" onclick="fetchRecommendation(\'' + p.id + '\')">' + p.label + '</button>';
-  }).join('');
+  box.innerHTML =
+    '<div class="psw-row top">' + SWITCH_TOP.map(function(p){ return pswBtn(p, current); }).join('') + '</div>' +
+    '<div class="psw-row bottom">' + SWITCH_BOTTOM.map(function(p){ return pswBtn(p, current); }).join('') + '</div>';
 }
 
 function renderResult(data) {
-  document.getElementById('resultTitle').textContent = (data.profile && data.profile.label) || '추천 결과';
   document.getElementById('resultMeta').textContent =
     `총 ${data.totalProducts || 0}개 중 ${data.filteredCount || 0}개 분석 · ${data.excludedCount || 0}개 제외`;
 
