@@ -186,7 +186,7 @@ function renderAnswerText(str) {
   let inList = false;
 
   for (const line of lines) {
-    const bulletMatch = line.match(/^\*\s+(.+)/);
+    const bulletMatch = line.match(/^[*\-•]\s+(.+)/);
     if (bulletMatch) {
       if (!inList) {
         html += '<ul style="margin:8px 0 8px 4px;padding:0;list-style:none;">';
