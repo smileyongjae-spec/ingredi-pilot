@@ -93,14 +93,10 @@
       background: var(--green-primary);
       animation: pulse 2s ease infinite;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .consult-input-title {
       font-size: 15px; font-weight: 700;
-      color: var(--green-deep);
-      letter-spacing: -0.02em; margin-bottom: 4px;
+      color: var(--green-deep); letter-spacing: -0.02em; margin-bottom: 4px;
     }
     .consult-input-desc {
       font-size: 12px; color: var(--ink-soft);
@@ -115,10 +111,7 @@
       transition: all 0.2s ease;
     }
     .free-input::placeholder { color: var(--ink-faint); }
-    .free-input:focus {
-      outline: none; border-color: var(--green-primary);
-      box-shadow: 0 0 0 3px rgba(45, 95, 63, 0.08);
-    }
+    .free-input:focus { outline: none; border-color: var(--green-primary); box-shadow: 0 0 0 3px rgba(45, 95, 63, 0.08); }
     .free-input-btn {
       position: absolute; right: 6px; bottom: 6px;
       width: 38px; height: 38px;
@@ -137,423 +130,214 @@
       border-radius: 100px; color: var(--ink-soft);
       cursor: pointer; transition: all 0.15s ease;
     }
-    .input-example-chip:hover {
-      background: var(--green-light); border-color: var(--green-mid);
-      color: var(--green-deep);
-    }
+    .input-example-chip:hover { background: var(--green-light); border-color: var(--green-mid); color: var(--green-deep); }
 
-    .divider {
-      display: flex; align-items: center; gap: 12px; margin: 24px 0 18px;
-    }
-    .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--line);
-    }
-    .divider-text {
-      font-size: 12px; font-weight: 500;
-      color: var(--ink-faint); letter-spacing: 0.02em;
-    }
-    .section-title {
-      font-size: 13px; font-weight: 700; color: var(--ink);
-      margin-bottom: 14px; letter-spacing: -0.01em;
-    }
-    .profile-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
-    }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 18px; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+    .divider-text { font-size: 12px; font-weight: 500; color: var(--ink-faint); letter-spacing: 0.02em; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 14px; letter-spacing: -0.01em; }
+
+    /* ── 프로필 카드 (A안: 컬러 아이콘 박스 + 가로 레이아웃) ── */
+    .profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .profile-card {
-      background: white;
-      border: 1.5px solid var(--line-soft);
-      border-radius: var(--radius-md);
-      padding: 9px 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: center; position: relative; overflow: hidden;
+      background: white; border: 1.5px solid var(--line-soft);
+      border-radius: var(--radius-md); padding: 12px 14px;
+      cursor: pointer; transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 12px;
+      position: relative; overflow: hidden;
     }
-    .profile-card::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, transparent 0%, var(--green-light) 100%);
-      opacity: 0; transition: opacity 0.2s ease;
-    }
-    .profile-card:hover {
-      border-color: var(--green-mid);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-    .profile-card:hover::before { opacity: 0.4; }
+    .profile-card:hover { border-color: var(--green-mid); transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .profile-card:active { transform: translateY(0); }
     .profile-card[data-profile="balanced"] {
       grid-column: span 2;
       background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
       border-color: var(--green-mid);
+      justify-content: center; gap: 10px;
     }
-    .profile-icon {
-      font-size: 22px; margin-bottom: 4px;
-      position: relative; z-index: 1; display: block;
+    .profile-icon-box {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
-    .profile-label {
-      font-size: 14px; font-weight: 700;
-      color: var(--green-deep); margin-bottom: 2px;
-      position: relative; z-index: 1;
-    }
-    .profile-desc {
-      font-size: 11px; color: var(--ink-faint);
-      line-height: 1.4; position: relative; z-index: 1;
-    }
-    .profile-card[data-profile="balanced"] .profile-icon {
-      font-size: 20px; display: inline-block;
-      margin-right: 6px; margin-bottom: 0; vertical-align: middle;
-    }
-    .profile-card[data-profile="balanced"] .profile-label {
-      display: inline-block; vertical-align: middle;
-    }
+    .profile-icon-box i { font-size: 20px; }
+    .profile-text { flex: 1; min-width: 0; }
+    .profile-label { font-size: 13px; font-weight: 700; color: var(--green-deep); margin-bottom: 1px; }
+    .profile-desc { font-size: 11px; color: var(--ink-faint); line-height: 1.3; }
+    .profile-card[data-profile="balanced"] .profile-icon-box { width: 36px; height: 36px; }
+    .profile-card[data-profile="balanced"] .profile-icon-box i { font-size: 18px; }
+    .profile-card[data-profile="balanced"] .profile-label { font-size: 14px; }
+
+    /* 각 프로필 아이콘 컬러 */
+    .icon-premium { background: #EEF2FF; } .icon-premium i { color: #4F46E5; }
+    .icon-budget  { background: #F0FDF4; } .icon-budget  i { color: #16A34A; }
+    .icon-preg    { background: #FFF1F2; } .icon-preg    i { color: #E11D48; }
+    .icon-senior  { background: #EFF6FF; } .icon-senior  i { color: #2563EB; }
+    .icon-vegan   { background: #F0FDF4; } .icon-vegan   i { color: #15803D; }
+    .icon-kid     { background: #FFF7ED; } .icon-kid     i { color: #D97706; }
+    .icon-balance { background: #EEF2FF; } .icon-balance i { color: #4F46E5; }
+
     .compare-entry-section {
-      margin: 24px 0 12px;
-      padding: 18px;
+      margin: 24px 0 12px; padding: 18px;
       background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
-      border: 1.5px solid var(--green-mid);
-      border-radius: var(--radius-md);
+      border: 1.5px solid var(--green-mid); border-radius: var(--radius-md);
       box-shadow: var(--shadow-sm);
     }
-    .compare-entry-title {
-      font-size: 14px; font-weight: 700;
-      color: var(--green-deep); margin-bottom: 4px;
-      letter-spacing: -0.01em;
-    }
-    .compare-entry-desc {
-      font-size: 12px; color: var(--ink-soft); margin-bottom: 14px;
-    }
-    .compare-entry-buttons {
-      display: grid; grid-template-columns: 1fr; gap: 8px;
-    }
+    .compare-entry-title { font-size: 14px; font-weight: 700; color: var(--green-deep); margin-bottom: 4px; letter-spacing: -0.01em; }
+    .compare-entry-desc { font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; }
+    .compare-entry-buttons { display: grid; grid-template-columns: 1fr; gap: 8px; }
     .compare-entry-btn {
-      padding: 11px 12px;
-      border: 1.5px solid var(--green-primary);
-      border-radius: var(--radius-sm);
-      font-family: inherit; font-size: 12px; font-weight: 700;
-      cursor: pointer; letter-spacing: -0.01em;
-      transition: all 0.15s ease;
-      text-decoration: none; text-align: center;
-      background: white; color: var(--green-primary);
+      padding: 11px 12px; border: 1.5px solid var(--green-primary);
+      border-radius: var(--radius-sm); font-family: inherit; font-size: 12px; font-weight: 700;
+      cursor: pointer; letter-spacing: -0.01em; transition: all 0.15s ease;
+      text-decoration: none; text-align: center; background: white; color: var(--green-primary);
     }
     .compare-entry-btn:hover { background: var(--green-light); }
     .compare-entry-btn.primary { background: var(--green-primary); color: white; }
     .compare-entry-btn.primary:hover { background: var(--green-deep); }
     .compare-entry-btn:active { transform: scale(0.97); }
     .fit-entry-section {
-      margin: 12px 0;
-      padding: 18px;
+      margin: 12px 0; padding: 18px;
       background: linear-gradient(135deg, #EAF3DE 0%, white 100%);
-      border: 1.5px solid #97C459;
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-sm);
+      border: 1.5px solid #97C459; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
     }
-    .compare-entry-btn.fit-btn { background: #3B6D11; }
+    .compare-entry-btn.fit-btn { background: #3B6D11; border-color: #3B6D11; }
     .compare-entry-btn.fit-btn:hover { background: #27500A; }
+
     .loading { display: none; text-align: center; padding: 60px 20px; }
     .loading.active { display: block; }
     .loading-spinner {
       display: inline-block; width: 32px; height: 32px;
-      border: 3px solid var(--line);
-      border-top-color: var(--green-primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 16px;
+      border: 3px solid var(--line); border-top-color: var(--green-primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 13px; color: var(--ink-soft); }
-    .result-header {
-      background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-primary) 100%);
-      color: white;
-      padding: 20px 20px 24px;
-      margin: -24px -20px 20px;
-      position: relative; overflow: hidden;
-    }
-    .result-header::before {
-      content: ''; position: absolute;
-      top: -40%; right: -10%;
-      width: 200px; height: 200px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-    }
-    .result-header-eyebrow {
-      font-size: 11px; font-weight: 600;
-      letter-spacing: 0.08em; opacity: 0.7;
-      margin-bottom: 6px; text-transform: uppercase;
-    }
-    .result-header-title {
-      font-size: 20px; font-weight: 800;
-      letter-spacing: -0.02em; margin-bottom: 4px;
-    }
-    .result-header-meta { font-size: 12px; opacity: 0.75; }
 
-    /* ========== TOP 3 카드 (가로형: 이미지 왼쪽 + 정보 오른쪽) ========== */
+    .result-profile-head {
+      background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
+      border: 1.5px solid var(--green-mid); border-radius: var(--radius-md);
+      padding: 14px; margin-bottom: 16px;
+    }
+    .result-profile-eyebrow { font-size: 11px; color: var(--green-primary); font-weight: 700; text-align: center; margin-bottom: 10px; letter-spacing: -0.01em; }
+    .profile-switch-grid { display: flex; flex-direction: column; gap: 7px; }
+    .psw-row { display: grid; gap: 7px; }
+    .psw-row.top { grid-template-columns: repeat(3, 1fr); }
+    .psw-row.bottom { grid-template-columns: repeat(4, 1fr); }
+    .psw-btn {
+      background: white; border: 1.5px solid var(--line-soft);
+      border-radius: 10px; cursor: pointer; text-align: center;
+      font-family: inherit; transition: all 0.15s ease; padding: 8px 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .psw-btn:hover { border-color: var(--green-mid); }
+    .psw-btn:active { transform: scale(0.97); }
+    .psw-icon-box {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .psw-icon-box i { font-size: 15px; }
+    .psw-label { font-size: 10px; font-weight: 700; color: var(--ink-soft); }
+    .psw-row.bottom .psw-btn { padding: 6px 3px; }
+    .psw-row.bottom .psw-icon-box { width: 24px; height: 24px; border-radius: 6px; }
+    .psw-row.bottom .psw-icon-box i { font-size: 13px; }
+    .psw-row.bottom .psw-label { font-size: 9px; }
+    .psw-btn.active { background: var(--green-primary); border-color: var(--green-primary); }
+    .psw-btn.active .psw-label { color: white; }
+    .psw-btn.active .psw-icon-box { background: rgba(255,255,255,0.2) !important; }
+    .psw-btn.active .psw-icon-box i { color: white !important; }
+    .result-profile-meta { font-size: 11px; color: var(--ink-faint); text-align: center; margin-top: 10px; }
+
+    /* ── 제품 카드 ── */
     .product-card {
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      margin-bottom: 12px;
-      position: relative;
-      box-shadow: var(--shadow-sm);
-      transition: box-shadow 0.2s ease;
+      background: white; border: 1px solid var(--line-soft);
+      border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px;
+      position: relative; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s ease;
     }
     .product-card:hover { box-shadow: var(--shadow-md); }
-    .product-card.rank-1 {
-      border: 1.5px solid var(--gold);
-      background: linear-gradient(180deg, #FEFAF1 0%, white 60%);
-    }
+    .product-card.rank-1 { border: 1.5px solid var(--gold); background: linear-gradient(180deg, #FEFAF1 0%, white 60%); }
     .product-card.rank-2 { border: 1.5px solid var(--silver); }
     .product-card.rank-3 { border: 1.5px solid var(--bronze); }
-
-    .product-card-row {
-      display: flex; gap: 12px; align-items: flex-start;
-    }
-    
-    /* 이미지 영역 (세로 비율 90×120) */
-    .product-image-wrap {
-      width: 96px;
-      flex-shrink: 0;
-      position: relative;
-    }
-    .product-image {
-      width: 96px;
-      height: 120px;
-      object-fit: cover;
-      border-radius: var(--radius-sm);
-      background: var(--green-bg);
-      display: block;
-    }
-    .product-image-fallback {
-      width: 96px; height: 120px;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, #FFF8E5 0%, #F5E6B8 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-    }
-    .rank-2 .product-image-fallback {
-      background: linear-gradient(135deg, #E5E8EB 0%, #C4C8CC 100%);
-    }
-    .rank-3 .product-image-fallback {
-      background: linear-gradient(135deg, #F5DDC8 0%, #DAB494 100%);
-    }
-    
-    /* 순위 배지 (이미지 좌상단 원형) */
+    .product-card-row { display: flex; gap: 12px; align-items: flex-start; }
+    .product-image-wrap { width: 96px; flex-shrink: 0; position: relative; }
+    .product-image { width: 96px; height: 120px; object-fit: cover; border-radius: var(--radius-sm); background: var(--green-bg); display: block; }
+    .product-image-fallback { width: 96px; height: 120px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #FFF8E5 0%, #F5E6B8 100%); display: flex; align-items: center; justify-content: center; }
+    .product-image-fallback i { font-size: 32px; color: var(--ink-faint); }
+    .rank-2 .product-image-fallback { background: linear-gradient(135deg, #E5E8EB 0%, #C4C8CC 100%); }
+    .rank-3 .product-image-fallback { background: linear-gradient(135deg, #F5DDC8 0%, #DAB494 100%); }
     .product-rank-badge {
-      position: absolute;
-      top: -6px;
-      left: -6px;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
-      color: white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      z-index: 2;
+      position: absolute; top: -6px; left: -6px;
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; color: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2;
     }
     .rank-1 .product-rank-badge { background: var(--gold); }
     .rank-2 .product-rank-badge { background: var(--silver); }
     .rank-3 .product-rank-badge { background: var(--bronze); }
-    
-    /* 정보 영역 (오른쪽) */
-    .product-info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .product-info-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .product-rank-pill {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 4px;
-      letter-spacing: 0.04em;
-      flex-shrink: 0;
-    }
+    .product-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .product-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .product-rank-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.04em; flex-shrink: 0; }
     .rank-1 .product-rank-pill { background: var(--gold); color: white; }
     .rank-2 .product-rank-pill { background: var(--silver); color: white; }
     .rank-3 .product-rank-pill { background: var(--bronze); color: white; }
-    
-    .product-vscore-block {
-      text-align: right;
-      flex-shrink: 0;
-    }
-    .product-vscore-num {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--green-deep);
-      line-height: 1;
-      letter-spacing: -0.04em;
-    }
-    .product-vscore-cap {
-      font-size: 8px;
-      font-weight: 600;
-      color: var(--ink-faint);
-      letter-spacing: 0.06em;
-      margin-top: 1px;
-    }
-    
-    .product-name {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--ink);
-      letter-spacing: -0.02em;
-      line-height: 1.35;
-    }
-    
-    .product-spec {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      padding: 8px;
-      background: var(--green-bg);
-      border-radius: 6px;
-    }
+    .product-vscore-block { text-align: right; flex-shrink: 0; }
+    .product-vscore-num { font-size: 22px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
+    .product-vscore-cap { font-size: 8px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0.06em; margin-top: 1px; }
+    .product-name { font-size: 13px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.35; }
+    .product-spec { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; background: var(--green-bg); border-radius: 6px; }
     .product-spec-item { font-size: 11px; }
-    .product-spec-label {
-      font-size: 9px;
-      color: var(--ink-faint);
-      letter-spacing: 0.02em;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-bottom: 1px;
-    }
-    .product-spec-value {
-      font-size: 11px;
-      color: var(--green-deep);
-      font-weight: 700;
-      letter-spacing: -0.01em;
-    }
-    
-    .product-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 3px;
-    }
-    /* 캡슐 크기 미니 띠 */
-    .capsule-bar {
-      margin-top: 8px;
-    }
-    .capsule-bar-label {
-      font-size: 9px;
-      color: var(--ink-faint);
-      font-weight: 600;
-      margin-bottom: 5px;
-      letter-spacing: -0.01em;
-    }
-    .capsule-bar-label b {
-      color: var(--ink-soft);
-      font-weight: 700;
-    }
-    .capsule-bar-track {
-      position: relative;
-      height: 18px;
-    }
-    .capsule-bar-line {
-      position: absolute;
-      top: 4px;
-      left: 0;
-      right: 0;
-      height: 3px;
-      border-radius: 2px;
-      background: var(--line);
-    }
+    .product-spec-label { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.02em; font-weight: 600; text-transform: uppercase; margin-bottom: 1px; }
+    .product-spec-value { font-size: 11px; color: var(--green-deep); font-weight: 700; letter-spacing: -0.01em; }
+    .product-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+
+    /* ── 캡슐 크기 UI (새 디자인) ── */
+    .capsule-bar { margin-top: 10px; }
+    .capsule-bar-label { font-size: 9px; color: var(--ink-faint); font-weight: 600; margin-bottom: 10px; letter-spacing: -0.01em; }
+    .capsule-bar-track-wrap { position: relative; margin-bottom: 6px; }
+    .capsule-bar-track { height: 4px; background: var(--line); border-radius: 2px; position: relative; }
+    .capsule-bar-fill { position: absolute; left: 0; height: 100%; background: var(--green-primary); border-radius: 2px; }
     .capsule-bar-dot {
-      position: absolute;
-      top: -1px;
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      background: var(--ink);
-      border: 2px solid white;
-      transform: translateX(-50%);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      position: absolute; transform: translateX(-50%) translateY(-50%); top: 50%;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--green-primary); border: 2.5px solid white;
+      outline: 1.5px solid var(--green-primary);
     }
-    .capsule-bar-ends {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 7px;
-      font-size: 9px;
-      color: var(--ink-faint);
+    .capsule-bar-tooltip {
+      position: absolute; transform: translateX(-50%); bottom: 12px;
+      white-space: nowrap; text-align: center;
     }
-    .product-tag {
-      font-size: 9px;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 100px;
-      background: var(--green-light);
-      color: var(--green-deep);
-      letter-spacing: -0.01em;
+    .capsule-bar-tooltip-label { font-size: 9px; color: var(--ink-faint); margin-bottom: 2px; }
+    .capsule-bar-tooltip-badge {
+      background: var(--green-deep); color: white;
+      font-size: 10px; font-weight: 600; padding: 2px 7px;
+      border-radius: 4px; display: inline-block; position: relative;
     }
+    .capsule-bar-tooltip-badge::after {
+      content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+      bottom: -5px; width: 0; height: 0;
+      border-left: 4px solid transparent; border-right: 4px solid transparent;
+      border-top: 5px solid var(--green-deep);
+    }
+    .capsule-bar-ends { display: flex; justify-content: space-between; font-size: 9px; color: var(--ink-faint); }
+
+    .product-tag { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); letter-spacing: -0.01em; }
     .product-tag.tag-warn { background: rgba(201, 83, 61, 0.1); color: var(--warn); }
     .rank-1 .product-tag.tag-tier { background: var(--gold); color: white; }
     .rank-2 .product-tag.tag-tier { background: var(--silver); color: white; }
     .rank-3 .product-tag.tag-tier { background: var(--bronze); color: white; }
-    
-    /* 점수 바 (확장 가능, 기본 숨김) */
-    .product-scores {
-      display: none;
-      grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-      gap: 4px;
-      margin-top: 8px;
-      padding: 8px 4px;
-      background: var(--paper);
-      border: 1px solid var(--line-soft);
-      border-radius: 6px;
-    }
+    .product-scores { display: none; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 4px; margin-top: 8px; padding: 8px 4px; background: var(--paper); border: 1px solid var(--line-soft); border-radius: 6px; }
     .product-scores.active { display: grid; }
     .score-bar { text-align: center; }
-    .score-bar-label {
-      font-size: 9px; color: var(--ink-faint);
-      margin-bottom: 2px; font-weight: 600;
-    }
-    .score-bar-value {
-      font-size: 11px; font-weight: 800;
-      color: var(--green-deep);
-    }
-    .score-bar-track {
-      height: 2px; background: var(--line-soft);
-      border-radius: 2px; margin-top: 2px; overflow: hidden;
-    }
-    .score-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--green-mid) 0%, var(--green-primary) 100%);
-      border-radius: 2px;
-      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    
-    /* 액션 버튼 */
-    .product-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-top: 10px;
-    }
+    .score-bar-label { font-size: 9px; color: var(--ink-faint); margin-bottom: 2px; font-weight: 600; }
+    .score-bar-value { font-size: 11px; font-weight: 800; color: var(--green-deep); }
+    .score-bar-track { height: 2px; background: var(--line-soft); border-radius: 2px; margin-top: 2px; overflow: hidden; }
+    .score-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green-mid) 0%, var(--green-primary) 100%); border-radius: 2px; transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+    .product-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
     .btn {
-      padding: 9px 10px;
-      border: none;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: -0.01em;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
+      padding: 9px 10px; border: none; border-radius: 6px;
+      font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+      letter-spacing: -0.01em; transition: all 0.15s ease;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
       text-decoration: none;
     }
     .btn-secondary { background: var(--green-light); color: var(--green-deep); }
@@ -561,7 +345,7 @@
     .btn-primary { background: var(--green-primary); color: white; }
     .btn-primary:hover { background: var(--green-deep); }
     .btn-fit {
-      display: flex; align-items: center; justify-content: center; gap: 3px;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
       width: 100%; margin-top: 6px; padding: 9px 10px;
       border: 1px solid #97C459; border-radius: 6px;
       background: #EAF3DE; color: #27500A;
@@ -570,316 +354,68 @@
       transition: all 0.15s ease;
     }
     .btn-fit:hover { background: #DCEEC8; }
-    .result-profile-head {
-      background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
-      border: 1.5px solid var(--green-mid);
-      border-radius: var(--radius-md);
-      padding: 14px; margin-bottom: 16px;
-    }
-    .result-profile-eyebrow {
-      font-size: 11px; color: var(--green-primary); font-weight: 700;
-      text-align: center; margin-bottom: 10px; letter-spacing: -0.01em;
-    }
-    .profile-switch-grid { display: flex; flex-direction: column; gap: 7px; }
-    .psw-row { display: grid; gap: 7px; }
-    .psw-row.top { grid-template-columns: repeat(3, 1fr); }
-    .psw-row.bottom { grid-template-columns: repeat(4, 1fr); }
-    .psw-btn {
-      background: white; border: 1.5px solid var(--line-soft);
-      border-radius: 10px; cursor: pointer; text-align: center;
-      font-family: inherit; transition: all 0.15s ease; padding: 10px 4px;
-    }
-    .psw-btn:hover { border-color: var(--green-mid); }
-    .psw-btn:active { transform: scale(0.97); }
-    .psw-btn .psw-icon { display: block; line-height: 1; }
-    .psw-btn .psw-label { font-weight: 700; color: var(--ink-soft); }
-    .psw-row.top .psw-icon { font-size: 20px; margin-bottom: 3px; }
-    .psw-row.top .psw-label { font-size: 12px; }
-    .psw-row.bottom .psw-btn { padding: 8px 3px; }
-    .psw-row.bottom .psw-icon { font-size: 16px; margin-bottom: 2px; }
-    .psw-row.bottom .psw-label { font-size: 10px; }
-    .psw-btn.active { background: var(--green-primary); border-color: var(--green-primary); }
-    .psw-btn.active .psw-label { color: white; }
-    .result-profile-meta {
-      font-size: 11px; color: var(--ink-faint); text-align: center; margin-top: 10px;
-    }
-    .btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
-    .btn:active:not(:disabled) { transform: scale(0.97); }
-    
-    .explanation {
-      margin-top: 10px;
-      padding: 12px;
-      background: var(--green-bg);
-      border-left: 3px solid var(--green-primary);
-      border-radius: 6px;
-      font-size: 12px;
-      line-height: 1.6;
-      color: var(--ink-soft);
-      display: none;
-    }
+    .explanation { margin-top: 10px; padding: 12px; background: var(--green-bg); border-left: 3px solid var(--green-primary); border-radius: 6px; font-size: 12px; line-height: 1.6; color: var(--ink-soft); display: none; }
     .explanation.active { display: block; animation: fadeIn 0.3s ease; }
-    .explanation-loading {
-      display: flex; align-items: center; gap: 8px;
-      color: var(--ink-faint); font-size: 11px;
-    }
-    .explanation-loading::before {
-      content: ''; width: 11px; height: 11px;
-      border: 2px solid var(--line);
-      border-top-color: var(--green-primary);
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
+    .explanation-loading { display: flex; align-items: center; gap: 8px; color: var(--ink-faint); font-size: 11px; }
+    .explanation-loading::before { content: ''; width: 11px; height: 11px; border: 2px solid var(--line); border-top-color: var(--green-primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
 
-    /* ========== 4위 이하 카드 (작은 가로형) ========== */
+    /* ── 4위 이하 카드 ── */
     .rest-section { margin-top: 20px; }
-    .rest-title {
-      font-size: 13px; font-weight: 700;
-      color: var(--ink); margin-bottom: 12px;
-    }
-    .rest-card {
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: 10px;
-      padding: 10px;
-      margin-bottom: 8px;
-      transition: box-shadow 0.2s ease;
-    }
+    .rest-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+    .rest-card { background: white; border: 1px solid var(--line-soft); border-radius: 10px; padding: 10px; margin-bottom: 8px; transition: box-shadow 0.2s ease; }
     .rest-card:hover { box-shadow: var(--shadow-sm); }
-    .rest-card-row {
-      display: flex; gap: 10px; align-items: center;
-    }
-    .rest-image-wrap {
-      width: 56px; flex-shrink: 0;
-      position: relative;
-    }
-    .rest-image {
-      width: 56px; height: 72px;
-      object-fit: cover;
-      border-radius: 6px;
-      background: var(--green-bg);
-      display: block;
-    }
-    .rest-image-fallback {
-      width: 56px; height: 72px;
-      border-radius: 6px;
-      background: var(--green-bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-    }
+    .rest-card-row { display: flex; gap: 10px; align-items: center; }
+    .rest-image-wrap { width: 56px; flex-shrink: 0; position: relative; }
+    .rest-image { width: 56px; height: 72px; object-fit: cover; border-radius: 6px; background: var(--green-bg); display: block; }
+    .rest-image-fallback { width: 56px; height: 72px; border-radius: 6px; background: var(--green-bg); display: flex; align-items: center; justify-content: center; }
+    .rest-image-fallback i { font-size: 22px; color: var(--ink-faint); }
     .rest-info { flex: 1; min-width: 0; position: relative; }
-    .rest-meta-row {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 3px;
-    }
-    .rest-rank {
-      font-size: 10px; color: var(--ink-faint);
-      font-weight: 600;
-    }
-    .rest-vscore {
-      font-size: 14px; font-weight: 800;
-      color: var(--green-deep);
-    }
-    .rest-name {
-      font-size: 12px; font-weight: 700;
-      color: var(--ink); line-height: 1.3;
-      letter-spacing: -0.01em;
-      margin-bottom: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      padding-right: 50px;
-    }
-    .rest-detail {
-      font-size: 10px; color: var(--ink-soft);
-    }
-    .rest-expand-btn {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      background: transparent;
-      color: #B4B2A9;
-      border: 1px solid var(--line-soft);
-      border-radius: 100px;
-      font-size: 9px;
-      font-weight: 400;
-      padding: 2px 7px;
-      cursor: pointer;
-      font-family: inherit;
-      line-height: 1;
-      display: inline-flex;
-      align-items: center;
-      gap: 1px;
-      white-space: nowrap;
-      height: 14px;
-      transition: all 0.15s ease;
-    }
-    .rest-expand-btn:hover {
-      background: var(--green-bg);
-      color: var(--green-primary);
-      border-color: var(--green-primary);
-    }
-    
-    /* 펼침 상태 - Top 3와 동일 가로형 카드 */
-    .rest-card.expanded {
-      background: white;
-      border: 1.5px solid var(--green-primary);
-      border-radius: 14px;
-      padding: 14px;
-      box-shadow: var(--shadow-md);
-    }
+    .rest-meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+    .rest-rank { font-size: 10px; color: var(--ink-faint); font-weight: 600; }
+    .rest-vscore { font-size: 14px; font-weight: 800; color: var(--green-deep); }
+    .rest-name { font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1.3; letter-spacing: -0.01em; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 50px; }
+    .rest-detail { font-size: 10px; color: var(--ink-soft); }
+    .rest-expand-btn { position: absolute; bottom: 0; right: 0; background: transparent; color: #B4B2A9; border: 1px solid var(--line-soft); border-radius: 100px; font-size: 9px; font-weight: 400; padding: 2px 7px; cursor: pointer; font-family: inherit; line-height: 1; display: inline-flex; align-items: center; gap: 1px; white-space: nowrap; height: 14px; transition: all 0.15s ease; }
+    .rest-expand-btn:hover { background: var(--green-bg); color: var(--green-primary); border-color: var(--green-primary); }
+    .rest-card.expanded { background: white; border: 1.5px solid var(--green-primary); border-radius: 14px; padding: 14px; box-shadow: var(--shadow-md); }
     .rest-card.expanded .rest-card-row { display: none; }
     .rest-card.expanded .expanded-content { display: block; animation: expandIn 0.3s ease; }
     .rest-card .expanded-content { display: none; }
-    @keyframes expandIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .expanded-card-row {
-      display: flex; gap: 12px; align-items: flex-start;
-    }
-    .expanded-image-wrap {
-      width: 96px; flex-shrink: 0; position: relative;
-    }
-    .expanded-image {
-      width: 96px; height: 120px;
-      object-fit: cover;
-      border-radius: var(--radius-sm);
-      background: var(--green-bg);
-      display: block;
-    }
-    .expanded-image-fallback {
-      width: 96px; height: 120px;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, #E8F1EA 0%, #D9DDD7 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-    }
-    .expanded-rank-badge {
-      position: absolute;
-      top: -6px;
-      left: -6px;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: var(--green-primary);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      z-index: 2;
-    }
-    .expanded-info {
-      flex: 1; min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .expanded-info-top {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      gap: 8px;
-    }
-    .expanded-rank-pill {
-      font-size: 10px; font-weight: 700;
-      padding: 2px 7px; border-radius: 4px;
-      background: var(--green-primary);
-      color: white;
-      letter-spacing: 0.04em;
-      flex-shrink: 0;
-    }
-    .expanded-name {
-      font-size: 13px; font-weight: 700;
-      color: var(--ink);
-      letter-spacing: -0.02em;
-      line-height: 1.35;
-    }
-    .expanded-spec {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      padding: 8px;
-      background: var(--green-bg);
-      border-radius: 6px;
-    }
-    .expanded-spec-label {
-      font-size: 9px;
-      color: var(--ink-faint);
-      letter-spacing: 0.02em;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-bottom: 1px;
-    }
-    .expanded-spec-value {
-      font-size: 11px;
-      color: var(--green-deep);
-      font-weight: 700;
-    }
-    .expanded-tags {
-      display: flex; flex-wrap: wrap; gap: 3px;
-    }
-    .expanded-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-top: 10px;
-    }
-    .btn-collapse {
-      background: var(--line-soft);
-      color: var(--ink-soft);
-      border: none;
-      border-radius: 6px;
-      padding: 9px 10px;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: -0.01em;
-      transition: all 0.15s ease;
-    }
+    @keyframes expandIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .expanded-card-row { display: flex; gap: 12px; align-items: flex-start; }
+    .expanded-image-wrap { width: 96px; flex-shrink: 0; position: relative; }
+    .expanded-image { width: 96px; height: 120px; object-fit: cover; border-radius: var(--radius-sm); background: var(--green-bg); display: block; }
+    .expanded-image-fallback { width: 96px; height: 120px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #E8F1EA 0%, #D9DDD7 100%); display: flex; align-items: center; justify-content: center; }
+    .expanded-image-fallback i { font-size: 32px; color: var(--ink-faint); }
+    .expanded-rank-badge { position: absolute; top: -6px; left: -6px; width: 26px; height: 26px; border-radius: 50%; background: var(--green-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2; }
+    .expanded-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .expanded-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .expanded-rank-pill { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: var(--green-primary); color: white; letter-spacing: 0.04em; flex-shrink: 0; }
+    .expanded-name { font-size: 13px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.35; }
+    .expanded-spec { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; background: var(--green-bg); border-radius: 6px; }
+    .expanded-spec-label { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.02em; font-weight: 600; text-transform: uppercase; margin-bottom: 1px; }
+    .expanded-spec-value { font-size: 11px; color: var(--green-deep); font-weight: 700; }
+    .expanded-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+    .expanded-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+    .btn-collapse { background: var(--line-soft); color: var(--ink-soft); border: none; border-radius: 6px; padding: 9px 10px; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: -0.01em; transition: all 0.15s ease; }
     .btn-collapse:hover { background: var(--line); }
-    .btn-coupang-expanded {
-      background: var(--green-primary);
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      padding: 9px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      transition: all 0.15s ease;
-    }
+    .btn-coupang-expanded { background: var(--green-primary); color: white; text-decoration: none; border-radius: 6px; padding: 9px 10px; font-size: 11px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s ease; }
     .btn-coupang-expanded:hover { background: var(--green-deep); }
-    
-    .alert {
-      padding: 12px 14px; border-radius: var(--radius-sm);
-      margin-bottom: 16px; font-size: 13px; line-height: 1.5;
-      display: flex; gap: 10px; align-items: flex-start;
-    }
-    .alert-warn {
-      background: rgba(201, 83, 61, 0.06);
-      border: 1px solid rgba(201, 83, 61, 0.2);
-      color: var(--warn);
-    }
+
+    .alert { padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+    .alert-warn { background: rgba(201, 83, 61, 0.06); border: 1px solid rgba(201, 83, 61, 0.2); color: var(--warn); }
     .alert-icon { flex-shrink: 0; font-size: 16px; line-height: 1.3; }
-    .disclaimer {
-      margin-top: 28px; padding: 14px;
-      font-size: 11px; color: var(--ink-faint);
-      text-align: center; line-height: 1.6;
-      border-top: 1px solid var(--line-soft);
-    }
+    .disclaimer { margin-top: 28px; padding: 14px; font-size: 11px; color: var(--ink-faint); text-align: center; line-height: 1.6; border-top: 1px solid var(--line-soft); }
     .error-box { text-align: center; padding: 40px 20px; color: var(--warn); }
     .error-box-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
     .error-box-detail { font-size: 12px; color: var(--ink-faint); margin-top: 8px; }
+
+    .profile-icon-box svg, .psw-icon-box svg { display: block; }
+    .btn svg, .btn-fit svg, .btn-coupang-expanded svg { flex-shrink: 0; }
+    .psw-btn.active .psw-icon-box { background: rgba(255,255,255,0.2) !important; }
+    .psw-btn.active .psw-icon-box svg { stroke: white !important; }
+    .btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
   </style>
 </head>
 <body>
@@ -908,18 +444,14 @@
       </div>
       <div class="consult-input-title">ingredi에게 물어보세요</div>
       <div class="consult-input-desc">증상·고민·궁금한 점을 자유롭게 입력하면<br>AI가 답변과 관련 제품을 함께 추천해드려요</div>
-      
       <div class="free-input-wrap">
-        <input type="text" class="free-input" id="freeInput"
-               placeholder="예: 혈행 개선에 좋은 오메가3"
-               autocomplete="off">
+        <input type="text" class="free-input" id="freeInput" placeholder="예: 혈행 개선에 좋은 오메가3" autocomplete="off">
         <button class="free-input-btn" id="freeInputBtn" aria-label="질문하기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14M13 5l7 7-7 7"/>
           </svg>
         </button>
       </div>
-      
       <div class="input-examples">
         <span class="input-example-chip" onclick="setInput('혈행 개선에 좋은 오메가3')">혈행 개선</span>
         <span class="input-example-chip" onclick="setInput('임산부도 오메가3 먹어도 돼?')">임신 중 복용</span>
@@ -928,65 +460,73 @@
       </div>
     </div>
 
-    <div class="divider">
-      <span class="divider-text">또는 프로필 직접 선택</span>
-    </div>
+    <div class="divider"><span class="divider-text">또는 프로필 직접 선택</span></div>
 
     <h2 class="section-title">프로필별 추천</h2>
     <div class="profile-grid">
       <div class="profile-card" data-profile="premium_seeker">
-        <span class="profile-icon">⭐</span>
-        <div class="profile-label">최고 품질</div>
-        <div class="profile-desc">비싸도 좋은 제품</div>
+        <div class="profile-icon-box icon-premium"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M12 15l-3.5 6 3.5-2 3.5 2z"/></svg></div>
+        <div class="profile-text">
+          <div class="profile-label">최고 품질</div>
+          <div class="profile-desc">비싸도 좋은 제품</div>
+        </div>
       </div>
       <div class="profile-card" data-profile="budget_seeker">
-        <span class="profile-icon">💰</span>
-        <div class="profile-label">가성비</div>
-        <div class="profile-desc">합리적인 가격</div>
+        <div class="profile-icon-box icon-budget"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 7v1m0 8v1"/></svg></div>
+        <div class="profile-text">
+          <div class="profile-label">가성비</div>
+          <div class="profile-desc">합리적인 가격</div>
+        </div>
       </div>
       <div class="profile-card" data-profile="pregnancy">
-        <span class="profile-icon">🤰</span>
-        <div class="profile-label">임산부·수유부</div>
-        <div class="profile-desc">안전성 우선</div>
+        <div class="profile-icon-box icon-preg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 13.572L12 21l-7.5-7.428A5 5 0 1 1 12 7.006a5 5 0 1 1 7.5 6.572"/></svg></div>
+        <div class="profile-text">
+          <div class="profile-label">임산부·수유부</div>
+          <div class="profile-desc">안전성 우선</div>
+        </div>
       </div>
       <div class="profile-card" data-profile="senior">
-        <span class="profile-icon">👴</span>
-        <div class="profile-label">시니어 (50+)</div>
-        <div class="profile-desc">고함량·흡수율</div>
+        <div class="profile-icon-box icon-senior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div class="profile-text">
+          <div class="profile-label">시니어 (50+)</div>
+          <div class="profile-desc">고함량·흡수율</div>
+        </div>
       </div>
       <div class="profile-card" data-profile="vegan">
-        <span class="profile-icon">🌱</span>
-        <div class="profile-label">비건·식물성</div>
-        <div class="profile-desc">algae 원료</div>
+        <div class="profile-icon-box icon-vegan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21C5 21 6 13 13 13C13 13 13 8 20 3C20 3 20 14 13 17C13 17 13 21 5 21Z"/><path d="M13 17L11 21"/></svg></div>
+        <div class="profile-text">
+          <div class="profile-label">비건·식물성</div>
+          <div class="profile-desc">algae 원료</div>
+        </div>
       </div>
       <div class="profile-card" data-profile="kid">
-        <span class="profile-icon">👶</span>
-        <div class="profile-label">어린이·자녀</div>
-        <div class="profile-desc">안전성·맛</div>
+        <div class="profile-icon-box icon-kid"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+        <div class="profile-text">
+          <div class="profile-label">어린이·자녀</div>
+          <div class="profile-desc">안전성·맛</div>
+        </div>
       </div>
       <div class="profile-card" data-profile="balanced">
-        <span class="profile-icon">⚖️</span>
-        <span class="profile-label">균형형 추천 (기본)</span>
+        <div class="profile-icon-box icon-balance"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h16M4 14h16M8 6v2M8 16v2M16 6v2M16 16v2"/></svg></div>
+        <div class="profile-text">
+          <div class="profile-label">균형형 추천 (기본)</div>
+        </div>
       </div>
     </div>
 
     <div class="compare-entry-section">
-      <div class="compare-entry-title">🔍 제품 직접 비교하기</div>
+      <div class="compare-entry-title">제품 직접 비교하기</div>
       <div class="compare-entry-desc">관심 있는 제품 1~3개를 골라 함량·가격·인증을 한눈에 비교</div>
       <div class="compare-entry-buttons">
-        <a class="compare-entry-btn primary" href="/compare.html?mode=select&profile=balanced">
-          ✏️ 직접 골라 비교
-        </a>
+        <a class="compare-entry-btn primary" href="/compare.html?mode=select&profile=balanced">직접 골라 비교</a>
       </div>
     </div>
 
     <div class="fit-entry-section">
-      <div class="compare-entry-title">🧩 내 영양제 조합 점검하기</div>
+      <div class="compare-entry-title">내 영양제 조합 점검하기</div>
       <div class="compare-entry-desc">여러 개 같이 드시나요? 겹침·과잉·상호작용을 무료로 점검</div>
       <div class="compare-entry-buttons">
-        <a class="compare-entry-btn primary fit-btn" href="/fit.html">
-          🧩 내 조합 점검하기
-        </a>
+        <a class="compare-entry-btn primary fit-btn" href="/fit.html">내 조합 점검하기</a>
       </div>
     </div>
   </main>
@@ -1016,9 +556,7 @@ let lastProfile = 'balanced';
 
 function escapeHtml(str) {
   if (str == null) return '';
-  return String(str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 function firstOf(value) {
   if (value == null) return '';
@@ -1032,25 +570,30 @@ function safeNum(value, fallback = 0) {
   return isNaN(n) ? fallback : n;
 }
 
-// 캡슐 크기 미니 띠 (인바디 스타일 - 점 하나)
+// ── 캡슐 크기 UI (새 디자인) ──
 let capsuleDist = { min: 0, max: 0, count: 0 };
 function renderCapsuleBar(keySpec) {
   const mg = safeNum(keySpec.capsuleMg);
   const pos = keySpec.capsulePosition;
   if (!mg || pos == null) return '';
-  const grade = keySpec.capsuleGrade || '';
   const minV = capsuleDist.min || 0;
   const maxV = capsuleDist.max || 0;
   return `
     <div class="capsule-bar">
-      <div class="capsule-bar-label">캡슐 크기 <b>${mg.toLocaleString()}mg</b>${grade ? ' · ' + escapeHtml(grade) : ''}</div>
-      <div class="capsule-bar-track">
-        <div class="capsule-bar-line"></div>
-        <div class="capsule-bar-dot" style="left:${pos}%"></div>
+      <div class="capsule-bar-label">캡슐 용량 (크기)</div>
+      <div class="capsule-bar-track-wrap" style="margin-top:32px; margin-bottom:8px;">
+        <div class="capsule-bar-track">
+          <div class="capsule-bar-fill" style="width:${pos}%"></div>
+          <div class="capsule-bar-dot" style="left:${pos}%"></div>
+          <div class="capsule-bar-tooltip" style="left:${pos}%">
+            <div class="capsule-bar-tooltip-label">해당 제품</div>
+            <div class="capsule-bar-tooltip-badge">${mg.toLocaleString()}mg</div>
+          </div>
+        </div>
       </div>
       <div class="capsule-bar-ends">
-        <span>작음 ${minV.toLocaleString()}mg</span>
-        <span>${maxV.toLocaleString()}mg 큼</span>
+        <span>최소 ${minV.toLocaleString()}mg</span>
+        <span>최대 ${maxV.toLocaleString()}mg</span>
       </div>
     </div>`;
 }
@@ -1062,30 +605,20 @@ function showScreen(name) {
   window.scrollTo(0, 0);
 }
 document.getElementById('backBtn').addEventListener('click', () => showScreen('home'));
-
 document.querySelectorAll('.profile-card').forEach(card => {
-  card.addEventListener('click', () => {
-    fetchRecommendation(card.dataset.profile);
-  });
+  card.addEventListener('click', () => fetchRecommendation(card.dataset.profile));
 });
 
 const freeInput = document.getElementById('freeInput');
 const freeInputBtn = document.getElementById('freeInputBtn');
-
 function handleConsult() {
   const query = freeInput.value.trim();
   if (!query) return;
   window.location.href = `/consult.html?q=${encodeURIComponent(query)}`;
 }
 freeInputBtn.addEventListener('click', handleConsult);
-freeInput.addEventListener('keypress', e => {
-  if (e.key === 'Enter') handleConsult();
-});
-
-function setInput(text) {
-  freeInput.value = text;
-  freeInput.focus();
-}
+freeInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleConsult(); });
+function setInput(text) { freeInput.value = text; freeInput.focus(); }
 window.setInput = setInput;
 
 async function fetchRecommendation(profile) {
@@ -1093,8 +626,7 @@ async function fetchRecommendation(profile) {
   showScreen('loading');
   document.getElementById('loadingText').textContent = '맞춤 제품을 찾고 있어요…';
   try {
-    const url = `${API_BASE}/recommend?profile=${profile}`;
-    const res = await fetch(url);
+    const res = await fetch(`${API_BASE}/recommend?profile=${profile}`);
     if (!res.ok) throw new Error('Server error: ' + res.status);
     const data = await res.json();
     if (data.capsuleDistribution) capsuleDist = data.capsuleDistribution;
@@ -1104,7 +636,7 @@ async function fetchRecommendation(profile) {
     document.getElementById('resultMedicalAlert').innerHTML = '';
     document.getElementById('resultProducts').innerHTML = `
       <div class="error-box">
-        <div class="error-box-title">⚠️ 데이터를 불러올 수 없어요</div>
+        <div class="error-box-title">데이터를 불러올 수 없어요</div>
         <div class="error-box-detail">${escapeHtml(err.message)}</div>
       </div>`;
     document.getElementById('resultCompareEntry').innerHTML = '';
@@ -1114,78 +646,79 @@ async function fetchRecommendation(profile) {
   }
 }
 
-// 결과 화면 프로필 전환 그리드 (상단 주요 3개 + 하단 4개, 현재 선택 강조)
-var SWITCH_TOP = [
-  { id: 'premium_seeker', icon: '⭐', label: '최고품질' },
-  { id: 'budget_seeker', icon: '💰', label: '가성비' },
-  { id: 'balanced', icon: '⚖️', label: '균형형' }
-];
-var SWITCH_BOTTOM = [
-  { id: 'senior', icon: '👴', label: '시니어' },
-  { id: 'pregnancy', icon: '🤰', label: '임산부' },
-  { id: 'vegan', icon: '🌱', label: '비건' },
-  { id: 'kid', icon: '👶', label: '어린이' }
-];
-function pswBtn(p, current) {
-  var active = (p.id === current) ? ' active' : '';
-  return '<button class="psw-btn' + active + '" onclick="fetchRecommendation(\'' + p.id + '\')">' +
-    '<span class="psw-icon">' + p.icon + '</span>' +
-    '<span class="psw-label">' + p.label + '</span></button>';
+// 프로필 전환 버튼 (아이콘 버전)
+var PSW_ICONS = {
+  premium_seeker: '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M12 15l-3.5 6 3.5-2 3.5 2z"/></svg>',
+  budget_seeker:  '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 7v1m0 8v1"/></svg>',
+  balanced:       '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h16M4 14h16M8 6v2M8 16v2M16 6v2M16 16v2"/></svg>',
+  senior:         '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  pregnancy:      '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 13.572L12 21l-7.5-7.428A5 5 0 1 1 12 7.006a5 5 0 1 1 7.5 6.572"/></svg>',
+  vegan:          '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21C5 21 6 13 13 13C13 13 13 8 20 3C20 3 20 14 13 17C13 17 13 21 5 21Z"/><path d="M13 17L11 21"/></svg>',
+  kid:            '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
+};
+var PROFILE_META = {
+  premium_seeker: { color: '#EEF2FF', label: '최고품질' },
+  budget_seeker:  { color: '#F0FDF4', label: '가성비' },
+  balanced:       { color: '#EEF2FF', label: '균형형' },
+  senior:         { color: '#EFF6FF', label: '시니어' },
+  pregnancy:      { color: '#FFF1F2', label: '임산부' },
+  vegan:          { color: '#F0FDF4', label: '비건' },
+  kid:            { color: '#FFF7ED', label: '어린이' }
+};
+var SWITCH_TOP    = ['premium_seeker','budget_seeker','balanced'];
+var SWITCH_BOTTOM = ['senior','pregnancy','vegan','kid'];
+
+function pswBtn(id, current) {
+  var m = PROFILE_META[id] || { color:'#eee', label: id };
+  var svgIcon = PSW_ICONS[id] || '';
+  var active = (id === current) ? ' active' : '';
+  return '<button class="psw-btn' + active + '" onclick="fetchRecommendation(\'' + id + '\')">' +
+    '<div class="psw-icon-box" style="background:' + m.color + '">' + svgIcon + '</div>' +
+    '<span class="psw-label">' + m.label + '</span></button>';
 }
 function renderProfileSwitch(current) {
   var box = document.getElementById('profileSwitch');
   if (!box) return;
   box.innerHTML =
-    '<div class="psw-row top">' + SWITCH_TOP.map(function(p){ return pswBtn(p, current); }).join('') + '</div>' +
-    '<div class="psw-row bottom">' + SWITCH_BOTTOM.map(function(p){ return pswBtn(p, current); }).join('') + '</div>';
+    '<div class="psw-row top">' + SWITCH_TOP.map(function(id){ return pswBtn(id, current); }).join('') + '</div>' +
+    '<div class="psw-row bottom">' + SWITCH_BOTTOM.map(function(id){ return pswBtn(id, current); }).join('') + '</div>';
 }
 
 function renderResult(data) {
   document.getElementById('resultMeta').textContent =
-    `총 ${data.totalProducts || 0}개 중 ${data.filteredCount || 0}개 분석 · ${data.excludedCount || 0}개 제외`;
-
+    `총 ${data.totalProducts||0}개 중 ${data.filteredCount||0}개 분석 · ${data.excludedCount||0}개 제외`;
   renderProfileSwitch((data.profile && data.profile.id) || lastProfile);
 
   const alertBox = document.getElementById('resultMedicalAlert');
   if (data.medicalConsult) {
     alertBox.innerHTML = `
       <div class="alert alert-warn">
-        <span class="alert-icon">⚠️</span>
-        <div><strong>의사·약사 상담을 권장합니다</strong><br>
-        임산부·수유부·어린이는 복용 전 전문가와 상담하세요.</div>
+        <span class="alert-icon">⚠</span>
+        <div><strong>의사·약사 상담을 권장합니다</strong><br>임산부·수유부·어린이는 복용 전 전문가와 상담하세요.</div>
       </div>`;
-  } else {
-    alertBox.innerHTML = '';
-  }
+  } else { alertBox.innerHTML = ''; }
 
   const products = document.getElementById('resultProducts');
   if (!data.top3 || data.top3.length === 0) {
-    products.innerHTML = '<div class="alert"><span class="alert-icon">🌿</span>해당 조건에 맞는 제품을 찾을 수 없어요.</div>';
+    products.innerHTML = '<div class="alert"><span class="alert-icon">—</span>해당 조건에 맞는 제품을 찾을 수 없어요.</div>';
     document.getElementById('resultCompareEntry').innerHTML = '';
     document.getElementById('resultRest').innerHTML = '';
   } else {
     products.innerHTML = data.top3.map(renderProductCard).join('');
-    
     const compareEntry = document.getElementById('resultCompareEntry');
     if (data.top3.length >= 2) {
       const top3Ids = data.top3.map(p => p.id).join(',');
       const profileId = (data.profile && data.profile.id) || 'balanced';
       compareEntry.innerHTML = `
         <div class="compare-entry-section">
-          <div class="compare-entry-title">🔍 한눈에 비교하기</div>
+          <div class="compare-entry-title">한눈에 비교하기</div>
           <div class="compare-entry-desc">Top ${data.top3.length} 자동 비교 또는 직접 골라서 비교할 수 있어요</div>
           <div class="compare-entry-buttons" style="grid-template-columns: 1fr 1fr;">
-            <a class="compare-entry-btn primary" href="/compare.html?ids=${top3Ids}&profile=${profileId}">
-              🥇 Top ${data.top3.length} 비교
-            </a>
-            <a class="compare-entry-btn" href="/compare.html?mode=select&profile=${profileId}">
-              ✏️ 직접 선택
-            </a>
+            <a class="compare-entry-btn primary" href="/compare.html?ids=${top3Ids}&profile=${profileId}">Top ${data.top3.length} 비교</a>
+            <a class="compare-entry-btn" href="/compare.html?mode=select&profile=${profileId}">직접 선택</a>
           </div>
         </div>`;
-    } else {
-      compareEntry.innerHTML = '';
-    }
+    } else { compareEntry.innerHTML = ''; }
   }
 
   const restEl = document.getElementById('resultRest');
@@ -1195,14 +728,10 @@ function renderResult(data) {
         <h3 class="rest-title">그 외 ${data.rest.length}개 제품</h3>
         ${data.rest.map(r => renderRestCard(r)).join('')}
       </section>`;
-  } else {
-    restEl.innerHTML = '';
-  }
-
+  } else { restEl.innerHTML = ''; }
   document.getElementById('resultDisclaimer').textContent = data.disclaimer || '';
 }
 
-// ========== Top 3 카드 (가로형) ==========
 function renderProductCard(p) {
   const keySpec = p.keySpec || {};
   const tierStr = keySpec.tier || '';
@@ -1210,8 +739,7 @@ function renderProductCard(p) {
   const formTag = keySpec.form ? `<span class="product-tag">${escapeHtml(keySpec.form)}</span>` : '';
   const firstCert = firstOf(keySpec.certs);
   const certsTag = firstCert ? `<span class="product-tag">${escapeHtml(firstCert)}</span>` : '';
-  const highDoseTag = p.highDoseFlag ? '<span class="product-tag tag-warn">⚠️ 고함량</span>' : '';
-
+  const highDoseTag = p.highDoseFlag ? '<span class="product-tag tag-warn">고함량 주의</span>' : '';
   const scores = p.detailScores || {};
   const scoreBars = [
     { label: '함량', value: safeNum(scores.dose) },
@@ -1225,13 +753,12 @@ function renderProductCard(p) {
       <div class="score-bar-value">${s.value}</div>
       <div class="score-bar-track"><div class="score-bar-fill" style="width:${s.value}%"></div></div>
     </div>`).join('');
-
   const link = p.coupangLink || '';
   const productId = p.id || '';
+  const rankLabel = ['1위','2위','3위'][p.rank-1] || p.rank + '위';
   const imageHtml = p.image
-    ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'product-image-fallback\\'>💊</div>'">`
-    : `<div class="product-image-fallback">💊</div>`;
-
+    ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'">`
+    : `<div class="product-image-fallback"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg></div>`;
   return `
     <article class="product-card rank-${p.rank}">
       <div class="product-card-row">
@@ -1241,13 +768,13 @@ function renderProductCard(p) {
         </div>
         <div class="product-info">
           <div class="product-info-top">
-            <span class="product-rank-pill">${['🥇','🥈','🥉'][p.rank-1] || ''} ${p.rank}위</span>
+            <span class="product-rank-pill">${rankLabel}</span>
             <div class="product-vscore-block">
-              <div class="product-vscore-num">${p.vScore || 0}</div>
+              <div class="product-vscore-num">${p.vScore||0}</div>
               <div class="product-vscore-cap">V-SCORE</div>
             </div>
           </div>
-          <div class="product-name">${escapeHtml(p.name || '제품명 미상')}</div>
+          <div class="product-name">${escapeHtml(p.name||'제품명 미상')}</div>
           <div class="product-spec">
             <div class="product-spec-item">
               <div class="product-spec-label">EPA+DHA</div>
@@ -1266,50 +793,42 @@ function renderProductCard(p) {
       <div class="explanation" id="exp-${productId}"></div>
       <div class="product-actions">
         <button class="btn btn-secondary" onclick="explainProduct('${productId}')">
-          💬 왜 이 점수?
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18M5 20V12m4 8V8m4 12V4m4 16v-6"/></svg> 왜 이 점수?
         </button>
         ${link
-          ? `<a class="btn btn-primary" href="${escapeHtml(link)}" target="_blank" rel="noopener">🛒 쿠팡에서 보기</a>`
+          ? `<a class="btn btn-primary" href="${escapeHtml(link)}" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0m9 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M3 3h1.5l1.5 9h11l1.5-6H7"/></svg> 쿠팡에서 보기</a>`
           : `<button class="btn btn-primary" disabled>링크 없음</button>`}
       </div>
       <a class="btn btn-fit" href="/fit.html?add=${encodeURIComponent('오메가3')}">
-        🧩 지금 먹는 영양제와 같이 먹어도 될까?
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4l5 5M3 21l6-6M10.5 10.5l3 3M4 20l10-10M17 7l-6 6M14 4l6 6"/></svg> 지금 먹는 영양제와 같이 먹어도 될까?
       </a>
     </article>`;
 }
 
-// ========== 4위 이하 카드 (자세히 버튼 + 펼치기) ==========
 function renderRestCard(r) {
   const link = r.coupangLink || '';
   const imageHtml = r.image
-    ? `<img class="rest-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name || '')}" onerror="this.outerHTML='<div class=\\'rest-image-fallback\\'>💊</div>'">`
-    : `<div class="rest-image-fallback">💊</div>`;
+    ? `<img class="rest-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name||'')}" onerror="this.style.display='none'">`
+    : `<div class="rest-image-fallback"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg></div>`;
   const expandedImageHtml = r.image
-    ? `<img class="expanded-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name || '')}" onerror="this.outerHTML='<div class=\\'expanded-image-fallback\\'>💊</div>'">`
-    : `<div class="expanded-image-fallback">💊</div>`;
-  
+    ? `<img class="expanded-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name||'')}" onerror="this.style.display='none'">`
+    : `<div class="expanded-image-fallback"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg></div>`;
   const tier = r.tier ? ` · ${escapeHtml(r.tier)}` : '';
   const productId = r.id || `rest-${r.rank}`;
-  
-  // 태그 생성 (Tier, 제형, 원료사)
   const tags = [];
   if (r.tier) tags.push(`<span class="product-tag">${escapeHtml(r.tier)}</span>`);
   if (r.form) tags.push(`<span class="product-tag">${escapeHtml(r.form)}</span>`);
   if (r.supplier) tags.push(`<span class="product-tag">${escapeHtml(r.supplier)}</span>`);
-  const tagsHtml = tags.join('');
-  
   return `
     <article class="rest-card" id="rest-${productId}">
       <div class="rest-card-row">
-        <div class="rest-image-wrap">
-          ${imageHtml}
-        </div>
+        <div class="rest-image-wrap">${imageHtml}</div>
         <div class="rest-info">
           <div class="rest-meta-row">
             <span class="rest-rank">${r.rank}위</span>
-            <span class="rest-vscore">${r.vScore || 0}</span>
+            <span class="rest-vscore">${r.vScore||0}</span>
           </div>
-          <div class="rest-name">${escapeHtml(r.name || '제품명 미상')}</div>
+          <div class="rest-name">${escapeHtml(r.name||'제품명 미상')}</div>
           <div class="rest-detail">V-Score${tier}</div>
           <button class="rest-expand-btn" onclick="toggleExpand('${productId}')">자세히 ▼</button>
         </div>
@@ -1324,11 +843,11 @@ function renderRestCard(r) {
             <div class="expanded-info-top">
               <span class="expanded-rank-pill">${r.rank}위</span>
               <div class="product-vscore-block">
-                <div class="product-vscore-num">${r.vScore || 0}</div>
+                <div class="product-vscore-num">${r.vScore||0}</div>
                 <div class="product-vscore-cap">V-SCORE</div>
               </div>
             </div>
-            <div class="expanded-name">${escapeHtml(r.name || '제품명 미상')}</div>
+            <div class="expanded-name">${escapeHtml(r.name||'제품명 미상')}</div>
             <div class="expanded-spec">
               <div>
                 <div class="expanded-spec-label">EPA+DHA</div>
@@ -1339,21 +858,20 @@ function renderRestCard(r) {
                 <div class="expanded-spec-value">${safeNum(r.dailyCost).toLocaleString()}원</div>
               </div>
             </div>
-            <div class="expanded-tags">${tagsHtml}</div>
+            <div class="expanded-tags">${tags.join('')}</div>
             ${renderCapsuleBar({ capsuleMg: r.capsuleMg, capsulePosition: r.capsulePosition, capsuleGrade: r.capsuleGrade })}
           </div>
         </div>
         <div class="expanded-actions">
-          <button class="btn-collapse" onclick="toggleExpand('${productId}')">▲ 접기</button>
+          <button class="btn-collapse" onclick="toggleExpand('${productId}')">접기</button>
           ${link
-            ? `<a class="btn-coupang-expanded" href="${escapeHtml(link)}" target="_blank" rel="noopener">🛒 쿠팡에서 보기</a>`
+            ? `<a class="btn-coupang-expanded" href="${escapeHtml(link)}" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0m9 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M3 3h1.5l1.5 9h11l1.5-6H7"/></svg> 쿠팡에서 보기</a>`
             : `<button class="btn-coupang-expanded" disabled style="background:var(--line);color:var(--ink-faint);">링크 없음</button>`}
         </div>
       </div>
     </article>`;
 }
 
-// 4위 이하 카드 펼치기/접기 토글
 function toggleExpand(productId) {
   const card = document.getElementById('rest-' + productId);
   if (!card) return;
@@ -1364,26 +882,21 @@ window.toggleExpand = toggleExpand;
 async function explainProduct(productId) {
   const expEl = document.getElementById('exp-' + productId);
   if (!expEl) return;
-  if (expEl.classList.contains('active')) {
-    expEl.classList.remove('active');
-    return;
-  }
+  if (expEl.classList.contains('active')) { expEl.classList.remove('active'); return; }
   expEl.classList.add('active');
   expEl.innerHTML = '<div class="explanation-loading">AI가 분석하고 있어요…</div>';
   try {
     const res = await fetch(`${API_BASE}/explain-recommendation?profile=${lastProfile}&id=${productId}`);
     const data = await res.json();
     if (data.error) {
-      if (String(data.error).indexOf('claude') !== -1) {
-        expEl.innerHTML = '⏳ <strong>AI 설명 기능 준비 중</strong><br><small>곧 더 자세한 설명을 제공해드릴게요.</small>';
-      } else {
-        expEl.innerHTML = '⚠️ ' + escapeHtml(data.message || '설명을 불러올 수 없어요.');
-      }
+      expEl.innerHTML = String(data.error).indexOf('claude') !== -1
+        ? '⏳ <strong>AI 설명 기능 준비 중</strong><br><small>곧 더 자세한 설명을 제공해드릴게요.</small>'
+        : '설명을 불러올 수 없어요.';
       return;
     }
-    expEl.innerHTML = escapeHtml(data.explanation || '').replace(/\n/g, '<br>');
+    expEl.innerHTML = escapeHtml(data.explanation||'').replace(/\n/g,'<br>');
   } catch (err) {
-    expEl.innerHTML = '⚠️ 일시적인 오류가 발생했어요.';
+    expEl.innerHTML = '일시적인 오류가 발생했어요.';
   }
 }
 window.explainProduct = explainProduct;
