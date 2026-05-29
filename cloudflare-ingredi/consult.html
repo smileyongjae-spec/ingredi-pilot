@@ -60,7 +60,7 @@
     .answer-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--green-primary); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 10px; }
     .answer-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green-primary); animation: pulse 2s ease infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .answer-text { font-size: 14px; line-height: 1.8; color: var(--ink); letter-spacing: -0.01em; white-space: pre-wrap; }
+    .answer-text { font-size: 14px; line-height: 1.8; color: var(--ink); letter-spacing: -0.01em; }
     .recommend-section { margin-top: 4px; }
     .recommend-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; padding: 0 4px; }
     .recommend-title { font-size: 14px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.01em; }
@@ -166,18 +166,46 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// 마크다운 기호 제거 — Claude가 ###, **, --- 등을 보내더라도 깔끔하게 표시
-function cleanAnswerText(str) {
+// 답변 텍스트 렌더링 — * 항목은 불릿으로, 나머지 마크다운은 제거
+function renderAnswerText(str) {
   if (!str) return '';
-  return str
-    .replace(/^#{1,4}\s*/gm, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/__([^_]+)__/g, '$1')
-    .replace(/^[-*]{3,}\s*$/gm, '')
-    .replace(/^>\s*/gm, '')
-    .replace(/\n{3,}/g, '\n\n')
+
+  // 1단계: 불필요한 마크다운 제거
+  let cleaned = str
+    .replace(/^#{1,4}\s*/gm, '')          // ### 헤더
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')  // **굵게**
+    .replace(/__([^_\n]+)__/g, '$1')      // __밑줄__
+    .replace(/^[-]{3,}\s*$/gm, '')        // --- 구분선
+    .replace(/^>\s*/gm, '')              // > 인용
+    .replace(/\n{3,}/g, '\n\n')          // 3줄 이상 빈줄 축소
     .trim();
+
+  // 2단계: "* 항목" 줄을 <li>로 변환하여 HTML 렌더링
+  const lines = cleaned.split('\n');
+  let html = '';
+  let inList = false;
+
+  for (const line of lines) {
+    const bulletMatch = line.match(/^\*\s+(.+)/);
+    if (bulletMatch) {
+      if (!inList) {
+        html += '<ul style="margin:8px 0 8px 4px;padding:0;list-style:none;">';
+        inList = true;
+      }
+      html += `<li style="display:flex;gap:8px;margin-bottom:7px;line-height:1.7;">` +
+              `<span style="color:var(--green-primary);font-weight:700;flex-shrink:0;margin-top:1px;">•</span>` +
+              `<span>${escapeHtml(bulletMatch[1])}</span></li>`;
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      if (line.trim() === '') {
+        html += '<br>';
+      } else {
+        html += `<p style="margin:0 0 8px;">${escapeHtml(line)}</p>`;
+      }
+    }
+  }
+  if (inList) html += '</ul>';
+  return html;
 }
 
 function safeNum(v, fb = 0) { const n = Number(v); return isNaN(n) ? fb : n; }
@@ -225,7 +253,7 @@ function renderResult(data) {
     answerEl.innerHTML = `
       <article class="answer-section">
         <div class="answer-eyebrow"><span class="answer-eyebrow-dot"></span>AI 답변</div>
-        <div class="answer-text">${escapeHtml(cleanAnswerText(data.answer))}</div>
+        <div class="answer-text">${renderAnswerText(data.answer)}</div>
       </article>`;
   } else { answerEl.innerHTML = ''; }
 
