@@ -24,326 +24,94 @@
       font-size: 15px; line-height: 1.5; letter-spacing: -0.01em;
       -webkit-font-smoothing: antialiased;
     }
-    .app {
-      max-width: 480px; margin: 0 auto; min-height: 100vh;
-      background: var(--paper);
-      box-shadow: 0 0 40px rgba(27, 58, 46, 0.05);
-    }
+    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--paper); box-shadow: 0 0 40px rgba(27, 58, 46, 0.05); }
     .header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--line-soft);
-      background: var(--paper);
-      position: sticky; top: 0; z-index: 10;
+      padding: 16px 20px; border-bottom: 1px solid var(--line-soft);
+      background: var(--paper); position: sticky; top: 0; z-index: 10;
     }
-    .header-back {
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--ink-soft);
-      border-radius: var(--radius-sm); text-decoration: none;
-    }
+    .header-back { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); border-radius: var(--radius-sm); text-decoration: none; }
     .header-back:hover { background: var(--green-light); }
     .header-back svg { width: 22px; height: 22px; }
     .header-title { font-size: 16px; font-weight: 700; color: var(--green-deep); }
-    .header-action {
-      font-size: 12px; color: var(--green-primary);
-      cursor: pointer; padding: 6px 10px;
-      border-radius: 6px; transition: background 0.15s ease;
-      font-weight: 600; text-decoration: none;
-    }
+    .header-action { font-size: 12px; color: var(--green-primary); cursor: pointer; padding: 6px 10px; border-radius: 6px; transition: background 0.15s ease; font-weight: 600; text-decoration: none; }
     .header-action:hover { background: var(--green-light); }
-
     .screen { display: none; padding: 20px; }
     .screen.active { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     .loading-screen { text-align: center; padding: 60px 20px; }
-    .loading-spinner {
-      display: inline-block; width: 32px; height: 32px;
-      border: 3px solid var(--line);
-      border-top-color: var(--green-primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 16px;
-    }
+    .loading-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--green-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 13px; color: var(--ink-soft); }
     .loading-detail { font-size: 11px; color: var(--ink-faint); margin-top: 6px; }
-
     .query-header {
       background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-primary) 100%);
-      color: white;
-      padding: 18px 20px 22px;
-      margin: -20px -20px 20px;
-      position: relative;
-      overflow: hidden;
+      color: white; padding: 18px 20px 22px;
+      margin: -20px -20px 20px; position: relative; overflow: hidden;
     }
-    .query-header::before {
-      content: ''; position: absolute;
-      top: -40%; right: -10%;
-      width: 200px; height: 200px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-    }
-    .query-eyebrow {
-      font-size: 10px; font-weight: 600;
-      letter-spacing: 0.08em; opacity: 0.7;
-      margin-bottom: 6px; text-transform: uppercase;
-    }
-    .query-text {
-      font-size: 16px; font-weight: 700;
-      letter-spacing: -0.02em; line-height: 1.45;
-      margin-bottom: 6px;
-    }
+    .query-header::before { content: ''; position: absolute; top: -40%; right: -10%; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); }
+    .query-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; opacity: 0.7; margin-bottom: 6px; text-transform: uppercase; }
+    .query-text { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.45; margin-bottom: 6px; }
     .query-meta { font-size: 11px; opacity: 0.75; }
-
-    .alert {
-      padding: 12px 14px; border-radius: var(--radius-sm);
-      margin-bottom: 16px; font-size: 13px; line-height: 1.5;
-      display: flex; gap: 10px; align-items: flex-start;
-    }
-    .alert-warn {
-      background: rgba(201, 83, 61, 0.06);
-      border: 1px solid rgba(201, 83, 61, 0.2);
-      color: var(--warn);
-    }
+    .alert { padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+    .alert-warn { background: rgba(201, 83, 61, 0.06); border: 1px solid rgba(201, 83, 61, 0.2); color: var(--warn); }
     .alert-icon { flex-shrink: 0; font-size: 16px; line-height: 1.3; }
-
-    .answer-section {
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius-md);
-      padding: 18px 18px 14px;
-      margin-bottom: 24px;
-      box-shadow: var(--shadow-sm);
-      position: relative;
-    }
-    .answer-eyebrow {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 11px; font-weight: 700;
-      color: var(--green-primary);
-      letter-spacing: 0.04em; text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-    .answer-eyebrow-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--green-primary);
-      animation: pulse 2s ease infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    .answer-text {
-      font-size: 14px; line-height: 1.7;
-      color: var(--ink);
-      letter-spacing: -0.01em;
-      white-space: pre-wrap;
-    }
-    .answer-text strong { color: var(--green-deep); font-weight: 700; }
-    .answer-sources {
-      margin-top: 14px;
-      padding-top: 14px;
-      border-top: 1px dashed var(--line);
-    }
-    .answer-sources-title {
-      font-size: 10px; font-weight: 700;
-      color: var(--ink-faint);
-      letter-spacing: 0.06em; text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-    .source-list { display: flex; flex-wrap: wrap; gap: 6px; }
-    .source-chip {
-      font-size: 10px; font-weight: 600;
-      padding: 3px 8px; border-radius: 100px;
-      background: var(--green-bg);
-      color: var(--green-deep);
-      letter-spacing: -0.01em;
-    }
-
+    .answer-section { background: white; border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 18px 18px 14px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .answer-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--green-primary); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 10px; }
+    .answer-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green-primary); animation: pulse 2s ease infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .answer-text { font-size: 14px; line-height: 1.8; color: var(--ink); letter-spacing: -0.01em; white-space: pre-wrap; }
     .recommend-section { margin-top: 4px; }
-    .recommend-header {
-      display: flex; justify-content: space-between; align-items: flex-end;
-      margin-bottom: 14px;
-      padding: 0 4px;
-    }
-    .recommend-title {
-      font-size: 14px; font-weight: 700;
-      color: var(--green-deep);
-      letter-spacing: -0.01em;
-    }
-    .recommend-subtitle {
-      font-size: 10px; color: var(--ink-faint);
-      margin-top: 2px;
-    }
-    .profile-tag {
-      font-size: 10px; font-weight: 700;
-      padding: 4px 10px; border-radius: 100px;
-      background: var(--green-light);
-      color: var(--green-deep);
-      letter-spacing: -0.01em;
-    }
-
-    /* ========== 가로형 카드 (Top 3 카운슬링용 - 작은 사이즈) ========== */
-    .product-card {
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      margin-bottom: 10px;
-      box-shadow: var(--shadow-sm);
-      transition: box-shadow 0.2s ease;
-    }
+    .recommend-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; padding: 0 4px; }
+    .recommend-title { font-size: 14px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.01em; }
+    .recommend-subtitle { font-size: 10px; color: var(--ink-faint); margin-top: 2px; }
+    .profile-tag { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); letter-spacing: -0.01em; }
+    .product-card { background: white; border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s ease; }
     .product-card:hover { box-shadow: var(--shadow-md); }
-    .product-card.rank-1 {
-      border: 1.5px solid var(--gold);
-      background: linear-gradient(180deg, #FEFAF1 0%, white 60%);
-    }
+    .product-card.rank-1 { border: 1.5px solid var(--gold); background: linear-gradient(180deg, #FEFAF1 0%, white 60%); }
     .product-card.rank-2 { border: 1.5px solid var(--silver); }
     .product-card.rank-3 { border: 1.5px solid var(--bronze); }
-
-    .product-card-row {
-      display: flex; gap: 10px; align-items: flex-start;
-    }
-    .product-image-wrap {
-      width: 76px; flex-shrink: 0;
-      position: relative;
-    }
-    .product-image {
-      width: 76px; height: 96px;
-      object-fit: cover;
-      border-radius: 6px;
-      background: var(--green-bg);
-      display: block;
-    }
-    .product-image-fallback {
-      width: 76px; height: 96px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, #FFF8E5 0%, #F5E6B8 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-    }
+    .product-card-row { display: flex; gap: 10px; align-items: flex-start; }
+    .product-image-wrap { width: 76px; flex-shrink: 0; position: relative; }
+    .product-image { width: 76px; height: 96px; object-fit: cover; border-radius: 6px; background: var(--green-bg); display: block; }
+    .product-image-fallback { width: 76px; height: 96px; border-radius: 6px; background: linear-gradient(135deg, #FFF8E5 0%, #F5E6B8 100%); }
     .rank-2 .product-image-fallback { background: linear-gradient(135deg, #E5E8EB 0%, #C4C8CC 100%); }
     .rank-3 .product-image-fallback { background: linear-gradient(135deg, #F5DDC8 0%, #DAB494 100%); }
-    
-    .product-rank-badge {
-      position: absolute;
-      top: -6px; left: -6px;
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 800;
-      color: white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      z-index: 2;
-    }
+    .product-rank-badge { position: absolute; top: -6px; left: -6px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2; }
     .rank-1 .product-rank-badge { background: var(--gold); }
     .rank-2 .product-rank-badge { background: var(--silver); }
     .rank-3 .product-rank-badge { background: var(--bronze); }
-
     .product-info { flex: 1; min-width: 0; }
-    .product-info-top {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      gap: 6px; margin-bottom: 5px;
-    }
-    .product-rank-pill {
-      font-size: 9px; font-weight: 700;
-      padding: 2px 6px; border-radius: 4px;
-      letter-spacing: 0.04em; flex-shrink: 0;
-    }
+    .product-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 5px; }
+    .product-rank-pill { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.04em; flex-shrink: 0; }
     .rank-1 .product-rank-pill { background: var(--gold); color: white; }
     .rank-2 .product-rank-pill { background: var(--silver); color: white; }
     .rank-3 .product-rank-pill { background: var(--bronze); color: white; }
     .product-vscore-block { text-align: right; flex-shrink: 0; }
-    .product-vscore-num {
-      font-size: 19px; font-weight: 800;
-      color: var(--green-deep);
-      line-height: 1; letter-spacing: -0.04em;
-    }
-    .product-vscore-cap {
-      font-size: 8px; font-weight: 600;
-      color: var(--ink-faint);
-      letter-spacing: 0.06em; margin-top: 1px;
-    }
-    .product-name {
-      font-size: 12px; font-weight: 700;
-      color: var(--ink); letter-spacing: -0.02em;
-      line-height: 1.3; margin-bottom: 6px;
-    }
-    .product-meta {
-      font-size: 11px; color: var(--ink-soft);
-      margin-bottom: 6px;
-    }
+    .product-vscore-num { font-size: 19px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
+    .product-vscore-cap { font-size: 8px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0.06em; margin-top: 1px; }
+    .product-name { font-size: 12px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.3; margin-bottom: 6px; }
+    .product-meta { font-size: 11px; color: var(--ink-soft); margin-bottom: 6px; }
     .product-tags { display: flex; flex-wrap: wrap; gap: 3px; }
-    .product-tag {
-      font-size: 9px; font-weight: 600;
-      padding: 2px 6px; border-radius: 100px;
-      background: var(--green-light);
-      color: var(--green-deep);
-    }
-    .product-card-actions {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 6px; margin-top: 8px;
-    }
-    .btn-mini {
-      padding: 7px 8px;
-      border: none; border-radius: 6px;
-      font-family: inherit; font-size: 11px; font-weight: 600;
-      cursor: pointer; letter-spacing: -0.01em;
-      text-decoration: none; text-align: center;
-      display: flex; align-items: center; justify-content: center;
-      gap: 3px;
-    }
+    .product-tag { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); }
+    .product-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+    .btn-mini { padding: 7px 8px; border: none; border-radius: 6px; font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; letter-spacing: -0.01em; text-decoration: none; text-align: center; display: flex; align-items: center; justify-content: center; }
     .btn-mini.secondary { background: var(--green-light); color: var(--green-deep); }
     .btn-mini.primary { background: var(--green-primary); color: white; }
     .btn-mini.primary:hover { background: var(--green-deep); }
     .btn-mini:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
-
-    .compare-cta {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 8px; margin: 16px 0;
-    }
-    .compare-cta-btn {
-      padding: 11px;
-      border: 1.5px solid var(--green-primary);
-      border-radius: var(--radius-sm);
-      font-family: inherit; font-size: 12px; font-weight: 700;
-      cursor: pointer; letter-spacing: -0.01em;
-      text-decoration: none; text-align: center;
-      background: white; color: var(--green-primary);
-    }
+    .compare-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
+    .compare-cta-btn { padding: 11px; border: 1.5px solid var(--green-primary); border-radius: var(--radius-sm); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: -0.01em; text-decoration: none; text-align: center; background: white; color: var(--green-primary); }
     .compare-cta-btn:hover { background: var(--green-light); }
     .compare-cta-btn.primary { background: var(--green-primary); color: white; }
     .compare-cta-btn.primary:hover { background: var(--green-deep); }
-    .fit-cta {
-      background: #EAF3DE; border: 1px solid #97C459; border-radius: 12px;
-      padding: 16px; text-align: center; margin-top: 16px;
-    }
+    .fit-cta { background: #EAF3DE; border: 1px solid #97C459; border-radius: 12px; padding: 16px; text-align: center; margin-top: 16px; }
     .fit-cta-title { font-size: 13px; font-weight: 700; color: #27500A; margin-bottom: 4px; }
     .fit-cta-sub { font-size: 12px; color: #3B6D11; line-height: 1.6; margin-bottom: 12px; }
-    .fit-cta-btn {
-      display: block; width: 100%; background: #3B6D11; color: #fff;
-      border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700;
-      text-decoration: none; cursor: pointer;
-    }
+    .fit-cta-btn { display: block; width: 100%; background: #3B6D11; color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer; }
     .fit-cta-btn:hover { background: #27500A; }
-
-    .disclaimer {
-      margin-top: 24px; padding: 14px;
-      font-size: 11px; color: var(--ink-faint);
-      text-align: center; line-height: 1.6;
-      border-top: 1px solid var(--line-soft);
-    }
-    .empty-recommendation {
-      text-align: center; padding: 24px 16px;
-      background: var(--green-bg);
-      border-radius: var(--radius-md);
-      color: var(--ink-soft); font-size: 13px;
-    }
+    .disclaimer { margin-top: 24px; padding: 14px; font-size: 11px; color: var(--ink-faint); text-align: center; line-height: 1.6; border-top: 1px solid var(--line-soft); }
+    .empty-recommendation { text-align: center; padding: 24px 16px; background: var(--green-bg); border-radius: var(--radius-md); color: var(--ink-soft); font-size: 13px; }
     .error-box { text-align: center; padding: 40px 20px; color: var(--warn); }
   </style>
 </head>
@@ -361,17 +129,16 @@
 
   <div class="screen loading-screen active" id="screenLoading">
     <div class="loading-spinner"></div>
-    <div class="loading-text" id="loadingText">ingredi가 답변을 준비하고 있어요…</div>
+    <div class="loading-text">답변을 준비하고 있습니다…</div>
     <div class="loading-detail">잠시만 기다려주세요 (5~10초)</div>
   </div>
 
   <main class="screen" id="screenResult">
     <div class="query-header">
-      <div class="query-eyebrow">💬 ingredi 카운슬링</div>
+      <div class="query-eyebrow">INGREDI 카운슬링</div>
       <div class="query-text" id="queryText">질문 내용</div>
       <div class="query-meta" id="queryMeta">분석 결과</div>
     </div>
-
     <div id="medicalAlert"></div>
     <div id="answerContent"></div>
     <div id="recommendContent"></div>
@@ -379,7 +146,7 @@
     <div class="fit-cta">
       <div class="fit-cta-title">여러 영양제를 같이 드시나요?</div>
       <div class="fit-cta-sub">지금 드시는 조합에 겹침·과잉·상호작용이 없는지<br>ingredi가 무료로 점검해드려요</div>
-      <a class="fit-cta-btn" href="/fit.html">🧩 내 조합 점검하기</a>
+      <a class="fit-cta-btn" href="/fit.html">내 조합 점검하기</a>
     </div>
   </main>
 </div>
@@ -389,11 +156,8 @@ const API_BASE = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const query = params.get('q') || '';
 
-if (!query) {
-  window.location.href = '/app.html';
-} else {
-  loadConsultation(query);
-}
+if (!query) { window.location.href = '/app.html'; }
+else { loadConsultation(query); }
 
 function escapeHtml(str) {
   if (str == null) return '';
@@ -401,11 +165,22 @@ function escapeHtml(str) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-function safeNum(v, fb = 0) {
-  if (v == null) return fb;
-  const n = Number(v);
-  return isNaN(n) ? fb : n;
+
+// 마크다운 기호 제거 — Claude가 ###, **, --- 등을 보내더라도 깔끔하게 표시
+function cleanAnswerText(str) {
+  if (!str) return '';
+  return str
+    .replace(/^#{1,4}\s*/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/^[-*]{3,}\s*$/gm, '')
+    .replace(/^>\s*/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
+
+function safeNum(v, fb = 0) { const n = Number(v); return isNaN(n) ? fb : n; }
 function firstOf(v) {
   if (v == null) return '';
   if (Array.isArray(v)) return v[0] || '';
@@ -415,16 +190,10 @@ function firstOf(v) {
 
 async function loadConsultation(q) {
   document.getElementById('queryText').textContent = q;
-
   try {
     const res = await fetch(`${API_BASE}/counsel-api?q=${encodeURIComponent(q)}`);
     const data = await res.json();
-    
-    if (data.error) {
-      showError(data.message || '답변을 불러올 수 없습니다.');
-      return;
-    }
-    
+    if (data.error) { showError(data.message || '답변을 불러올 수 없습니다.'); return; }
     renderResult(data);
     document.getElementById('screenLoading').classList.remove('active');
     document.getElementById('screenResult').classList.add('active');
@@ -434,153 +203,95 @@ async function loadConsultation(q) {
 }
 
 function renderResult(data) {
-  if (data.category === 'out_of_scope') {
-    document.getElementById('queryMeta').textContent = '⚠️ 지원하지 않는 카테고리';
-  } else {
-    const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
-    const fCount = data.flags ? data.flags.faqCount || 0 : 0;
-    document.getElementById('queryMeta').textContent = 
-      `📚 관련 정보 ${kCount + fCount}건 검색`;
-  }
+  const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
+  const fCount = data.flags ? data.flags.faqCount || 0 : 0;
+  document.getElementById('queryMeta').textContent =
+    data.category === 'out_of_scope' ? '지원하지 않는 카테고리' : `관련 정보 ${kCount + fCount}건 검색`;
 
   const alertBox = document.getElementById('medicalAlert');
   if (data.flags && data.flags.requiresMedicalConsult) {
-    const risks = (data.flags.detectedRisks || []).map(r => {
-      const map = {
-        pregnancy: '임산부·수유부',
-        surgery: '수술 관련',
-        bleeding: '출혈 위험',
-        highDose: '고함량',
-        chronicDisease: '만성질환'
-      };
-      return map[r] || r;
-    }).join(', ');
+    const riskMap = { pregnancy: '임산부·수유부', surgery: '수술 관련', bleeding: '출혈 위험', highDose: '고함량', chronicDisease: '만성질환' };
+    const risks = (data.flags.detectedRisks || []).map(r => riskMap[r] || r).join(', ');
     alertBox.innerHTML = `
       <div class="alert alert-warn">
-        <span class="alert-icon">⚠️</span>
-        <div><strong>의사·약사 상담을 권장합니다</strong><br>
-        ${escapeHtml(risks)} 관련 키워드가 감지되었어요. 복용 전 전문가와 상담하세요.</div>
+        <span class="alert-icon">⚠</span>
+        <div><strong>의사·약사 상담을 권장합니다</strong><br>${escapeHtml(risks)} 관련 키워드가 감지되었어요. 복용 전 전문가와 상담하세요.</div>
       </div>`;
-  } else {
-    alertBox.innerHTML = '';
-  }
+  } else { alertBox.innerHTML = ''; }
 
+  // 답변 — 근거 출처 없음, 마크다운 제거
   const answerEl = document.getElementById('answerContent');
   if (data.answer) {
-    let sourcesHtml = '';
-    if (data.sources && (data.sources.knowledge && data.sources.knowledge.length > 0 || data.sources.faq && data.sources.faq.length > 0)) {
-      const allSources = [];
-      (data.sources.knowledge || []).forEach(k => {
-        allSources.push(`<span class="source-chip">📚 ${escapeHtml(k.id)}</span>`);
-      });
-      (data.sources.faq || []).forEach(f => {
-        allSources.push(`<span class="source-chip">💬 ${escapeHtml(f.id)}</span>`);
-      });
-      if (allSources.length > 0) {
-        sourcesHtml = `
-          <div class="answer-sources">
-            <div class="answer-sources-title">근거 출처</div>
-            <div class="source-list">${allSources.join('')}</div>
-          </div>`;
-      }
-    }
-    
     answerEl.innerHTML = `
       <article class="answer-section">
-        <div class="answer-eyebrow">
-          <span class="answer-eyebrow-dot"></span>
-          AI 답변
-        </div>
-        <div class="answer-text">${escapeHtml(data.answer)}</div>
-        ${sourcesHtml}
+        <div class="answer-eyebrow"><span class="answer-eyebrow-dot"></span>AI 답변</div>
+        <div class="answer-text">${escapeHtml(cleanAnswerText(data.answer))}</div>
       </article>`;
-  } else {
-    answerEl.innerHTML = '';
-  }
+  } else { answerEl.innerHTML = ''; }
 
   const recEl = document.getElementById('recommendContent');
   if (data.recommendation && data.recommendation.top3 && data.recommendation.top3.length > 0) {
     const rec = data.recommendation;
     const top3Html = rec.top3.map(p => {
       const ks = p.keySpec || {};
-      const tier = ks.tier || '';
-      const tags = [];
-      if (tier) tags.push(`<span class="product-tag">${escapeHtml(tier)}</span>`);
-      if (ks.form) tags.push(`<span class="product-tag">${escapeHtml(ks.form)}</span>`);
-      const firstCert = firstOf(ks.certs);
-      if (firstCert) tags.push(`<span class="product-tag">${escapeHtml(firstCert)}</span>`);
-      
+      const tags = [
+        ks.tier ? `<span class="product-tag">${escapeHtml(ks.tier)}</span>` : '',
+        ks.form ? `<span class="product-tag">${escapeHtml(ks.form)}</span>` : '',
+        firstOf(ks.certs) ? `<span class="product-tag">${escapeHtml(firstOf(ks.certs))}</span>` : ''
+      ].join('');
       const imageHtml = p.image
-        ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name || '')}" onerror="this.outerHTML='<div class=\\'product-image-fallback\\'>💊</div>'">`
-        : `<div class="product-image-fallback">💊</div>`;
-      
+        ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name||'')}" onerror="this.outerHTML='<div class=\\'product-image-fallback\\'></div>'">`
+        : `<div class="product-image-fallback"></div>`;
       return `
         <article class="product-card rank-${p.rank}">
           <div class="product-card-row">
-            <div class="product-image-wrap">
-              ${imageHtml}
-              <span class="product-rank-badge">${p.rank}</span>
-            </div>
+            <div class="product-image-wrap">${imageHtml}<span class="product-rank-badge">${p.rank}</span></div>
             <div class="product-info">
               <div class="product-info-top">
-                <span class="product-rank-pill">${['🥇','🥈','🥉'][p.rank-1] || ''} ${p.rank}위</span>
+                <span class="product-rank-pill">${p.rank}위</span>
                 <div class="product-vscore-block">
                   <div class="product-vscore-num">${p.vScore || 0}</div>
                   <div class="product-vscore-cap">V-SCORE</div>
                 </div>
               </div>
               <div class="product-name">${escapeHtml(p.name || '')}</div>
-              <div class="product-meta">
-                1일 ${safeNum(ks.dailyMg).toLocaleString()}mg · ${safeNum(ks.dailyCost).toLocaleString()}원
-              </div>
-              <div class="product-tags">${tags.join('')}</div>
+              <div class="product-meta">1일 ${safeNum(ks.dailyMg).toLocaleString()}mg · ${safeNum(ks.dailyCost).toLocaleString()}원</div>
+              <div class="product-tags">${tags}</div>
             </div>
           </div>
           <div class="product-card-actions">
             ${p.coupangLink
-              ? `<a class="btn-mini primary" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">🛒 쿠팡에서 보기</a>`
+              ? `<a class="btn-mini primary" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">쿠팡에서 보기</a>`
               : `<button class="btn-mini primary" disabled>링크 없음</button>`}
-            <a class="btn-mini secondary" href="/app.html?profile=${rec.profile.id}">📋 자세히 보기</a>
+            <a class="btn-mini secondary" href="/app.html?profile=${rec.profile.id}">자세히 보기</a>
           </div>
         </article>`;
     }).join('');
-
     const top3Ids = rec.top3.map(p => p.id).join(',');
-    
     recEl.innerHTML = `
       <section class="recommend-section">
         <div class="recommend-header">
           <div>
-            <div class="recommend-title">💊 관련 제품 추천</div>
+            <div class="recommend-title">관련 제품 추천</div>
             <div class="recommend-subtitle">${rec.totalCount}개 중 ${rec.filteredCount}개 분석</div>
           </div>
           <span class="profile-tag">${escapeHtml(rec.profile.label)}</span>
         </div>
         ${top3Html}
         <div class="compare-cta">
-          <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${rec.profile.id}">
-            🔍 Top 3 비교
-          </a>
-          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${rec.profile.id}">
-            ✏️ 직접 선택
-          </a>
+          <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${rec.profile.id}">Top 3 비교</a>
+          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${rec.profile.id}">직접 선택</a>
         </div>
       </section>`;
   } else if (data.category !== 'out_of_scope') {
-    recEl.innerHTML = `
-      <div class="empty-recommendation">
-        💊 추천할 제품이 없어요. 다른 키워드로 검색해보세요.
-      </div>`;
-  } else {
-    recEl.innerHTML = '';
-  }
+    recEl.innerHTML = `<div class="empty-recommendation">추천할 제품이 없어요. 다른 키워드로 검색해보세요.</div>`;
+  } else { recEl.innerHTML = ''; }
 
   document.getElementById('disclaimer').textContent = data.disclaimer || '';
 }
 
 function showError(msg) {
-  document.getElementById('answerContent').innerHTML = `
-    <div class="error-box">⚠️ ${escapeHtml(msg)}</div>`;
+  document.getElementById('answerContent').innerHTML = `<div class="error-box">${escapeHtml(msg)}</div>`;
   document.getElementById('screenLoading').classList.remove('active');
   document.getElementById('screenResult').classList.add('active');
 }
