@@ -113,7 +113,7 @@
     .product-cards.cols-1 { grid-template-columns: 1fr; }
     .product-cards.cols-2 { grid-template-columns: repeat(2, 1fr); }
     .product-cards.cols-3 { grid-template-columns: repeat(3, 1fr); }
-    .product-card { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 10px 8px; position: relative; scroll-snap-align: start; display: block; flex-shrink: 0; box-sizing: border-box; }
+    .product-card { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 10px 8px; position: relative; box-sizing: border-box; min-width: 0; overflow: hidden; }
     .product-card.rank-1 { border: 1.5px solid var(--blue); }
     .product-card.rank-2 { border: 0.5px solid var(--silver); }
     .product-card.rank-3 { border: 0.5px solid var(--bronze); }
@@ -126,11 +126,11 @@
     .product-card-img-fallback svg { width: 22px; height: 22px; stroke: var(--ink-faint); }
     .product-card-name { font-size: 11px; color: var(--ink-soft); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .product-card-score { font-size: 24px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
-    .product-card-score-lbl { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 10px; }
+    .product-card-score-lbl { font-size: 10px; color: var(--ink-faint); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 10px; }
     .product-card-divider { border: none; border-top: 0.5px solid var(--line-soft); margin: 8px 0; }
     .product-card-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
-    .product-card-row-lbl { font-size: 11px; color: var(--ink-faint); }
-    .product-card-row-val { font-size: 11px; font-weight: 600; color: var(--ink); }
+    .product-card-row-lbl { font-size: 12px; color: var(--ink-faint); }
+    .product-card-row-val { font-size: 12px; font-weight: 600; color: var(--ink); }
     .product-card-row-val.good { color: var(--green-primary); }
     .product-card-row-val.warn { color: var(--bronze); }
     .product-card-tags { display: flex; gap: 3px; flex-wrap: wrap; margin: 6px 0; }
@@ -140,14 +140,14 @@
     /* V-Score 바 (카드 내부) */
     .pc-bars { margin-top: 8px; }
     .pc-bar-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
-    .pc-bar-lbl { font-size: 9px; color: var(--ink-faint); width: 18px; flex-shrink: 0; }
-    .pc-bar-track { flex: 1; height: 3px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
+    .pc-bar-lbl { font-size: 10px; color: var(--ink-faint); width: 22px; flex-shrink: 0; }
+    .pc-bar-track { flex: 1; height: 5px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
     .pc-bar-fill { height: 100%; border-radius: 2px; }
     .pc-bar-fill.green { background: var(--bar-green); }
     .pc-bar-fill.blue  { background: var(--bar-blue); }
     .pc-bar-fill.amber { background: var(--bar-amber); }
     .pc-bar-fill.red   { background: var(--bar-red); }
-    .pc-bar-num { font-size: 9px; color: var(--ink-faint); width: 22px; text-align: right; flex-shrink: 0; }
+    .pc-bar-num { font-size: 10px; color: var(--ink-faint); width: 22px; text-align: right; flex-shrink: 0; }
 
     /* 상세 비교 테이블 */
     .section-label { font-size: 12px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.01em; margin: 20px 0 8px; padding-left: 2px; }
@@ -407,7 +407,7 @@ function renderComparison(data) {
         { label:'가격', val: safeNum(scores.price) },
       ];
       const imageHtml = p.image
-        ? `<img class="product-card-img" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'"\\'")}</div>'">`
+        ? `<img class="product-card-img" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'">`
         : `<div class="product-card-img-fallback">${PILL_SVG}</div>`;
 
       const costGood  = ks.dailyCost && ks.dailyCost === Math.min(...valid.map(v=>v.keySpec.dailyCost||9999));
