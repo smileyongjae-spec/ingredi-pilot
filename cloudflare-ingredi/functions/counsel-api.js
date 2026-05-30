@@ -331,7 +331,7 @@ export async function onRequest(context) {
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 400,
+          max_tokens: 500,
           stream: true,
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }]
