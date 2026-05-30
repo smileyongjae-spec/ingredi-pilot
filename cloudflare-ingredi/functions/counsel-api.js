@@ -69,18 +69,14 @@ export async function onRequest(context) {
     "budget_seeker":  { label: "\uAC00\uC131\uBE44 \uC120\uD638", weights: { dose: 20, form: 15, source: 15, cert: 10, price: 40 }, medicalConsult: false },
     "balanced":       { label: "\uAD50\uD615\uD615 (\uAE30\uBCF8\uAC12)", weights: { dose: 30, form: 20, source: 20, cert: 20, price: 10 }, medicalConsult: false },
     "pregnancy":      { label: "\uC784\uC0B0\uBD80\u00B7\uC218\uC720\uBD80", weights: { dose: 15, form: 15, source: 30, cert: 35, price: 5 }, medicalConsult: true },
-    "senior":         { label: "\uC2DC\uB2C8\uC5B4 (50+)", weights: { dose: 35, form: 25, source: 15, cert: 15, price: 10 }, medicalConsult: false, filters: { minDailyDose: 1000 } },
-    "vegan":          { label: "\uBE44\uAC74/\uC2DD\uBB3C\uC131", weights: { dose: 25, form: 15, source: 25, cert: 25, price: 10 }, medicalConsult: false, filters: { veganOnly: true } },
-    "kid":            { label: "\uC5B4\uB9B0\uC774", weights: { dose: 20, form: 15, source: 25, cert: 30, price: 10 }, medicalConsult: true }
+    "senior":         { label: "\uC2DC\uB2C8\uC5B4 (50+)", weights: { dose: 35, form: 25, source: 15, cert: 15, price: 10 }, medicalConsult: false, filters: { minDailyDose: 1000 } }
   };
 
   function matchProfileLocal(q) {
     const lower = q.toLowerCase();
     const keywordMap = [
       { profile: "pregnancy",      keywords: ["\uC784\uC0B0\uBD80", "\uC784\uC2E0", "\uC218\uC720", "pregnant"] },
-      { profile: "kid",            keywords: ["\uC544\uC774", "\uC5B4\uB9B0\uC774", "\uC790\uB140", "\uC544\uB4E4", "\uB538", "child", "kid"] },
       { profile: "senior",         keywords: ["\uC2DC\uB2C8\uC5B4", "\uB178\uC778", "\uBD80\uBAA8\uB2D8", "50\uB300", "60\uB300", "70\uB300", "\uC5B4\uBC84\uC9C0", "\uC5B4\uBA38\uB2C8", "senior"] },
-      { profile: "vegan",          keywords: ["\uBE44\uAC74", "\uCC44\uC2DD", "\uC2DD\uBB3C\uC131", "vegan", "algae", "\uC870\uB958"] },
       { profile: "budget_seeker",  keywords: ["\uAC00\uC131\uBE44", "\uC800\uB834", "\uC2F8\uB294", "\uACBD\uC81C\uC801", "\uC608\uC0B0", "cheap", "budget"] },
       { profile: "premium_seeker", keywords: ["\uCD5C\uACE0", "\uD504\uB9AC\uBBF8\uC5C4", "\uACE0\uAE09", "\uBE44\uC2F8\uB3C4", "premium", "best"] }
     ];
@@ -407,10 +403,7 @@ export async function onRequest(context) {
     let filtered = scored.filter(item => {
       if (item.passFail === "Fail") return false;
       if (profile.filters && profile.filters.minDailyDose && item.dailyMg < profile.filters.minDailyDose) return false;
-      if (profile.filters && profile.filters.veganOnly) {
-        const nl = String(item.name).toLowerCase();
-        if (nl.indexOf("\uC2DD\uBB3C\uC131") === -1 && nl.indexOf("vegan") === -1 && nl.indexOf("algae") === -1) return false;
-      }
+
       return true;
     });
     filtered.sort((a, b) => b.scores.total - a.scores.total);
