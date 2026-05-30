@@ -1,179 +1,282 @@
-// Cloudflare Pages Function: Supplement combination fit analysis (v1)
-// File path: functions/fit-api.js
-// URL: /fit-api  (POST with JSON body: { supplements: [...], takingMedication: bool })
-//
-// AI(Claude)가 복용 중인 영양제 조합을 받아 4개 카테고리로 분석:
-//   중복(duplication) / 과잉(excess) / 상호작용(interaction) / 시너지(synergy)
-// 판단 로직 근거: fit-logic-design.md 참조
-// 안전 원칙: 단정적 의료 판단 금지, 약 복용자에게 전문가 상담 권유, 면책 문구 상시
+// Cloudflare Pages Function: 영양제 조합 점검 RAG
+// File path: functions/fit.js
+// URL: /fit?items=오메가3,비타민D&pregnancy=true&surgery=false&meds=warfarin
 
 export async function onRequest(context) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Content-Type": "application/json"
   };
   const request = context.request;
   if (request.method === "OPTIONS") {
     return new Response("", { status: 200, headers });
   }
-  if (request.method !== "POST") {
-    return new Response(JSON.stringify({ error: "method_not_allowed", message: "POST only" }),
-      { status: 405, headers });
-  }
 
   const env = context.env;
   const ANTHROPIC_KEY = env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_KEY) {
-    return new Response(JSON.stringify({
-      error: "config_missing",
-      message: "ANTHROPIC_API_KEY not set"
-    }), { status: 500, headers });
+  const TOKEN = env.AIRTABLE_TOKEN;
+  const BASE_ID = env.AIRTABLE_BASE_ID;
+
+  if (!ANTHROPIC_KEY || !TOKEN || !BASE_ID) {
+    return new Response(JSON.stringify({ error: "config_missing" }), { status: 500, headers });
   }
 
-  // ─── 입력 파싱 ───
-  let body;
-  try {
-    body = await request.json();
-  } catch (e) {
-    return new Response(JSON.stringify({ error: "bad_request", message: "Invalid JSON" }),
-      { status: 400, headers });
+  // ── 입력 파싱 (GET / POST 둘 다 지원) ──
+  let items = [];
+  let context_info = { pregnancy: false, surgery: false, medications: [], conditions: [] };
+
+  if (request.method === "POST") {
+    try {
+      const body = await request.json();
+      items = body.items || [];
+      context_info.pregnancy = !!body.pregnancy;
+      context_info.surgery   = !!body.surgery;
+      context_info.medications = body.medications || [];
+      context_info.conditions  = body.conditions || [];
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "invalid_json" }), { status: 400, headers });
+    }
+  } else {
+    const url = new URL(request.url);
+    const itemsParam = url.searchParams.get("items") || "";
+    items = itemsParam.split(",").map(s => s.trim()).filter(Boolean);
+    context_info.pregnancy = url.searchParams.get("pregnancy") === "true";
+    context_info.surgery   = url.searchParams.get("surgery") === "true";
+    const meds = url.searchParams.get("meds") || "";
+    context_info.medications = meds.split(",").map(s => s.trim()).filter(Boolean);
   }
 
-  let supplements = Array.isArray(body.supplements) ? body.supplements : [];
-  supplements = supplements
-    .map(function (s) { return String(s).trim(); })
-    .filter(function (s) { return s.length > 0; })
-    .slice(0, 15); // 최대 15개
-  const takingMedication = body.takingMedication === true;
-
-  if (supplements.length === 0) {
+  if (items.length === 0) {
     return new Response(JSON.stringify({
-      error: "no_supplements",
-      message: "분석할 영양제를 1개 이상 입력해주세요."
+      error: "no_items",
+      message: "복용 중인 영양제를 1개 이상 입력해주세요."
     }), { status: 400, headers });
   }
 
-  const DISCLAIMER = "이 분석은 일반 정보이며 의료 자문이 아니에요. 약을 복용 중이거나 질환이 있으시면 반드시 의사·약사와 상담하세요.";
+  // ── 영양제명 정규화 (한글 표기 통일) ──
+  const synonymMap = {
+    "오메가": "오메가3", "오메가3": "오메가3", "omega": "오메가3", "epa": "오메가3", "dha": "오메가3", "피쉬오일": "오메가3", "어유": "오메가3",
+    "비타민d": "비타민D", "비타민 d": "비타민D", "vitamin d": "비타민D",
+    "비타민c": "비타민C", "비타민 c": "비타민C", "vitamin c": "비타민C",
+    "비타민a": "비타민A", "비타민 a": "비타민A",
+    "비타민e": "비타민E", "비타민 e": "비타민E",
+    "비타민k": "비타민K", "비타민 k": "비타민K", "비타민k2": "비타민K",
+    "철분": "철분", "iron": "철분",
+    "칼슘": "칼슘", "calcium": "칼슘",
+    "마그네슘": "마그네슘", "magnesium": "마그네슘",
+    "아연": "아연", "zinc": "아연",
+    "유산균": "프로바이오틱스", "프로바이오틱스": "프로바이오틱스", "probiotic": "프로바이오틱스",
+    "코큐텐": "코엔자임Q10", "코엔자임q10": "코엔자임Q10", "coq10": "코엔자임Q10", "ubiquinol": "코엔자임Q10",
+    "종합비타민": "멀티비타민", "멀티비타민": "멀티비타민", "multivitamin": "멀티비타민",
+    "와파린": "와파린", "warfarin": "와파린",
+    "아스피린": "아스피린", "aspirin": "아스피린",
+    "은행": "은행잎추출물", "은행잎": "은행잎추출물",
+    "마늘": "마늘", "생강": "생강", "강황": "강황", "커큐민": "강황",
+    "세인트존스워트": "세인트존스워트", "stjohn": "세인트존스워트",
+  };
 
-  // ─── 시스템 프롬프트 (fit-logic-design.md 기반) ───
-  const systemPrompt = [
-    "당신은 ingredi의 영양제 조합 분석 도우미입니다.",
-    "사용자가 복용 중인 영양제 목록과 약 복용 여부를 받아, 아래 4개 카테고리로 분석합니다.",
-    "",
-    "카테고리:",
-    "1) duplication(중복): 서로 다른 제품에 같은 성분이 겹치는 경우 (예: 종합비타민에 이미 마그네슘이 들어있음)",
-    "2) excess(과잉): 조합 전체로 특정 성분이 권장량/상한을 넘길 위험 (비타민A·D, 아연, 셀레늄 등)",
-    "3) interaction(상호작용): 성분-약물 또는 성분-성분 간 주의 (예: 오메가3와 항응고제 → 출혈 위험)",
-    "4) synergy(시너지): 함께 먹으면 흡수·효과에 도움 (예: 마그네슘과 비타민D, 비타민C와 철분)",
-    "",
-    "안전 규칙 (반드시 지킬 것):",
-    "- 의료 자문이 아닙니다. '안전합니다 / 먹어도 됩니다'라고 단정하지 마세요. '주의하세요 / 확인해보세요 / 상담을 권해요' 형태로만 표현하세요.",
-    "- 약 복용 여부가 true이면, interaction 항목에서 반드시 약사·의사 상담을 권하세요.",
-    "- 확실하지 않으면 '정보가 충분하지 않다, 전문가에게 확인하라'고 답하세요. 추측으로 안전하다고 말하지 마세요.",
-    "- 임산부·수유부·소아·만성질환이 입력에 보이면 전문가 상담을 최우선으로 안내하세요.",
-    "- 각 메시지는 한국어로, 2~3문장 이내로 친절하고 쉽게 쓰세요.",
-    "",
-    "severity 값: high(강한 주의) / medium(확인 필요) / low(경미) / none(문제없음 또는 긍정).",
-    "해당 카테고리에서 특이사항이 없으면 severity는 'none' 또는 'low'로 하고 간단히 안내하세요.",
-    "",
-    "반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트·마크다운·설명을 절대 포함하지 마세요.",
-    '{',
-    '  "combo": "분석한 조합 요약 (예: 오메가3 · 종합비타민 · 마그네슘)",',
-    '  "categories": [',
-    '    {"type":"duplication","severity":"high|medium|low|none","title":"짧은 제목","message":"설명"},',
-    '    {"type":"excess","severity":"...","title":"...","message":"..."},',
-    '    {"type":"interaction","severity":"...","title":"...","message":"..."},',
-    '    {"type":"synergy","severity":"...","title":"...","message":"..."}',
-    '  ]',
-    '}'
-  ].join("\n");
+  function normalize(name) {
+    const lower = String(name).trim().toLowerCase().replace(/\s+/g, "");
+    for (const key in synonymMap) {
+      if (lower.indexOf(key.toLowerCase()) !== -1) return synonymMap[key];
+    }
+    return String(name).trim();
+  }
 
-  const userPrompt = [
-    "복용 중인 영양제: " + supplements.join(", "),
-    "처방약 복용 여부: " + (takingMedication ? "예 (복용 중)" : "아니요"),
-    "",
-    "위 조합을 4개 카테고리로 분석해 JSON으로만 응답하세요."
-  ].join("\n");
+  const normalizedItems = items.map(normalize);
+  const uniqueItems = [...new Set(normalizedItems)];
 
-  // ─── Claude 호출 ───
-  let parsed = null;
-  let claudeError = null;
+  // 약 + 영양제 통합 (상호작용 검색용)
+  const allItems = [...uniqueItems, ...context_info.medications.map(normalize)];
+
+  // ── Airtable fit_knowledge 조회 ──
+  const fitTableName = encodeURIComponent("fit_knowledge");
+  const fitUrl = `https://api.airtable.com/v0/${BASE_ID}/${fitTableName}?maxRecords=100`;
+
+  let allRecords = [];
   try {
-    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1200,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }]
-      })
-    });
-
-    if (claudeResponse.ok) {
-      const claudeData = await claudeResponse.json();
-      let text = (claudeData.content || [])
-        .filter(function (b) { return b.type === "text"; })
-        .map(function (b) { return b.text; })
-        .join("\n");
-      // 마크다운 코드펜스 제거 후 JSON 파싱
-      text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-      try {
-        parsed = JSON.parse(text);
-      } catch (e) {
-        claudeError = "parse_failed";
-      }
-    } else {
-      claudeError = await claudeResponse.text();
+    const res = await fetch(fitUrl, { headers: { Authorization: "Bearer " + TOKEN } });
+    if (res.ok) {
+      const data = await res.json();
+      allRecords = data.records || [];
     }
   } catch (e) {
-    claudeError = String(e);
+    return new Response(JSON.stringify({ error: "airtable_error", message: e.message }), { status: 500, headers });
   }
 
-  // ─── 응답 조립 (실패 시 안전한 기본값) ───
-  if (!parsed || !Array.isArray(parsed.categories)) {
-    return new Response(JSON.stringify({
-      combo: supplements.join(" · "),
-      categories: [{
-        type: "interaction",
-        severity: "medium",
-        title: "분석을 완료하지 못했어요",
-        message: "일시적인 오류로 자동 분석에 실패했어요. 잠시 후 다시 시도하시거나, 정확한 확인은 약사·의사와 상담해주세요."
-      }],
-      takingMedication: takingMedication,
-      disclaimer: DISCLAIMER,
-      _error: claudeError || "unknown"
-    }), { status: 200, headers });
+  // ── 카테고리별 매칭 ──
+  // 영양제A 또는 영양제B가 사용자 입력에 매칭되는 레코드 추출
+  const matched = {
+    상호작용: [],
+    중복_과잉: [],
+    복용시간: [],
+    대상별_주의: [],
+    시너지: []
+  };
+
+  function fieldMatch(field, items) {
+    if (!field) return false;
+    const f = String(field).toLowerCase();
+    for (const it of items) {
+      if (f.indexOf(it.toLowerCase()) !== -1) return true;
+    }
+    return false;
   }
 
-  // 카테고리 순서 정규화 (중복→과잉→상호작용→시너지)
-  const order = { duplication: 1, excess: 2, interaction: 3, synergy: 4 };
-  parsed.categories.sort(function (a, b) {
-    return (order[a.type] || 99) - (order[b.type] || 99);
-  });
+  for (const rec of allRecords) {
+    const f = rec.fields || {};
+    const cat = f["카테고리"] || "";
+    const a = f["영양제A"] || "";
+    const b = f["영양제B"] || "";
 
-  // 약 복용자인데 interaction이 none/low면 최소 medium으로 끌어올림 (안전장치)
-  if (takingMedication) {
-    parsed.categories.forEach(function (c) {
-      if (c.type === "interaction" && (c.severity === "none" || c.severity === "low")) {
-        c.severity = "medium";
-        if (!/상담/.test(c.message || "")) {
-          c.message = (c.message || "") + " 약을 복용 중이시니, 새 영양제를 더하기 전 약사·의사와 상담하시길 권해요.";
-        }
+    let hit = false;
+
+    if (cat === "상호작용") {
+      // A와 B 둘 다 사용자 입력에 있어야 함 (페어 매칭)
+      const aMatch = fieldMatch(a, allItems);
+      const bMatch = fieldMatch(b, allItems);
+      if (aMatch && bMatch) hit = true;
+    } else if (cat === "중복_과잉") {
+      // A만 매칭되면 됨 (단일 영양소)
+      if (fieldMatch(a, uniqueItems)) hit = true;
+    } else if (cat === "복용시간") {
+      if (fieldMatch(a, uniqueItems)) hit = true;
+    } else if (cat === "대상별_주의") {
+      // A는 영양제, B는 대상 그룹
+      const aMatch = fieldMatch(a, uniqueItems);
+      if (!aMatch) continue;
+      // 대상 그룹 매칭
+      const bLower = String(b).toLowerCase();
+      if (context_info.pregnancy && (bLower.indexOf("임산") !== -1 || bLower.indexOf("수유") !== -1)) hit = true;
+      if (context_info.surgery && bLower.indexOf("수술") !== -1) hit = true;
+      // 약 복용자 (만성질환)
+      if (context_info.medications.length > 0 && (bLower.indexOf("당뇨") !== -1 || bLower.indexOf("신장") !== -1)) hit = true;
+    } else if (cat === "시너지") {
+      const aMatch = fieldMatch(a, uniqueItems);
+      const bMatch = fieldMatch(b, uniqueItems);
+      if (aMatch && bMatch) hit = true;
+    }
+
+    if (hit) {
+      const targetCat = cat.replace("_권고", "");
+      if (matched[targetCat]) {
+        matched[targetCat].push({
+          id: f["지식_ID"] || rec.id,
+          category: cat,
+          a: a,
+          b: b,
+          type: f["유형"] || "",
+          severity: f["심각도"] || "",
+          evidence: f["근거수준"] || "",
+          description: f["설명"] || "",
+          recommendation: f["권고사항"] || "",
+          extra: f["추가정보"] || ""
+        });
       }
+    }
+  }
+
+  // ── 심각도별 정렬 (위험한 것 먼저) ──
+  const severityOrder = { "금기": 4, "경고": 3, "주의": 2, "안전": 1, "": 0 };
+  matched["상호작용"].sort((a, b) => (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0));
+  matched["대상별_주의"].sort((a, b) => (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0));
+
+  // ── AI 요약 생성 ──
+  let aiSummary = "";
+  let claudeError = null;
+
+  const totalHits = matched["상호작용"].length + matched["중복_과잉"].length + matched["대상별_주의"].length;
+
+  if (totalHits === 0 && matched["시너지"].length === 0 && matched["복용시간"].length === 0) {
+    aiSummary = `${uniqueItems.join(", ")} 조합에 대한 특별한 주의사항이나 시너지 정보는 ingredi 지식DB에서 확인되지 않았습니다. 일반적인 영양제 조합으로 보이지만, 처방약 복용 중이거나 특이 건강 상태가 있다면 의료진과 상담하시기 바랍니다.`;
+  } else {
+    const systemPrompt = "당신은 ingredi의 영양제 조합 분석 카운슬러입니다.\n\n[핵심 원칙]\n1. 광고 없음 — 특정 제품·브랜드를 추천하지 않습니다\n2. 임상 근거 기반 — 검색 결과의 사실만 답변합니다\n3. 엄격 모드 — 검색 결과에 없는 내용은 추측하지 않습니다\n\n[답변 스타일]\n- 한국어, 존댓말\n- 3~5문장으로 간결하게 핵심 요약\n- 위험도 순서로 언급 (금기 > 경고 > 주의 > 안전)\n- 마크다운 헤더(#), 굵은체(**), 구분선(---), 이모지 사용 금지\n- 의학 자문 아님을 명시";
+
+    let contextBlock = `[사용자 복용 정보]\n영양제: ${uniqueItems.join(", ")}\n`;
+    if (context_info.medications.length > 0) contextBlock += `약: ${context_info.medications.join(", ")}\n`;
+    if (context_info.pregnancy) contextBlock += "임산부·수유부: 예\n";
+    if (context_info.surgery) contextBlock += "수술 예정: 예\n";
+
+    contextBlock += "\n[검색된 정보]\n";
+
+    matched["상호작용"].slice(0, 5).forEach((m, i) => {
+      contextBlock += `\n[상호작용 ${i+1}] ${m.a} + ${m.b} (${m.severity}, 근거:${m.evidence}): ${m.description}`;
     });
+    matched["중복_과잉"].slice(0, 3).forEach((m, i) => {
+      contextBlock += `\n[중복/과잉 ${i+1}] ${m.a}: ${m.description}`;
+    });
+    matched["대상별_주의"].slice(0, 5).forEach((m, i) => {
+      contextBlock += `\n[대상별 주의 ${i+1}] ${m.a} - ${m.b} (${m.severity}): ${m.description}`;
+    });
+    matched["시너지"].slice(0, 3).forEach((m, i) => {
+      contextBlock += `\n[시너지 ${i+1}] ${m.a} + ${m.b}: ${m.description}`;
+    });
+
+    const userPrompt = contextBlock + "\n\n위 정보를 바탕으로 이 영양제 조합에 대한 핵심 요약을 3~5문장으로 작성해주세요. 가장 중요한 주의사항을 먼저 언급하세요.";
+
+    try {
+      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_KEY,
+          "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 500,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }]
+        })
+      });
+
+      if (claudeResponse.ok) {
+        const claudeData = await claudeResponse.json();
+        aiSummary = (claudeData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+      } else {
+        claudeError = await claudeResponse.text();
+        aiSummary = "AI 요약 생성에 일시적인 문제가 있어요. 아래 세부 정보를 참고해주세요.";
+      }
+    } catch (e) {
+      claudeError = e.message;
+      aiSummary = "AI 요약 생성에 일시적인 문제가 있어요. 아래 세부 정보를 참고해주세요.";
+    }
+  }
+
+  // ── 응답 ──
+  // 최고 심각도 계산
+  let highestSeverity = "";
+  for (const cat of ["상호작용", "대상별_주의"]) {
+    for (const m of matched[cat]) {
+      const cur = severityOrder[m.severity] || 0;
+      const high = severityOrder[highestSeverity] || 0;
+      if (cur > high) highestSeverity = m.severity;
+    }
   }
 
   return new Response(JSON.stringify({
-    combo: parsed.combo || supplements.join(" · "),
-    categories: parsed.categories,
-    takingMedication: takingMedication,
-    disclaimer: DISCLAIMER
+    input: {
+      items: uniqueItems,
+      medications: context_info.medications,
+      pregnancy: context_info.pregnancy,
+      surgery: context_info.surgery
+    },
+    aiSummary: aiSummary,
+    sections: {
+      interactions:  matched["상호작용"],
+      overlaps:      matched["중복_과잉"],
+      timing:        matched["복용시간"],
+      targetCautions: matched["대상별_주의"],
+      synergies:     matched["시너지"]
+    },
+    stats: {
+      totalMatches: matched["상호작용"].length + matched["중복_과잉"].length + matched["복용시간"].length + matched["대상별_주의"].length + matched["시너지"].length,
+      highestSeverity: highestSeverity,
+      hasWarnings: ["경고", "금기"].includes(highestSeverity)
+    },
+    flags: { claudeError },
+    disclaimer: " 본 정보는 의료 자문이 아니며, 개별 건강 상태에 따라 다를 수 있습니다. 처방약 복용 중이거나 특이 상황이 있으면 반드시 의사·약사와 상담하세요."
   }), { status: 200, headers });
 }
