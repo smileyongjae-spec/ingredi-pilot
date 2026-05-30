@@ -102,62 +102,52 @@
 
     /* 비교 본문 */
     .compare-body { padding: 16px 20px 40px; }
-    .scroll-hint { font-size: 10px; color: var(--ink-faint); text-align: right; margin: -10px 0 6px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
-    .scroll-hint svg { width: 12px; height: 12px; stroke: var(--ink-faint); }
-    .scroll-dots { display: flex; gap: 4px; justify-content: center; margin-bottom: 12px; }
-    .scroll-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); transition: background 0.2s; }
-    .scroll-dot.active { background: var(--green-primary); }
+
 
     /* 제품 카드 그리드 (상단) */
     .product-cards {
-      display: flex;
-      gap: 10px;
-      margin: 0 -20px 16px;
-      padding: 0 20px 8px;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
     }
-    .product-cards::-webkit-scrollbar { display: none; }
-    .product-cards.cols-1 .product-card { width: calc(100vw - 40px); max-width: 440px; }
-    .product-cards.cols-2 .product-card { width: 200px; }
-    .product-cards.cols-3 .product-card { width: 188px; }
-    .product-card { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px 10px; position: relative; scroll-snap-align: start; display: block; flex-shrink: 0; box-sizing: border-box; }
+    .product-cards.cols-1 { grid-template-columns: 1fr; }
+    .product-cards.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .product-cards.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .product-card { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 10px 8px; position: relative; scroll-snap-align: start; display: block; flex-shrink: 0; box-sizing: border-box; }
     .product-card.rank-1 { border: 1.5px solid var(--blue); }
     .product-card.rank-2 { border: 0.5px solid var(--silver); }
     .product-card.rank-3 { border: 0.5px solid var(--bronze); }
-    .product-card-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block; margin-bottom: 8px; letter-spacing: 0.02em; }
+    .product-card-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block; margin-bottom: 8px; letter-spacing: 0.02em; }
     .rank-1 .product-card-badge { background: var(--blue-light); color: var(--blue); }
     .rank-2 .product-card-badge { background: rgba(139,142,145,0.12); color: var(--silver); }
     .rank-3 .product-card-badge { background: rgba(176,113,66,0.1); color: var(--bronze); }
     .product-card-img { width: 52px; height: 66px; border-radius: 6px; object-fit: cover; background: var(--green-bg); display: block; margin: 0 auto 8px; }
     .product-card-img-fallback { width: 52px; height: 66px; border-radius: 6px; background: var(--green-bg); display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; }
     .product-card-img-fallback svg { width: 22px; height: 22px; stroke: var(--ink-faint); }
-    .product-card-name { font-size: 10px; color: var(--ink-soft); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .product-card-score { font-size: 26px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
-    .product-card-score-lbl { font-size: 8px; color: var(--ink-faint); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 10px; }
+    .product-card-name { font-size: 11px; color: var(--ink-soft); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .product-card-score { font-size: 24px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
+    .product-card-score-lbl { font-size: 9px; color: var(--ink-faint); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 10px; }
     .product-card-divider { border: none; border-top: 0.5px solid var(--line-soft); margin: 8px 0; }
     .product-card-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
-    .product-card-row-lbl { font-size: 9px; color: var(--ink-faint); }
-    .product-card-row-val { font-size: 9px; font-weight: 600; color: var(--ink); }
+    .product-card-row-lbl { font-size: 11px; color: var(--ink-faint); }
+    .product-card-row-val { font-size: 11px; font-weight: 600; color: var(--ink); }
     .product-card-row-val.good { color: var(--green-primary); }
     .product-card-row-val.warn { color: var(--bronze); }
     .product-card-tags { display: flex; gap: 3px; flex-wrap: wrap; margin: 6px 0; }
-    .pc-tag { font-size: 8px; padding: 1px 5px; border-radius: 3px; background: var(--green-bg); color: var(--ink-soft); }
+    .pc-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--green-bg); color: var(--ink-soft); }
     .pc-tag.hi { background: var(--green-light); color: var(--green-deep); font-weight: 700; }
 
     /* V-Score 바 (카드 내부) */
     .pc-bars { margin-top: 8px; }
     .pc-bar-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
-    .pc-bar-lbl { font-size: 8px; color: var(--ink-faint); width: 18px; flex-shrink: 0; }
+    .pc-bar-lbl { font-size: 9px; color: var(--ink-faint); width: 18px; flex-shrink: 0; }
     .pc-bar-track { flex: 1; height: 3px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
     .pc-bar-fill { height: 100%; border-radius: 2px; }
     .pc-bar-fill.green { background: var(--bar-green); }
     .pc-bar-fill.blue  { background: var(--bar-blue); }
     .pc-bar-fill.amber { background: var(--bar-amber); }
     .pc-bar-fill.red   { background: var(--bar-red); }
-    .pc-bar-num { font-size: 8px; color: var(--ink-faint); width: 22px; text-align: right; flex-shrink: 0; }
+    .pc-bar-num { font-size: 9px; color: var(--ink-faint); width: 22px; text-align: right; flex-shrink: 0; }
 
     /* 상세 비교 테이블 */
     .section-label { font-size: 12px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.01em; margin: 20px 0 8px; padding-left: 2px; }
@@ -403,14 +393,7 @@ function renderComparison(data) {
     let html = '';
 
     // ── 1. 제품 카드 ──
-    // 스크롤 힌트 (2개 이상일 때)
-    if (cols > 1) {
-      html += `<div class="scroll-hint">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-        옆으로 밀어보세요
-      </div>`;
-    }
-    html += `<div class="product-cards cols-${cols}" id="productCardsRow">`;
+    html += `<div class="product-cards cols-${cols}">`;
     valid.forEach((p, idx) => {
       const rank = idx + 1;
       const rankLabel = ['1위 추천','2위','3위'][idx] || `${rank}위`;
@@ -466,14 +449,6 @@ function renderComparison(data) {
         </div>`;
     });
     html += '</div>';
-
-    // 스크롤 도트 인디케이터
-    if (cols > 1) {
-      const dots = Array.from({length: cols}, (_, i) =>
-        `<div class="scroll-dot${i===0?' active':''}" data-idx="${i}"></div>`
-      ).join('');
-      html += `<div class="scroll-dots" id="scrollDots">${dots}</div>`;
-    }
 
     // ── 2. 상세 비교 테이블 ──
     html += `<div class="section-label">상세 비교</div>`;
@@ -580,18 +555,6 @@ function renderComparison(data) {
     document.getElementById('compareContent').innerHTML = html;
     document.getElementById('compareDisclaimer').textContent = data.disclaimer || '';
 
-    // 스크롤 도트 업데이트
-    const cardsRow = document.getElementById('productCardsRow');
-    const dotsEl = document.getElementById('scrollDots');
-    if (cardsRow && dotsEl && cols > 1) {
-      cardsRow.addEventListener('scroll', () => {
-        const cardW = cardsRow.querySelector('.product-card')?.offsetWidth || 1;
-        const activeIdx = Math.round(cardsRow.scrollLeft / (cardW + 10));
-        dotsEl.querySelectorAll('.scroll-dot').forEach((d, i) => {
-          d.classList.toggle('active', i === activeIdx);
-        });
-      }, { passive: true });
-    }
   } catch(err) {
     showError('렌더링 오류: ' + (err.message||''));
   }
