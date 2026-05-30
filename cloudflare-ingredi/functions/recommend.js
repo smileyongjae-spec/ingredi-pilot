@@ -258,7 +258,7 @@ export async function onRequest(context) {
       cost:    { min: costMin, max: costMax, avg: costAvg, count: costList.length },
       capsule: { min: capMin,  max: capMax,  avg: capAvg,  count: capCount }
     },
-    capsuleDistribution: { min: capMin, max: capMax, count: capCount }, max: capMax, count: capCount },
+    capsuleDistribution: { min: capMin, max: capMax, count: capCount },
     totalProducts: records.length, filteredCount: filtered.length, excludedCount: records.length - filtered.length,
     top3, rest, medicalConsult: profile.medicalConsult,
     disclaimer: "\u00A0\uBCF8 V-Score\uB294 \uACF5\uAC1C\uB41C \uC81C\uD488 \uB370\uC774\uD130 \uAE30\uBC18\uC758 \uAC1D\uAD00\uC801 \uC9C0\uD45C\uC774\uBA70, \uAC1C\uC778\uC758 \uAC74\uAC15 \uC0C1\uD0DC\u00B7\uC57D\uBB3C\u00B7\uC54C\uB808\uB974\uAE30\uC5D0 \ub530\ub77c \uCD5C\uC801 \uC81C\ud488\uC740 \ub2E4\ub97c \uC218 \uC788\uC2B5\ub2C8\ub2E4."
