@@ -340,7 +340,7 @@ function renderProductList() {
   list.innerHTML = allProducts.map(p => {
     const tierClass = p.tier ? p.tier.toLowerCase().replace('tier','tier-') : 'tier-fail';
     const imageHtml = p.image
-      ? `<img class="product-item-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'product-item-image-fallback\\'>${PILL_SVG.replace(/'/g,"\\'")}</div>'">`
+      ? `<img class="product-item-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'"\\'")}</div>'">`
       : `<div class="product-item-image-fallback">${PILL_SVG}</div>`;
     return `
       <div class="product-item" data-id="${p.id}" onclick="toggleSelect('${p.id}')">
@@ -424,7 +424,7 @@ function renderComparison(data) {
         { label:'가격', val: safeNum(scores.price) },
       ];
       const imageHtml = p.image
-        ? `<img class="product-card-img" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'product-card-img-fallback\\'>${PILL_SVG.replace(/'/g,"\\'")}</div>'">`
+        ? `<img class="product-card-img" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'"\\'")}</div>'">`
         : `<div class="product-card-img-fallback">${PILL_SVG}</div>`;
 
       const costGood  = ks.dailyCost && ks.dailyCost === Math.min(...valid.map(v=>v.keySpec.dailyCost||9999));
