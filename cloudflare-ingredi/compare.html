@@ -111,7 +111,6 @@
     /* 제품 카드 그리드 (상단) */
     .product-cards {
       display: flex;
-      flex-direction: row;
       gap: 10px;
       margin: 0 -20px 16px;
       padding: 0 20px 8px;
@@ -119,13 +118,12 @@
       scroll-snap-type: x mandatory;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      align-items: flex-start;
     }
     .product-cards::-webkit-scrollbar { display: none; }
-    .product-cards.cols-1 .product-card { min-width: calc(100vw - 40px); max-width: 440px; }
-    .product-cards.cols-2 .product-card { min-width: 220px; max-width: 260px; }
-    .product-cards.cols-3 .product-card { min-width: 210px; max-width: 250px; }
-    .product-card { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px 10px; position: relative; scroll-snap-align: start; }
+    .product-cards.cols-1 .product-card { width: calc(100vw - 40px); max-width: 440px; }
+    .product-cards.cols-2 .product-card { width: 200px; }
+    .product-cards.cols-3 .product-card { width: 188px; }
+    .product-card { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px 10px; position: relative; scroll-snap-align: start; display: block; flex-shrink: 0; box-sizing: border-box; }
     .product-card.rank-1 { border: 1.5px solid var(--blue); }
     .product-card.rank-2 { border: 0.5px solid var(--silver); }
     .product-card.rank-3 { border: 0.5px solid var(--bronze); }
