@@ -66,7 +66,7 @@ export async function onRequest(context) {
     }), { status: 400, headers });
   }
 
-  const productsUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=100";
+  const productsUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=500";
   const res = await fetch(productsUrl, { headers: { Authorization: "Bearer " + TOKEN } });
   if (!res.ok) {
     const text = await res.text();
@@ -250,7 +250,7 @@ export async function onRequest(context) {
     vScore: item.scores.total, detailScores: item.scores, highDoseFlag: item.highDoseFlag, passFail: item.passFail||""
   }));
 
-  const rest = filtered.slice(3, 30).map((item, idx) => ({
+  const rest = filtered.slice(3).map((item, idx) => ({
     rank: idx+4, id: item.productId || item.record.id,
     name: item.productName, image: item.imageUrl||"", vScore: item.scores.total,
     tier: item.tier||"", dailyMg: item.dailyMg||0, dailyCost: item.dailyCost||0,
