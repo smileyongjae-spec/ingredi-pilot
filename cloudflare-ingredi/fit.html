@@ -433,16 +433,12 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 
   showScreen('Loading');
   try {
-    const res = await fetch(`${API_BASE}/fit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: items,
-        medications: medications,
-        pregnancy: state.preg,
-        surgery: state.surg
-      })
-    });
+    const params = new URLSearchParams();
+    params.set('items', items.join(','));
+    if (medications.length) params.set('meds', medications.join(','));
+    if (state.preg) params.set('pregnancy', 'true');
+    if (state.surg) params.set('surgery', 'true');
+    const res = await fetch(`${API_BASE}/fit?${params.toString()}`);
     if (!res.ok) throw new Error('서버 오류: ' + res.status);
     const data = await res.json();
     if (data.error) throw new Error(data.message || data.error);
