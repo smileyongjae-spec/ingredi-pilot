@@ -172,8 +172,6 @@
     .icon-budget  { background: #F0FDF4; } .icon-budget  i { color: #16A34A; }
     .icon-preg    { background: #FFF1F2; } .icon-preg    i { color: #E11D48; }
     .icon-senior  { background: #EFF6FF; } .icon-senior  i { color: #2563EB; }
-    .icon-vegan   { background: #F0FDF4; } .icon-vegan   i { color: #15803D; }
-    .icon-kid     { background: #FFF7ED; } .icon-kid     i { color: #D97706; }
     .icon-balance { background: #EEF2FF; } .icon-balance i { color: #4F46E5; }
 
     .compare-entry-section {
@@ -222,7 +220,7 @@
     .profile-switch-grid { display: flex; flex-direction: column; gap: 7px; }
     .psw-row { display: grid; gap: 7px; }
     .psw-row.top { grid-template-columns: repeat(3, 1fr); }
-    .psw-row.bottom { grid-template-columns: repeat(4, 1fr); }
+    .psw-row.bottom { grid-template-columns: repeat(2, 1fr); }
     .psw-btn {
       background: white; border: 1.5px solid var(--line-soft);
       border-radius: 10px; cursor: pointer; text-align: center;
@@ -492,20 +490,8 @@
           <div class="profile-desc">고함량·흡수율</div>
         </div>
       </div>
-      <div class="profile-card" data-profile="vegan">
-        <div class="profile-icon-box icon-vegan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21C5 21 6 13 13 13C13 13 13 8 20 3C20 3 20 14 13 17C13 17 13 21 5 21Z"/><path d="M13 17L11 21"/></svg></div>
-        <div class="profile-text">
-          <div class="profile-label">비건·식물성</div>
-          <div class="profile-desc">algae 원료</div>
-        </div>
-      </div>
-      <div class="profile-card" data-profile="kid">
-        <div class="profile-icon-box icon-kid"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
-        <div class="profile-text">
-          <div class="profile-label">어린이·자녀</div>
-          <div class="profile-desc">안전성·맛</div>
-        </div>
-      </div>
+
+
       <div class="profile-card" data-profile="balanced">
         <div class="profile-icon-box icon-balance"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h16M4 14h16M8 6v2M8 16v2M16 6v2M16 16v2"/></svg></div>
         <div class="profile-text">
@@ -653,8 +639,6 @@ var PSW_ICONS = {
   balanced:       '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h16M4 14h16M8 6v2M8 16v2M16 6v2M16 16v2"/></svg>',
   senior:         '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
   pregnancy:      '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 13.572L12 21l-7.5-7.428A5 5 0 1 1 12 7.006a5 5 0 1 1 7.5 6.572"/></svg>',
-  vegan:          '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21C5 21 6 13 13 13C13 13 13 8 20 3C20 3 20 14 13 17C13 17 13 21 5 21Z"/><path d="M13 17L11 21"/></svg>',
-  kid:            '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
 };
 var PROFILE_META = {
   premium_seeker: { color: '#EEF2FF', label: '최고품질' },
@@ -662,11 +646,9 @@ var PROFILE_META = {
   balanced:       { color: '#EEF2FF', label: '균형형' },
   senior:         { color: '#EFF6FF', label: '시니어' },
   pregnancy:      { color: '#FFF1F2', label: '임산부' },
-  vegan:          { color: '#F0FDF4', label: '비건' },
-  kid:            { color: '#FFF7ED', label: '어린이' }
 };
 var SWITCH_TOP    = ['premium_seeker','budget_seeker','balanced'];
-var SWITCH_BOTTOM = ['senior','pregnancy','vegan','kid'];
+var SWITCH_BOTTOM = ['senior','pregnancy'];
 
 function pswBtn(id, current) {
   var m = PROFILE_META[id] || { color:'#eee', label: id };
