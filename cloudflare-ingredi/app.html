@@ -289,7 +289,7 @@
     .product-tags { display: flex; flex-wrap: wrap; gap: 3px; }
 
     /* ── 캡슐 크기 UI (새 디자인) ── */
-    .capsule-bar { margin-top: 10px; }
+    .capsule-bar { margin-top: 14px; padding-bottom: 4px; }
     .capsule-bar-label { font-size: 9px; color: var(--ink-faint); font-weight: 600; margin-bottom: 10px; letter-spacing: -0.01em; }
     .capsule-bar-track-wrap { position: relative; margin-bottom: 6px; }
     .capsule-bar-track { height: 4px; background: var(--line); border-radius: 2px; position: relative; }
@@ -316,7 +316,10 @@
       border-left: 4px solid transparent; border-right: 4px solid transparent;
       border-top: 5px solid var(--green-deep);
     }
-    .capsule-bar-ends { display: flex; justify-content: space-between; font-size: 9px; color: var(--ink-faint); }
+    .capsule-bar-ends { display: flex; justify-content: space-between; font-size: 9px; color: var(--ink-faint); margin-top: 14px; }
+    /* 평균 마커 (회색 점선) */
+    .stat-bar-avg { position: absolute; top: -5px; bottom: -5px; width: 0; border-left: 1.5px dashed var(--ink-faint); transform: translateX(-50%); z-index: 1; pointer-events: none; }
+    .stat-bar-avg-label { position: absolute; bottom: -18px; transform: translateX(-50%); font-size: 9px; color: var(--ink-soft); white-space: nowrap; font-weight: 500; }
 
     .product-tag { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); letter-spacing: -0.01em; }
     .product-tag.tag-warn { background: rgba(201, 83, 61, 0.1); color: var(--warn); }
@@ -558,18 +561,88 @@ function safeNum(value, fallback = 0) {
 
 // ── 캡슐 크기 UI (새 디자인) ──
 let capsuleDist = { min: 0, max: 0, count: 0 };
+let distributions = null;
+function calcPos(value, min, max) {
+  if (!value || max === min) return null;
+  return Math.max(0, Math.min(100, Math.round((value - min) / (max - min) * 100)));
+}
+
+function renderStatBar(opts) {
+  // opts: { label, value, min, max, avg, unit, formatter }
+  const { label, value, min, max, avg, unit } = opts;
+  const fmt = opts.formatter || (v => v.toLocaleString());
+  if (!value || min === max) return '';
+  const pos = calcPos(value, min, max);
+  if (pos == null) return '';
+  const avgPos = calcPos(avg, min, max);
+  return `
+    <div class="capsule-bar">
+      <div class="capsule-bar-label">${label}</div>
+      <div class="capsule-bar-track-wrap" style="margin-top:32px; margin-bottom:8px;">
+        <div class="capsule-bar-track">
+          <div class="capsule-bar-fill" style="width:${pos}%"></div>
+          ${avgPos != null ? `<div class="stat-bar-avg" style="left:${avgPos}%"><span class="stat-bar-avg-label">평균 ${fmt(avg)}${unit}</span></div>` : ''}
+          <div class="capsule-bar-dot" style="left:${pos}%"></div>
+          <div class="capsule-bar-tooltip" style="left:${pos}%">
+            <div class="capsule-bar-tooltip-label">해당 제품</div>
+            <div class="capsule-bar-tooltip-badge">${fmt(value)}${unit}</div>
+          </div>
+        </div>
+      </div>
+      <div class="capsule-bar-ends">
+        <span>최소 ${fmt(min)}${unit}</span>
+        <span>최대 ${fmt(max)}${unit}</span>
+      </div>
+    </div>`;
+}
+
+function renderStatBars(item) {
+  // item: { dailyMg, dailyCost, capsuleMg }
+  const d = distributions || {};
+  let html = '';
+  if (d.dose && safeNum(item.dailyMg) > 0) {
+    html += renderStatBar({
+      label: 'EPA+DHA 함량',
+      value: safeNum(item.dailyMg),
+      min: d.dose.min, max: d.dose.max, avg: d.dose.avg,
+      unit: 'mg'
+    });
+  }
+  if (d.cost && safeNum(item.dailyCost) > 0) {
+    html += renderStatBar({
+      label: '1일 복용 비용',
+      value: safeNum(item.dailyCost),
+      min: d.cost.min, max: d.cost.max, avg: d.cost.avg,
+      unit: '원'
+    });
+  }
+  if (d.capsule && safeNum(item.capsuleMg) > 0) {
+    html += renderStatBar({
+      label: '캡슐 용량 (크기, 목넘김)',
+      value: safeNum(item.capsuleMg),
+      min: d.capsule.min, max: d.capsule.max, avg: d.capsule.avg,
+      unit: 'mg'
+    });
+  }
+  return html;
+}
+
 function renderCapsuleBar(keySpec) {
+  // 기존 함수는 호환성 유지 (rest 카드 등에서 사용)
   const mg = safeNum(keySpec.capsuleMg);
   const pos = keySpec.capsulePosition;
   if (!mg || pos == null) return '';
   const minV = capsuleDist.min || 0;
   const maxV = capsuleDist.max || 0;
+  const avg = (distributions && distributions.capsule) ? distributions.capsule.avg : 0;
+  const avgPos = (maxV > minV && avg > 0) ? Math.round((avg - minV) / (maxV - minV) * 100) : null;
   return `
     <div class="capsule-bar">
-      <div class="capsule-bar-label">캡슐 용량 (크기)</div>
+      <div class="capsule-bar-label">캡슐 용량 (크기, 목넘김)</div>
       <div class="capsule-bar-track-wrap" style="margin-top:32px; margin-bottom:8px;">
         <div class="capsule-bar-track">
           <div class="capsule-bar-fill" style="width:${pos}%"></div>
+          ${avgPos != null ? `<div class="stat-bar-avg" style="left:${avgPos}%"><span class="stat-bar-avg-label">평균 ${avg.toLocaleString()}mg</span></div>` : ''}
           <div class="capsule-bar-dot" style="left:${pos}%"></div>
           <div class="capsule-bar-tooltip" style="left:${pos}%">
             <div class="capsule-bar-tooltip-label">해당 제품</div>
@@ -616,6 +689,7 @@ async function fetchRecommendation(profile) {
     if (!res.ok) throw new Error('Server error: ' + res.status);
     const data = await res.json();
     if (data.capsuleDistribution) capsuleDist = data.capsuleDistribution;
+    if (data.distributions) distributions = data.distributions;
     renderResult(data);
     showScreen('result');
   } catch (err) {
@@ -757,18 +831,8 @@ function renderProductCard(p) {
             </div>
           </div>
           <div class="product-name">${escapeHtml(p.name||'제품명 미상')}</div>
-          <div class="product-spec">
-            <div class="product-spec-item">
-              <div class="product-spec-label">EPA+DHA</div>
-              <div class="product-spec-value">${safeNum(keySpec.dailyMg).toLocaleString()}mg</div>
-            </div>
-            <div class="product-spec-item">
-              <div class="product-spec-label">1일 비용</div>
-              <div class="product-spec-value">${safeNum(keySpec.dailyCost).toLocaleString()}원</div>
-            </div>
-          </div>
-          <div class="product-tags">${tierTag}${formTag}${certsTag}${highDoseTag}</div>
-          ${renderCapsuleBar(keySpec)}
+          <div class="product-tags" style="margin-bottom: 4px;">${tierTag}${formTag}${certsTag}${highDoseTag}</div>
+          ${renderStatBars({ dailyMg: keySpec.dailyMg, dailyCost: keySpec.dailyCost, capsuleMg: keySpec.capsuleMg })}
         </div>
       </div>
       <div class="product-scores" id="scores-${productId}">${scoreBars}</div>
