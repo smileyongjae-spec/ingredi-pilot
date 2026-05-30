@@ -105,6 +105,9 @@
 
     /* 제품 카드 그리드 (상단) */
     .product-cards { display: grid; gap: 8px; margin-bottom: 16px; }
+    .product-cards.cols-1 { grid-template-columns: 1fr; }
+    .product-cards.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .product-cards.cols-3 { grid-template-columns: repeat(3, 1fr); }
     .product-card { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px 10px; position: relative; }
     .product-card.rank-1 { border: 1.5px solid var(--blue); }
     .product-card.rank-2 { border: 0.5px solid var(--silver); }
@@ -145,6 +148,10 @@
     .section-label { font-size: 12px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.01em; margin: 20px 0 8px; padding-left: 2px; }
     .cmp-table { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 16px; }
     .cmp-table-head { display: grid; background: var(--green-bg); }
+    .cmp-table-head.cols-2 { grid-template-columns: 80px repeat(2, 1fr); }
+    .cmp-table-head.cols-3 { grid-template-columns: 80px repeat(3, 1fr); }
+    .cmp-table-row.cols-2  { grid-template-columns: 80px repeat(2, 1fr); }
+    .cmp-table-row.cols-3  { grid-template-columns: 80px repeat(3, 1fr); }
     .cmp-table-hcell { font-size: 9px; font-weight: 700; color: var(--ink-soft); padding: 8px 6px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .cmp-table-hcell:first-child { text-align: left; padding-left: 12px; }
     .cmp-table-row { display: grid; border-top: 0.5px solid var(--line-soft); }
@@ -379,7 +386,7 @@ function renderComparison(data) {
     let html = '';
 
     // ── 1. 제품 카드 ──
-    html += `<div class="product-cards" style="grid-template-columns: repeat(${cols}, 1fr);">`;
+    html += `<div class="product-cards cols-${cols}">`;
     valid.forEach((p, idx) => {
       const rank = idx + 1;
       const rankLabel = ['1위 추천','2위','3위'][idx] || `${rank}위`;
@@ -439,7 +446,7 @@ function renderComparison(data) {
     // ── 2. 상세 비교 테이블 ──
     html += `<div class="section-label">상세 비교</div>`;
     html += `<div class="cmp-table">`;
-    html += `<div class="cmp-table-head" style="grid-template-columns:${gridCols};">`;
+    html += `<div class="cmp-table-head cols-${cols}">`;
     html += `<div class="cmp-table-hcell">항목</div>`;
     valid.forEach((p,i) => html += `<div class="cmp-table-hcell">${escapeHtml(p.name.length>8?p.name.slice(0,8)+'…':p.name)}</div>`);
     html += '</div>';
@@ -456,7 +463,7 @@ function renderComparison(data) {
       { label:'Tier',     vals: valid.map(p=>p.tier||'-') },
     ];
     rows.forEach(row => {
-      html += `<div class="cmp-table-row" style="grid-template-columns:${gridCols};">`;
+      html += `<div class="cmp-table-row cols-${cols}">`;
       html += `<div class="cmp-table-cell">${row.label}</div>`;
       valid.forEach((p,i) => {
         const isBest = row.winIds && row.winIds.includes(p.id) && row.winIds.length < cols;
