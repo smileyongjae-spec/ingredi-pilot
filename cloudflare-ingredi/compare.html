@@ -13,7 +13,8 @@
       --paper: #FAF8F3; --ink: #1A1F1B; --ink-soft: #4F564E;
       --ink-faint: #8B928A; --line: #D9DDD7; --line-soft: #ECEFEA;
       --gold: #B8902F; --silver: #8B8E91; --bronze: #B07142; --warn: #C9533D;
-      --winner-bg: #FEF7E5;
+      --blue: #2563EB; --blue-light: #EFF6FF; --blue-mid: #BFDBFE;
+      --bar-green: #2D5F3F; --bar-blue: #2563EB; --bar-amber: #B07142; --bar-red: #C9533D;
       --shadow-sm: 0 1px 2px rgba(27, 58, 46, 0.06);
       --shadow-md: 0 4px 12px rgba(27, 58, 46, 0.08);
       --radius-sm: 8px; --radius-md: 14px; --radius-lg: 20px;
@@ -25,637 +26,153 @@
       font-size: 14px; line-height: 1.5; letter-spacing: -0.01em;
       -webkit-font-smoothing: antialiased;
     }
-    .app {
-      max-width: 480px; margin: 0 auto; min-height: 100vh;
-      background: var(--paper);
-      box-shadow: 0 0 40px rgba(27, 58, 46, 0.05);
-    }
-    .header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--line-soft);
-      background: var(--paper);
-      position: sticky; top: 0; z-index: 10;
-    }
-    .header-back {
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--ink-soft);
-      border-radius: var(--radius-sm); text-decoration: none;
-    }
+    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--paper); box-shadow: 0 0 40px rgba(27,58,46,0.05); }
+
+    /* 헤더 */
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line-soft); background: var(--paper); position: sticky; top: 0; z-index: 10; }
+    .header-back { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); border-radius: var(--radius-sm); text-decoration: none; }
     .header-back:hover { background: var(--green-light); }
     .header-back svg { width: 22px; height: 22px; }
     .header-title { font-size: 16px; font-weight: 700; color: var(--green-deep); }
     .header-spacer { width: 36px; }
 
-    .screen { display: none; padding: 20px; }
+    .screen { display: none; }
     .screen.active { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* 로딩 */
     .loading-screen { text-align: center; padding: 60px 20px; }
-    .loading-spinner {
-      display: inline-block; width: 32px; height: 32px;
-      border: 3px solid var(--line);
-      border-top-color: var(--green-primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 16px;
-    }
+    .loading-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--green-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 13px; color: var(--ink-soft); }
 
-    .select-header {
-      margin-bottom: 16px; text-align: center;
-    }
-    .select-eyebrow {
-      font-size: 11px; font-weight: 600;
-      color: var(--green-mid);
-      letter-spacing: 0.08em; text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-    .select-title {
-      font-size: 20px; font-weight: 800;
-      color: var(--green-deep);
-      letter-spacing: -0.02em; margin-bottom: 4px;
-    }
+    /* 선택 화면 */
+    .select-wrap { padding: 20px; }
+    .select-header { margin-bottom: 16px; text-align: center; }
+    .select-eyebrow { font-size: 11px; font-weight: 600; color: var(--green-mid); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+    .select-title { font-size: 20px; font-weight: 800; color: var(--green-deep); letter-spacing: -0.02em; margin-bottom: 4px; }
     .select-subtitle { font-size: 12px; color: var(--ink-faint); }
-    .selection-counter {
-      position: sticky; top: 64px;
-      background: var(--green-deep); color: white;
-      padding: 12px 16px;
-      border-radius: var(--radius-md);
-      margin-bottom: 16px;
-      display: flex; justify-content: space-between; align-items: center;
-      box-shadow: var(--shadow-md); z-index: 5;
-    }
+    .selection-counter { position: sticky; top: 64px; background: var(--green-deep); color: white; padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md); z-index: 5; }
     .selection-count { font-size: 13px; font-weight: 600; }
-    .selection-action {
-      padding: 6px 14px;
-      background: white; color: var(--green-deep);
-      border: none; border-radius: 6px;
-      font-size: 12px; font-weight: 700;
-      cursor: pointer;
-    }
+    .selection-action { padding: 6px 14px; background: white; color: var(--green-deep); border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
     .selection-action:disabled { opacity: 0.4; cursor: not-allowed; }
-    
-    /* 제품 선택 리스트 (이미지 포함) */
     .product-list { display: flex; flex-direction: column; gap: 8px; }
-    .product-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px;
-      background: white;
-      border: 1.5px solid var(--line-soft);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
+    .product-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border: 1.5px solid var(--line-soft); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s ease; }
     .product-item:hover { border-color: var(--green-mid); }
-    .product-item.selected {
-      border-color: var(--green-primary);
-      background: var(--green-bg);
-    }
+    .product-item.selected { border-color: var(--green-primary); background: var(--green-bg); }
     .product-item.disabled { opacity: 0.4; cursor: not-allowed; }
-    .product-item-checkbox {
-      width: 22px; height: 22px;
-      border: 2px solid var(--line);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      background: white;
-      transition: all 0.15s ease;
-    }
-    .product-item.selected .product-item-checkbox {
-      background: var(--green-primary);
-      border-color: var(--green-primary);
-      color: white;
-    }
+    .product-item-checkbox { width: 22px; height: 22px; border: 2px solid var(--line); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: white; transition: all 0.15s ease; }
+    .product-item.selected .product-item-checkbox { background: var(--green-primary); border-color: var(--green-primary); color: white; }
     .product-item-checkbox svg { width: 14px; height: 14px; opacity: 0; }
     .product-item.selected .product-item-checkbox svg { opacity: 1; }
-    .product-item-image {
-      width: 44px; height: 56px;
-      object-fit: cover;
-      border-radius: 6px;
-      background: var(--green-bg);
-      flex-shrink: 0;
-    }
-    .product-item-image-fallback {
-      width: 44px; height: 56px;
-      border-radius: 6px;
-      background: var(--green-bg);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
+    .product-item-image { width: 44px; height: 56px; object-fit: cover; border-radius: 6px; background: var(--green-bg); flex-shrink: 0; }
+    .product-item-image-fallback { width: 44px; height: 56px; border-radius: 6px; background: var(--green-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .product-item-image-fallback svg { width: 20px; height: 20px; stroke: var(--ink-faint); }
     .product-item-info { flex: 1; min-width: 0; }
-    .product-item-name {
-      font-size: 13px; font-weight: 600;
-      color: var(--ink);
-      line-height: 1.3;
-      letter-spacing: -0.01em;
-      margin-bottom: 2px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-    .product-item-meta {
-      font-size: 11px; color: var(--ink-faint);
-    }
-    .product-item-tier {
-      font-size: 10px; font-weight: 700;
-      padding: 2px 6px; border-radius: 4px;
-      flex-shrink: 0;
-    }
+    .product-item-name { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.3; letter-spacing: -0.01em; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .product-item-meta { font-size: 11px; color: var(--ink-faint); }
+    .product-item-tier { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
     .product-item-tier.tier-1 { background: var(--gold); color: white; }
     .product-item-tier.tier-2 { background: var(--silver); color: white; }
-    .product-item-tier.tier-3 { background: rgba(176, 113, 66, 0.15); color: var(--bronze); }
-    .product-item-tier.tier-fail { background: rgba(201, 83, 61, 0.15); color: var(--warn); }
+    .product-item-tier.tier-3 { background: rgba(176,113,66,0.15); color: var(--bronze); }
+    .product-item-tier.tier-fail { background: rgba(201,83,61,0.15); color: var(--warn); }
 
-    /* ========== 비교 결과 ========== */
-    .compare-header {
-      background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-primary) 100%);
-      color: white;
-      padding: 16px 20px 20px;
-      margin: -20px -20px 16px;
-      position: relative; overflow: hidden;
-    }
-    .compare-header-eyebrow {
-      font-size: 10px; font-weight: 600;
-      letter-spacing: 0.08em; opacity: 0.7;
-      text-transform: uppercase; margin-bottom: 4px;
-    }
-    .compare-header-title {
-      font-size: 18px; font-weight: 800;
-      letter-spacing: -0.02em;
-    }
-    .compare-header-meta {
-      font-size: 11px; opacity: 0.75; margin-top: 2px;
-    }
-    .compare-action-btn {
-      display: inline-block; margin-top: 10px;
-      padding: 7px 14px;
-      background: rgba(255,255,255,0.15);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 100px;
-      font-size: 11px; font-weight: 600;
-      cursor: pointer;
-    }
-    .compare-action-btn:hover { background: rgba(255,255,255,0.25); }
+    /* ── 비교 결과 ── */
+    .compare-wrap { }
 
-    /* ========== 통합 그리드 (헤더 + 핵심 스펙 일관) ========== */
-    .unified-grid {
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-    .unified-header {
-      display: grid;
-      gap: 1px;
-      background: var(--line-soft);
-    }
-    .unified-row {
-      display: grid;
-      gap: 1px;
-      background: var(--line-soft);
-      border-top: 1px solid var(--line-soft);
-    }
-    .unified-row.unified-last {
-      border-bottom: none;
-    }
-    .unified-cell {
-      background: white;
-      padding: 9px 6px;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 38px;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 11px;
-    }
-    .unified-cell.label-cell {
-      background: var(--green-bg);
-      font-size: 10px;
-      color: var(--ink-soft);
-      font-weight: 600;
-      justify-content: center;
-      align-items: flex-start;
-      padding-left: 12px;
-    }
-    .unified-cell.unified-product-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-    }
-    .unified-cell.winner {
-      background: var(--winner-bg);
-      font-weight: 700;
-      position: relative;
-    }
-    .unified-cell.winner::after {
-      content: '🏆';
-      position: absolute;
-      top: 2px;
-      right: 4px;
-      font-size: 9px;
-    }
-    .unified-cell-main {
-      font-weight: 700;
-      color: var(--ink);
-      font-size: 12px;
-    }
-    
-    /* 헤더 셀 (제품 이미지 + 정보) */
-    .unified-h-cell {
-      padding: 8px 6px;
-      min-height: auto;
-    }
-    .unified-h-cell.rank-1 {
-      background: #FEFAF1;
-      border-top: 2px solid var(--gold);
-    }
-    .unified-h-cell.rank-2 {
-      background: white;
-      border-top: 2px solid var(--silver);
-    }
-    .unified-h-cell.rank-3 {
-      background: white;
-      border-top: 2px solid var(--bronze);
-    }
-    .unified-rank-pill {
-      display: inline-block;
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: white;
-      font-weight: 700;
-      margin-bottom: 4px;
-      letter-spacing: 0.04em;
-    }
-    .unified-rank-pill.rank-1 { background: var(--gold); }
-    .unified-rank-pill.rank-2 { background: var(--silver); }
-    .unified-rank-pill.rank-3 { background: var(--bronze); }
-    
-    .unified-h-image {
-      width: 70px;
-      height: 90px;
-      border-radius: 6px;
-      object-fit: cover;
-      background: var(--green-bg);
-      display: block;
-      margin: 0 auto 5px;
-    }
-    .unified-h-image-fallback {
-      width: 70px;
-      height: 90px;
-      border-radius: 6px;
-      background: var(--green-bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      margin: 0 auto 5px;
-    }
-    .unified-h-name {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--ink);
-      line-height: 1.3;
-      min-height: 26px;
-      margin-bottom: 4px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .unified-h-score {
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--green-deep);
-      line-height: 1;
-      letter-spacing: -0.04em;
-    }
-    .unified-h-score-cap {
-      font-size: 8px;
-      color: var(--ink-faint);
-      letter-spacing: 0.06em;
-      font-weight: 600;
-      margin-top: 2px;
-    }
-    
-    /* ========== V-Score 등급 (옵션 2) ========== */
-    .section-title-grade {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--green-deep);
-      letter-spacing: 0.04em;
-      padding-left: 4px;
-      margin: 16px 0 8px;
-    }
-    .grade-grid {
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .grade-row {
-      display: grid;
-      gap: 1px;
-      background: var(--line-soft);
-      border-bottom: 1px solid var(--line-soft);
-    }
-    .grade-row:last-child { border-bottom: none; }
-    .grade-row.grade-first { border-top: none; }
-    
-    .grade-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 24px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 13px;
-      letter-spacing: -0.02em;
-      border: 1px solid;
-    }
-    .pill-A {
-      background: var(--green-bg);
-      color: var(--green-deep);
-      border-color: #C0DDC8;
-    }
-    .pill-B {
-      background: white;
-      color: var(--green-primary);
-      border-color: var(--line);
-    }
-    .pill-C {
-      background: white;
-      color: var(--ink-faint);
-      border-color: var(--line-soft);
-    }
-    .pill-D {
-      background: white;
-      color: #B4B2A9;
-      border-color: var(--line-soft);
-    }
-    .pill-F {
-      background: #FAFAF8;
-      color: #D9DDD7;
-      border-color: var(--line-soft);
-    }
-    
-    .grade-row.grade-total .unified-cell {
-      background: var(--green-light);
-    }
-    .grade-row.grade-total .unified-cell.label-cell {
-      background: var(--green-light);
-      font-weight: 700;
-    }
-    .grade-row.grade-total .unified-cell.winner {
-      background: var(--winner-bg);
-    }
-    .grade-row.grade-total .total-label {
-      font-weight: 700;
-    }
-    .total-num {
-      font-weight: 800;
-      color: var(--green-deep);
-      font-size: 16px;
-    }
-    
-    .grade-legend-simple {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      padding: 10px 12px;
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: 8px;
-      font-size: 10px;
-      color: var(--ink-soft);
-      margin: 8px 0 0;
-    }
-    .grade-legend-simple span {
-      white-space: nowrap;
-    }
+    /* 상단 헤더 (다크그린) */
+    .compare-hero { background: var(--green-deep); padding: 16px 20px 0; }
+    .compare-hero-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+    .compare-hero-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-bottom: 3px; }
+    .compare-hero-title { font-size: 20px; font-weight: 800; color: white; letter-spacing: -0.02em; }
+    .compare-hero-meta { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+    .compare-change-btn { display: flex; align-items: center; gap: 4px; padding: 7px 12px; background: rgba(255,255,255,0.1); border: 0.5px solid rgba(255,255,255,0.2); border-radius: 8px; color: rgba(255,255,255,0.8); font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .compare-change-btn:hover { background: rgba(255,255,255,0.18); }
+    .compare-change-btn svg { width: 13px; height: 13px; stroke: rgba(255,255,255,0.7); }
 
-    /* ========== 제품 헤더 카드 (이미지 포함) ========== */
-    .product-headers {
-      display: grid; gap: 8px;
-      margin-bottom: 16px;
-    }
-    .product-header-card {
-      background: white;
-      border: 1.5px solid var(--line-soft);
-      border-radius: var(--radius-sm);
-      padding: 10px;
-      text-align: center;
-      position: relative;
-    }
-    .product-header-card.rank-1 {
-      border-color: var(--gold);
-      background: linear-gradient(180deg, #FEFAF1 0%, white 60%);
-    }
-    .product-header-card.rank-2 { border-color: var(--silver); }
-    .product-header-card.rank-3 { border-color: var(--bronze); }
-    .product-header-rank {
-      display: inline-block;
-      font-size: 9px; font-weight: 700;
-      padding: 2px 6px; border-radius: 4px;
-      margin-bottom: 6px;
-      letter-spacing: 0.04em;
-    }
-    .rank-1 .product-header-rank { background: var(--gold); color: white; }
-    .rank-2 .product-header-rank { background: var(--silver); color: white; }
-    .rank-3 .product-header-rank { background: var(--bronze); color: white; }
-    
-    .product-header-image {
-      width: 100%; max-width: 90px;
-      height: 110px;
-      object-fit: cover;
-      border-radius: 6px;
-      background: var(--green-bg);
-      margin: 0 auto 6px;
-      display: block;
-    }
-    .product-header-image-fallback {
-      width: 100%; max-width: 90px;
-      height: 110px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, #FFF8E5 0%, #F5E6B8 100%);
-      margin: 0 auto 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 30px;
-    }
-    .rank-2 .product-header-image-fallback { background: linear-gradient(135deg, #E5E8EB 0%, #C4C8CC 100%); }
-    .rank-3 .product-header-image-fallback { background: linear-gradient(135deg, #F5DDC8 0%, #DAB494 100%); }
-    
-    .product-header-name {
-      font-size: 11px; font-weight: 700;
-      color: var(--ink);
-      line-height: 1.3;
-      letter-spacing: -0.02em;
-      min-height: 28px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      margin-bottom: 4px;
-    }
-    .product-header-score {
-      font-size: 22px; font-weight: 800;
-      color: var(--green-deep);
-      letter-spacing: -0.04em;
-      line-height: 1;
-    }
-    .product-header-score-label {
-      font-size: 8px; color: var(--ink-faint);
-      letter-spacing: 0.08em;
-      font-weight: 600; margin-top: 1px;
-    }
+    /* 프로필 탭 */
+    .profile-tabs { display: flex; gap: 6px; padding: 12px 0 0; overflow-x: auto; scrollbar-width: none; }
+    .profile-tabs::-webkit-scrollbar { display: none; }
+    .profile-tab { font-size: 11px; padding: 5px 12px; border-radius: 100px; border: 0.5px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); white-space: nowrap; flex-shrink: 0; cursor: pointer; transition: all 0.15s; }
+    .profile-tab.active { background: white; border-color: white; color: var(--green-deep); font-weight: 700; }
+    .profile-tab:hover:not(.active) { background: rgba(255,255,255,0.15); }
 
-    /* 비교 테이블 */
-    .compare-section { margin-top: 24px; }
-    .compare-section-title {
-      font-size: 12px; font-weight: 700;
-      color: var(--green-deep);
-      margin-bottom: 8px;
-      letter-spacing: -0.01em;
-      padding-left: 4px;
-    }
-    .compare-table {
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-    }
-    .compare-row {
-      display: grid; gap: 1px;
-      background: var(--line-soft);
-      border-bottom: 1px solid var(--line-soft);
-    }
-    .compare-row:last-child { border-bottom: none; }
-    .compare-cell {
-      background: white;
-      padding: 10px 8px;
-      font-size: 12px;
-      text-align: center;
-      display: flex; align-items: center; justify-content: center;
-      letter-spacing: -0.01em;
-      min-height: 44px;
-      flex-direction: column; gap: 2px;
-    }
-    .compare-cell.label-cell {
-      background: var(--green-bg);
-      font-size: 11px;
-      color: var(--ink-soft);
-      font-weight: 600;
-      text-align: left;
-      justify-content: center;
-      align-items: flex-start;
-      padding-left: 12px;
-    }
-    .compare-cell.winner {
-      background: var(--winner-bg);
-      font-weight: 700;
-      color: var(--green-deep);
-      position: relative;
-    }
-    .compare-cell.winner::after {
-      content: '🏆';
-      position: absolute;
-      top: 2px; right: 4px;
-      font-size: 10px;
-    }
-    .compare-cell-main {
-      font-weight: 700;
-      color: var(--ink);
-      font-size: 13px;
-    }
-    .compare-cell.winner .compare-cell-main { color: var(--green-deep); }
+    /* 탭 하단 여백 패딩 */
+    .compare-hero-bottom { height: 16px; }
 
-    .score-bar-mini {
-      width: 100%; height: 3px;
-      background: var(--line-soft);
-      border-radius: 2px;
-      margin-top: 4px;
-      overflow: hidden;
-    }
-    .score-bar-mini-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--green-mid) 0%, var(--green-primary) 100%);
-      border-radius: 2px;
-    }
+    /* 비교 본문 */
+    .compare-body { padding: 16px 20px 40px; }
 
-    .insights {
-      background: white;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      margin-top: 16px;
-    }
-    .insights-title {
-      font-size: 12px; font-weight: 700;
-      color: var(--green-deep);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .insight-item {
-      display: flex; align-items: flex-start; gap: 8px;
-      padding: 6px 0;
-      font-size: 12px;
-      color: var(--ink-soft);
-      line-height: 1.5;
-    }
-    .insight-icon { flex-shrink: 0; width: 18px; text-align: center; }
-    .insight-text { flex: 1; }
-    .insight-text strong { color: var(--green-deep); }
+    /* 제품 카드 그리드 (상단) */
+    .product-cards { display: grid; gap: 8px; margin-bottom: 16px; }
+    .product-card { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px 10px; position: relative; }
+    .product-card.rank-1 { border: 1.5px solid var(--blue); }
+    .product-card.rank-2 { border: 0.5px solid var(--silver); }
+    .product-card.rank-3 { border: 0.5px solid var(--bronze); }
+    .product-card-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block; margin-bottom: 8px; letter-spacing: 0.02em; }
+    .rank-1 .product-card-badge { background: var(--blue-light); color: var(--blue); }
+    .rank-2 .product-card-badge { background: rgba(139,142,145,0.12); color: var(--silver); }
+    .rank-3 .product-card-badge { background: rgba(176,113,66,0.1); color: var(--bronze); }
+    .product-card-img { width: 52px; height: 66px; border-radius: 6px; object-fit: cover; background: var(--green-bg); display: block; margin: 0 auto 8px; }
+    .product-card-img-fallback { width: 52px; height: 66px; border-radius: 6px; background: var(--green-bg); display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; }
+    .product-card-img-fallback svg { width: 22px; height: 22px; stroke: var(--ink-faint); }
+    .product-card-name { font-size: 10px; color: var(--ink-soft); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .product-card-score { font-size: 26px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
+    .product-card-score-lbl { font-size: 8px; color: var(--ink-faint); letter-spacing: 0.06em; font-weight: 600; margin-bottom: 10px; }
+    .product-card-divider { border: none; border-top: 0.5px solid var(--line-soft); margin: 8px 0; }
+    .product-card-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
+    .product-card-row-lbl { font-size: 9px; color: var(--ink-faint); }
+    .product-card-row-val { font-size: 9px; font-weight: 600; color: var(--ink); }
+    .product-card-row-val.good { color: var(--green-primary); }
+    .product-card-row-val.warn { color: var(--bronze); }
+    .product-card-tags { display: flex; gap: 3px; flex-wrap: wrap; margin: 6px 0; }
+    .pc-tag { font-size: 8px; padding: 1px 5px; border-radius: 3px; background: var(--green-bg); color: var(--ink-soft); }
+    .pc-tag.hi { background: var(--green-light); color: var(--green-deep); font-weight: 700; }
 
-    .compare-actions {
-      display: grid; gap: 8px;
-      margin-top: 20px;
-    }
-    .compare-action-link {
-      padding: 12px;
-      background: var(--green-primary);
-      color: white;
-      text-decoration: none;
-      border-radius: var(--radius-sm);
-      text-align: center;
-      font-size: 13px; font-weight: 600;
-      letter-spacing: -0.01em;
-    }
+    /* V-Score 바 (카드 내부) */
+    .pc-bars { margin-top: 8px; }
+    .pc-bar-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+    .pc-bar-lbl { font-size: 8px; color: var(--ink-faint); width: 18px; flex-shrink: 0; }
+    .pc-bar-track { flex: 1; height: 3px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
+    .pc-bar-fill { height: 100%; border-radius: 2px; }
+    .pc-bar-fill.green { background: var(--bar-green); }
+    .pc-bar-fill.blue  { background: var(--bar-blue); }
+    .pc-bar-fill.amber { background: var(--bar-amber); }
+    .pc-bar-fill.red   { background: var(--bar-red); }
+    .pc-bar-num { font-size: 8px; color: var(--ink-faint); width: 18px; text-align: right; flex-shrink: 0; }
+
+    /* 상세 비교 테이블 */
+    .section-label { font-size: 12px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.01em; margin: 20px 0 8px; padding-left: 2px; }
+    .cmp-table { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 16px; }
+    .cmp-table-head { display: grid; background: var(--green-bg); }
+    .cmp-table-hcell { font-size: 9px; font-weight: 700; color: var(--ink-soft); padding: 8px 6px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cmp-table-hcell:first-child { text-align: left; padding-left: 12px; }
+    .cmp-table-row { display: grid; border-top: 0.5px solid var(--line-soft); }
+    .cmp-table-row:nth-child(even) { background: #FAFAF8; }
+    .cmp-table-cell { font-size: 10px; color: var(--ink); padding: 8px 6px; text-align: center; display: flex; align-items: center; justify-content: center; min-height: 36px; }
+    .cmp-table-cell:first-child { font-size: 9px; color: var(--ink-soft); justify-content: flex-start; padding-left: 12px; font-weight: 600; }
+    .cmp-table-cell.best { color: var(--blue); font-weight: 700; }
+
+    /* 인사이트 */
+    .insights { background: white; border: 0.5px solid var(--line-soft); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px; }
+    .insights-title { font-size: 12px; font-weight: 700; color: var(--green-deep); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .insights-title svg { width: 15px; height: 15px; stroke: var(--green-primary); }
+    .insight-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+    .insight-icon { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+    .insight-icon svg { width: 14px; height: 14px; stroke: var(--green-mid); }
+    .insight-text strong { color: var(--green-deep); font-weight: 700; }
+
+    /* CTA */
+    .compare-actions { display: grid; gap: 8px; margin-top: 20px; }
+    .compare-action-link { padding: 12px 14px; background: var(--green-primary); color: white; text-decoration: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; justify-content: space-between; }
     .compare-action-link:hover { background: var(--green-deep); }
-    .compare-action-link.disabled {
-      background: var(--line);
-      color: var(--ink-faint);
-      cursor: not-allowed;
-      pointer-events: none;
-    }
-    .compare-action-link-name {
-      font-size: 11px; opacity: 0.85;
-      font-weight: 500; margin-bottom: 2px;
-      display: block;
-    }
+    .compare-action-link.disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; pointer-events: none; }
+    .compare-action-link-left { display: flex; flex-direction: column; }
+    .compare-action-link-name { font-size: 11px; opacity: 0.8; font-weight: 500; margin-bottom: 1px; }
+    .compare-action-link-label { font-size: 13px; font-weight: 700; }
+    .compare-action-link svg { width: 16px; height: 16px; stroke: rgba(255,255,255,0.7); flex-shrink: 0; }
 
-    .disclaimer {
-      margin-top: 24px; padding: 14px;
-      font-size: 10px; color: var(--ink-faint);
-      text-align: center; line-height: 1.6;
-      border-top: 1px solid var(--line-soft);
-    }
+    .disclaimer { margin-top: 24px; padding: 14px; font-size: 10px; color: var(--ink-faint); text-align: center; line-height: 1.6; border-top: 1px solid var(--line-soft); }
     .error-box { text-align: center; padding: 40px 20px; color: var(--warn); }
   </style>
 </head>
@@ -677,30 +194,47 @@
   </div>
 
   <main class="screen" id="screenSelect">
-    <div class="select-header">
-      <div class="select-eyebrow">최대 3개까지 선택</div>
-      <h1 class="select-title">비교할 제품 고르기</h1>
-      <p class="select-subtitle">함량·제형·가격을 한눈에 비교해드려요</p>
+    <div class="select-wrap">
+      <div class="select-header">
+        <div class="select-eyebrow">최대 3개까지 선택</div>
+        <h1 class="select-title">비교할 제품 고르기</h1>
+        <p class="select-subtitle">함량·제형·가격을 한눈에 비교해드려요</p>
+      </div>
+      <div class="selection-counter">
+        <span class="selection-count" id="selectionCount">0/3개 선택됨</span>
+        <button class="selection-action" id="compareBtn" disabled>비교하기 →</button>
+      </div>
+      <div class="product-list" id="productList"></div>
     </div>
-
-    <div class="selection-counter">
-      <span class="selection-count" id="selectionCount">0/3개 선택됨</span>
-      <button class="selection-action" id="compareBtn" disabled>비교하기 →</button>
-    </div>
-
-    <div class="product-list" id="productList"></div>
   </main>
 
   <main class="screen" id="screenCompare">
-    <div class="compare-header">
-      <div class="compare-header-eyebrow">ingredi 한눈에 비교</div>
-      <div class="compare-header-title" id="compareTitle">3개 제품 비교</div>
-      <div class="compare-header-meta" id="compareMeta">균형형 추천 기준</div>
-      <button class="compare-action-btn" id="changeBtn">🔄 다른 제품으로 비교</button>
-    </div>
+    <div class="compare-wrap">
+      <!-- 헤더 -->
+      <div class="compare-hero">
+        <div class="compare-hero-top">
+          <div>
+            <div class="compare-hero-eyebrow">INGREDI 한눈에 비교</div>
+            <div class="compare-hero-title" id="compareTitle">3개 제품 비교</div>
+            <div class="compare-hero-meta" id="compareMeta">균형형 기준</div>
+          </div>
+          <button class="compare-change-btn" id="changeBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            다른 제품으로
+          </button>
+        </div>
+        <div class="profile-tabs" id="profileTabs"></div>
+        <div class="compare-hero-bottom"></div>
+      </div>
 
-    <div id="compareContent"></div>
-    <div class="disclaimer" id="compareDisclaimer"></div>
+      <!-- 본문 -->
+      <div class="compare-body">
+        <div id="compareContent"></div>
+        <div class="disclaimer" id="compareDisclaimer"></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -714,377 +248,301 @@ const mode = params.get('mode');
 let allProducts = [];
 let selectedIds = [];
 
+const PROFILES = [
+  { id: 'balanced',       label: '균형형' },
+  { id: 'premium_seeker', label: '최고품질' },
+  { id: 'budget_seeker',  label: '가성비' },
+  { id: 'pregnancy',      label: '임산부' },
+  { id: 'senior',         label: '시니어' },
+  { id: 'vegan',          label: '비건' },
+  { id: 'kid',            label: '어린이' }
+];
+
+const PILL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg>';
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeNum(v, fb=0) { const n=Number(v); return isNaN(n)?fb:n; }
+function barColor(v) {
+  if (v >= 80) return 'green';
+  if (v >= 60) return 'blue';
+  if (v >= 40) return 'amber';
+  return 'red';
+}
+
+// 프로필 탭 렌더
+function renderProfileTabs(currentId) {
+  const el = document.getElementById('profileTabs');
+  if (!el) return;
+  el.innerHTML = PROFILES.map(p => {
+    const active = p.id === currentId ? ' active' : '';
+    return `<div class="profile-tab${active}" onclick="switchProfile('${p.id}')">${p.label}</div>`;
+  }).join('');
+}
+function switchProfile(pid) {
+  const ids = idsParam || '';
+  if (ids) {
+    window.location.href = `/compare.html?ids=${ids}&profile=${pid}`;
+  } else {
+    window.location.href = `/compare.html?mode=select&profile=${pid}`;
+  }
+}
+window.switchProfile = switchProfile;
+
 if (idsParam) {
   loadComparison(idsParam);
-} else if (mode === 'select') {
-  loadSelectMode();
 } else {
   loadSelectMode();
 }
 
+// ── 선택 화면 ──
 async function loadSelectMode() {
   showScreen('Loading');
   try {
     const res = await fetch(`${API_BASE}/recommend?profile=${profile}&includeFailed=true`);
     const data = await res.json();
-    
     allProducts = [];
-    if (data.top3) {
-      data.top3.forEach(p => allProducts.push({
-        id: p.id, name: p.name, image: p.image,
-        vScore: p.vScore, tier: p.keySpec.tier, passFail: p.passFail
-      }));
-    }
-    if (data.rest) {
-      data.rest.forEach(p => allProducts.push({
-        id: p.id, name: p.name, image: p.image,
-        vScore: p.vScore, tier: p.tier, passFail: ''
-      }));
-    }
-    
+    if (data.top3) data.top3.forEach(p => allProducts.push({ id:p.id, name:p.name, image:p.image, vScore:p.vScore, tier:p.keySpec.tier, passFail:p.passFail }));
+    if (data.rest)  data.rest.forEach(p  => allProducts.push({ id:p.id, name:p.name, image:p.image, vScore:p.vScore, tier:p.tier, passFail:'' }));
     renderProductList();
     showScreen('Select');
-  } catch (err) {
-    showError('제품 목록을 불러올 수 없습니다.');
-  }
+  } catch (err) { showError('제품 목록을 불러올 수 없습니다.'); }
 }
 
 function renderProductList() {
   const list = document.getElementById('productList');
   list.innerHTML = allProducts.map(p => {
-    const tierClass = p.tier ? p.tier.toLowerCase().replace('tier', 'tier-') : 'tier-fail';
+    const tierClass = p.tier ? p.tier.toLowerCase().replace('tier','tier-') : 'tier-fail';
     const imageHtml = p.image
-      ? `<img class="product-item-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'product-item-image-fallback\\'>💊</div>'">`
-      : `<div class="product-item-image-fallback">💊</div>`;
+      ? `<img class="product-item-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'product-item-image-fallback\\'>${PILL_SVG.replace(/'/g,"\\'")}</div>'">`
+      : `<div class="product-item-image-fallback">${PILL_SVG}</div>`;
     return `
       <div class="product-item" data-id="${p.id}" onclick="toggleSelect('${p.id}')">
         <div class="product-item-checkbox">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         ${imageHtml}
         <div class="product-item-info">
           <div class="product-item-name">${escapeHtml(p.name)}</div>
           <div class="product-item-meta">V-Score ${p.vScore}점</div>
         </div>
-        <span class="product-item-tier ${tierClass}">${escapeHtml(p.tier || 'Fail')}</span>
+        <span class="product-item-tier ${tierClass}">${escapeHtml(p.tier||'Fail')}</span>
       </div>`;
   }).join('');
 }
 
 function toggleSelect(id) {
   const idx = selectedIds.indexOf(id);
-  if (idx >= 0) {
-    selectedIds.splice(idx, 1);
-  } else {
-    if (selectedIds.length >= 3) return;
-    selectedIds.push(id);
-  }
-  
+  if (idx >= 0) selectedIds.splice(idx, 1);
+  else { if (selectedIds.length >= 3) return; selectedIds.push(id); }
   document.querySelectorAll('.product-item').forEach(el => {
-    const itemId = el.dataset.id;
-    const isSelected = selectedIds.indexOf(itemId) !== -1;
-    el.classList.toggle('selected', isSelected);
-    if (selectedIds.length >= 3 && !isSelected) {
-      el.classList.add('disabled');
-    } else {
-      el.classList.remove('disabled');
-    }
+    const iid = el.dataset.id;
+    const sel = selectedIds.indexOf(iid) !== -1;
+    el.classList.toggle('selected', sel);
+    el.classList.toggle('disabled', selectedIds.length >= 3 && !sel);
   });
-  
   document.getElementById('selectionCount').textContent = `${selectedIds.length}/3개 선택됨`;
   const btn = document.getElementById('compareBtn');
   btn.disabled = selectedIds.length === 0;
-  btn.onclick = () => {
-    if (selectedIds.length > 0) {
-      window.location.href = `/compare.html?ids=${selectedIds.join(',')}&profile=${profile}`;
-    }
-  };
+  btn.onclick = () => { if (selectedIds.length > 0) window.location.href = `/compare.html?ids=${selectedIds.join(',')}&profile=${profile}`; };
 }
 window.toggleSelect = toggleSelect;
 
+// ── 비교 결과 ──
 async function loadComparison(ids) {
   showScreen('Loading');
   try {
     const res = await fetch(`${API_BASE}/compare-products?ids=${ids}&profile=${profile}`);
-    if (!res.ok) {
-      console.error('compare-products API status:', res.status);
-      showError('API 응답 오류: ' + res.status);
-      return;
-    }
+    if (!res.ok) { showError('API 오류: ' + res.status); return; }
     const data = await res.json();
-    console.log('compare-products data received:', data);
-    
-    if (data.error) {
-      showError(data.message || '비교 데이터를 불러올 수 없습니다.');
-      return;
-    }
-    
+    if (data.error) { showError(data.message || '비교 데이터를 불러올 수 없습니다.'); return; }
     renderComparison(data);
     showScreen('Compare');
-  } catch (err) {
-    console.error('loadComparison error:', err);
-    showError('에러: ' + (err.message || '비교 데이터를 불러올 수 없습니다.'));
-  }
+  } catch (err) { showError('오류: ' + (err.message||'')); }
 }
 
 function renderComparison(data) {
   try {
-    document.getElementById('compareTitle').textContent = 
-      `${data.products.filter(p => !p.error).length}개 제품 비교`;
-    document.getElementById('compareMeta').textContent = 
-      `${data.profile.label} 기준`;
-    document.getElementById('changeBtn').onclick = () => {
-      window.location.href = `/compare.html?mode=select&profile=${data.profile.id}`;
-    };
-    
     const valid = data.products.filter(p => !p.error);
     const winners = data.winners || {};
     const cols = valid.length;
-    
-    if (valid.length === 0) {
-      showError('비교할 수 있는 제품이 없습니다.');
-      return;
-    }
-    
-    const labelColW = '80px';
-    const gridCols = `${labelColW} repeat(${cols}, 1fr)`;
-    
+    if (!cols) { showError('비교할 수 있는 제품이 없습니다.'); return; }
+
+    document.getElementById('compareTitle').textContent = `${cols}개 제품 비교`;
+    document.getElementById('compareMeta').textContent = `${data.profile.label} 기준`;
+    document.getElementById('changeBtn').onclick = () => window.location.href = `/compare.html?mode=select&profile=${data.profile.id}`;
+    renderProfileTabs(data.profile.id);
+
+    const gridCols = `80px repeat(${cols}, 1fr)`;
     let html = '';
-    
-    html += `<section class="unified-grid">`;
-    html += `<div class="unified-header" style="grid-template-columns: ${gridCols};">`;
-    html += `<div class="unified-cell label-cell unified-product-label">제품</div>`;
+
+    // ── 1. 제품 카드 ──
+    html += `<div class="product-cards" style="grid-template-columns: repeat(${cols}, 1fr);">`;
     valid.forEach((p, idx) => {
-      const rankClass = `rank-${idx + 1}`;
-      const rankLabel = `${idx + 1}위`;
+      const rank = idx + 1;
+      const rankLabel = ['1위 추천','2위','3위'][idx] || `${rank}위`;
+      const ks = p.keySpec || {};
+      const scores = p.detailScores || {};
+      const scoreItems = [
+        { label:'함량', val: safeNum(scores.dose) },
+        { label:'제형', val: safeNum(scores.form) },
+        { label:'원료', val: safeNum(scores.source) },
+        { label:'인증', val: safeNum(scores.cert) },
+        { label:'가격', val: safeNum(scores.price) },
+      ];
       const imageHtml = p.image
-        ? `<img class="unified-h-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'unified-h-image-fallback\\'>💊</div>'">`
-        : `<div class="unified-h-image-fallback">💊</div>`;
+        ? `<img class="product-card-img" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'product-card-img-fallback\\'>${PILL_SVG.replace(/'/g,"\\'")}</div>'">`
+        : `<div class="product-card-img-fallback">${PILL_SVG}</div>`;
+
+      const costGood  = ks.dailyCost && ks.dailyCost === Math.min(...valid.map(v=>v.keySpec.dailyCost||9999));
+      const costWarn  = ks.dailyCost && ks.dailyCost === Math.max(...valid.map(v=>v.keySpec.dailyCost||0)) && cols > 1;
+      const doseWarn  = ks.dailyMg   && ks.dailyMg   === Math.min(...valid.map(v=>v.keySpec.dailyMg||9999)) && cols > 1;
+
+      const tierTag = ks.tier ? `<span class="pc-tag${ks.tier==='Tier1'?' hi':''}">${escapeHtml(ks.tier)}</span>` : '';
+      const certTag = ks.certs ? `<span class="pc-tag">${escapeHtml(String(ks.certs).split(',')[0].trim())}</span>` : '';
+
       html += `
-        <div class="unified-cell unified-h-cell ${rankClass}">
-          <span class="unified-rank-pill ${rankClass}">${rankLabel}</span>
+        <div class="product-card rank-${rank}">
+          <span class="product-card-badge">${rankLabel}</span>
           ${imageHtml}
-          <div class="unified-h-name">${escapeHtml(p.name)}</div>
-          <div class="unified-h-score">${p.vScore}</div>
-          <div class="unified-h-score-cap">V-SCORE</div>
+          <div class="product-card-name">${escapeHtml(p.name)}</div>
+          <div class="product-card-score">${p.vScore||0}</div>
+          <div class="product-card-score-lbl">V-SCORE</div>
+          <hr class="product-card-divider">
+          <div class="product-card-row">
+            <span class="product-card-row-lbl">EPA</span>
+            <span class="product-card-row-val${doseWarn?' warn':''}">${ks.dailyMg?(ks.dailyMg.toLocaleString()+'mg'):'-'}</span>
+          </div>
+          <div class="product-card-row">
+            <span class="product-card-row-lbl">비용</span>
+            <span class="product-card-row-val${costGood?' good':costWarn?' warn':''}">${ks.dailyCost?(ks.dailyCost.toLocaleString()+'원'):'-'}</span>
+          </div>
+          <div class="product-card-row">
+            <span class="product-card-row-lbl">제형</span>
+            <span class="product-card-row-val">${escapeHtml(ks.form||'-')}</span>
+          </div>
+          <div class="product-card-tags">${tierTag}${certTag}</div>
+          <div class="pc-bars">
+            ${scoreItems.map(s=>`
+              <div class="pc-bar-row">
+                <span class="pc-bar-lbl">${s.label}</span>
+                <div class="pc-bar-track"><div class="pc-bar-fill ${barColor(s.val)}" style="width:${s.val}%"></div></div>
+                <span class="pc-bar-num">${s.val}</span>
+              </div>`).join('')}
+          </div>
         </div>`;
-    });
-    html += `</div>`;
-    
-    const specRows = [
-      {
-        label: '1일 EPA+DHA',
-        values: valid.map(p => p.keySpec.dailyMg ? `${p.keySpec.dailyMg.toLocaleString()}mg` : '-'),
-        winnerIds: winners.dose || []
-      },
-      {
-        label: '1일 비용',
-        values: valid.map(p => p.keySpec.dailyCost ? `${p.keySpec.dailyCost.toLocaleString()}원` : '-'),
-        winnerIds: winners.price || []
-      },
-      {
-        label: '1일 캡슐',
-        values: valid.map(p => p.keySpec.dailyCapsules ? `${p.keySpec.dailyCapsules}캡슐` : '-')
-      },
-      {
-        label: '캡슐 크기',
-        values: valid.map(p => p.keySpec.capsuleMg ? `${p.keySpec.capsuleMg.toLocaleString()}mg<br><span style="font-size:11px;color:var(--ink-faint);">${p.keySpec.capsuleGrade || ''}</span>` : '-'),
-        isHtml: true
-      },
-      {
-        label: '제형',
-        values: valid.map(p => p.keySpec.form || '-')
-      },
-      {
-        label: '원료사',
-        values: valid.map(p => p.keySpec.supplier || '-')
-      },
-      {
-        label: '인증',
-        values: valid.map(p => p.keySpec.certs || '-'),
-        winnerIds: winners.cert || []
-      },
-      {
-        label: '리뷰수',
-        values: valid.map(p => p.keySpec.reviews ? p.keySpec.reviews.toLocaleString() : '-'),
-        winnerIds: winners.reviews || []
-      },
-      {
-        label: 'Tier',
-        values: valid.map(p => p.tier || '-')
-      }
-    ];
-    
-    specRows.forEach((row, rowIdx) => {
-      const isLast = rowIdx === specRows.length - 1;
-      const lastClass = isLast ? ' unified-last' : '';
-      html += `<div class="unified-row${lastClass}" style="grid-template-columns: ${gridCols};">`;
-      html += `<div class="unified-cell label-cell">${row.label}</div>`;
-      valid.forEach((p, idx) => {
-        const isWinner = row.winnerIds && row.winnerIds.indexOf(p.id) !== -1 && row.winnerIds.length < cols;
-        const cellVal = row.isHtml ? row.values[idx] : escapeHtml(row.values[idx]);
-        html += `<div class="unified-cell ${isWinner ? 'winner' : ''}">
-          <span class="unified-cell-main">${cellVal}</span>
-        </div>`;
-      });
-      html += '</div>';
-    });
-    html += `</section>`;
-    
-    html += `<div class="section-title-grade">📈 V-Score 세부</div>`;
-    html += `<section class="grade-grid">`;
-    
-    const scoreLabels = [
-      { key: 'dose', label: '함량' },
-      { key: 'form', label: '제형' },
-      { key: 'source', label: '원료' },
-      { key: 'cert', label: '인증' },
-      { key: 'price', label: '가격' }
-    ];
-    
-    scoreLabels.forEach((s, idx) => {
-      const values = valid.map(p => p.detailScores[s.key] || 0);
-      const maxVal = Math.max.apply(null, values);
-      const isFirst = idx === 0;
-      const firstClass = isFirst ? ' grade-first' : '';
-      
-      html += `<div class="grade-row${firstClass}" style="grid-template-columns: ${gridCols};">`;
-      html += `<div class="unified-cell label-cell">${s.label}</div>`;
-      values.forEach((v, vIdx) => {
-        const isWinner = v === maxVal && values.filter(x => x === maxVal).length < cols && maxVal > 0;
-        const grade = scoreToGrade(v);
-        html += `<div class="unified-cell ${isWinner ? 'winner' : ''}">
-          <span class="grade-pill pill-${grade}">${grade}</span>
-        </div>`;
-      });
-      html += '</div>';
-    });
-    
-    const totals = valid.map(p => p.vScore);
-    const maxTotal = Math.max.apply(null, totals);
-    html += `<div class="grade-row grade-total" style="grid-template-columns: ${gridCols};">`;
-    html += `<div class="unified-cell label-cell total-label">종합</div>`;
-    totals.forEach((t, idx) => {
-      const isWinner = t === maxTotal && totals.filter(x => x === maxTotal).length < cols;
-      html += `<div class="unified-cell ${isWinner ? 'winner' : ''}">
-        <span class="total-num">${t}</span>
-      </div>`;
     });
     html += '</div>';
-    html += `</section>`;
-    
-    html += `<div class="grade-legend-simple">
-      <span>A&nbsp;90~100</span>
-      <span>B&nbsp;75~89</span>
-      <span>C&nbsp;60~74</span>
-      <span>D&nbsp;40~59</span>
-      <span>F&nbsp;0~39</span>
-    </div>`;
-    
-    html += renderInsights(valid, winners);
-    
+
+    // ── 2. 상세 비교 테이블 ──
+    html += `<div class="section-label">상세 비교</div>`;
+    html += `<div class="cmp-table">`;
+    html += `<div class="cmp-table-head" style="grid-template-columns:${gridCols};">`;
+    html += `<div class="cmp-table-hcell">항목</div>`;
+    valid.forEach((p,i) => html += `<div class="cmp-table-hcell">${escapeHtml(p.name.length>8?p.name.slice(0,8)+'…':p.name)}</div>`);
+    html += '</div>';
+
+    const rows = [
+      { label:'EPA+DHA', vals: valid.map(p=>p.keySpec.dailyMg?p.keySpec.dailyMg.toLocaleString()+'mg':'-'), winIds: winners.dose||[] },
+      { label:'1일 비용', vals: valid.map(p=>p.keySpec.dailyCost?p.keySpec.dailyCost.toLocaleString()+'원':'-'), winIds: winners.price||[] },
+      { label:'1일 캡슐', vals: valid.map(p=>p.keySpec.dailyCapsules?p.keySpec.dailyCapsules+'캡슐':'-') },
+      { label:'캡슐 크기', vals: valid.map(p=>p.keySpec.capsuleMg?p.keySpec.capsuleMg.toLocaleString()+'mg':'-') },
+      { label:'제형',     vals: valid.map(p=>p.keySpec.form||'-') },
+      { label:'원료사',   vals: valid.map(p=>p.keySpec.supplier||'-') },
+      { label:'인증',     vals: valid.map(p=>p.keySpec.certs||'-'), winIds: winners.cert||[] },
+      { label:'리뷰 수',  vals: valid.map(p=>p.keySpec.reviews?p.keySpec.reviews.toLocaleString():'-'), winIds: winners.reviews||[] },
+      { label:'Tier',     vals: valid.map(p=>p.tier||'-') },
+    ];
+    rows.forEach(row => {
+      html += `<div class="cmp-table-row" style="grid-template-columns:${gridCols};">`;
+      html += `<div class="cmp-table-cell">${row.label}</div>`;
+      valid.forEach((p,i) => {
+        const isBest = row.winIds && row.winIds.includes(p.id) && row.winIds.length < cols;
+        html += `<div class="cmp-table-cell${isBest?' best':''}">${escapeHtml(row.vals[i])}</div>`;
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+
+    // ── 3. 인사이트 ──
+    const insightSVGs = {
+      trophy: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4H5a2 2 0 0 0-2 2v3c0 2.21 1.79 4 4 4h.01M17 4h2a2 2 0 0 1 2 2v3c0 2.21-1.79 4-4 4H17M7 4h10v8a5 5 0 0 1-10 0V4z"/></svg>',
+      coin:   '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 7v1m0 8v1"/></svg>',
+      pill:   '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg>',
+      badge:  '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+      chat:   '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      tie:    '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 7-2 1-2-1 2-7zM10 10l-4 10 6-4 6 4-4-10"/></svg>',
+    };
+
+    const insights = [];
+    if (winners.total?.length === 1) {
+      const p = valid.find(x=>x.id===winners.total[0]);
+      if (p) insights.push({ svg: insightSVGs.trophy, text: `<strong>종합 1위</strong>: ${escapeHtml(p.name)} (${p.vScore}점)` });
+    } else if (winners.total?.length > 1) {
+      insights.push({ svg: insightSVGs.tie, text: `<strong>종합 점수 동률</strong>: ${winners.total.length}개 제품이 같은 점수` });
+    }
+    if (winners.price?.length === 1) {
+      const p = valid.find(x=>x.id===winners.price[0]);
+      if (p) insights.push({ svg: insightSVGs.coin, text: `<strong>가성비 1위</strong>: ${escapeHtml(p.name)} (1일 ${p.keySpec.dailyCost}원)` });
+    }
+    if (winners.dose?.length === 1) {
+      const p = valid.find(x=>x.id===winners.dose[0]);
+      if (p) insights.push({ svg: insightSVGs.pill, text: `<strong>고함량 1위</strong>: ${escapeHtml(p.name)} (1일 ${p.keySpec.dailyMg}mg)` });
+    } else if (winners.dose?.length === cols) {
+      insights.push({ svg: insightSVGs.tie, text: `<strong>함량 동급</strong>: 모든 제품이 1일 ${valid[0].keySpec.dailyMg}mg` });
+    }
+    if (winners.cert?.length === 1) {
+      const p = valid.find(x=>x.id===winners.cert[0]);
+      if (p && p.detailScores.cert>0) insights.push({ svg: insightSVGs.badge, text: `<strong>인증 1위</strong>: ${escapeHtml(p.name)} (${escapeHtml(p.keySpec.certs)})` });
+    }
+    if (winners.reviews?.length === 1) {
+      const p = valid.find(x=>x.id===winners.reviews[0]);
+      if (p && p.keySpec.reviews>0) insights.push({ svg: insightSVGs.chat, text: `<strong>리뷰 1위</strong>: ${escapeHtml(p.name)} (${p.keySpec.reviews.toLocaleString()}개)` });
+    }
+
+    if (insights.length) {
+      html += `<div class="insights">
+        <div class="insights-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          한눈에 보기
+        </div>
+        ${insights.map(i=>`
+          <div class="insight-item">
+            <div class="insight-icon">${i.svg}</div>
+            <span class="insight-text">${i.text}</span>
+          </div>`).join('')}
+      </div>`;
+    }
+
+    // ── 4. CTA ──
     html += '<div class="compare-actions">';
     valid.forEach((p, idx) => {
       if (p.coupangLink) {
         html += `<a class="compare-action-link" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">
-          <span class="compare-action-link-name">${idx + 1}위 · ${escapeHtml(p.name)}</span>
-          🛒 쿠팡에서 보기
+          <div class="compare-action-link-left">
+            <span class="compare-action-link-name">${idx+1}위 · ${escapeHtml(p.name)}</span>
+            <span class="compare-action-link-label">쿠팡에서 보기</span>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </a>`;
       } else {
         html += `<div class="compare-action-link disabled">
-          <span class="compare-action-link-name">${idx + 1}위 · ${escapeHtml(p.name)}</span>
-          링크 없음
+          <div class="compare-action-link-left">
+            <span class="compare-action-link-name">${idx+1}위 · ${escapeHtml(p.name)}</span>
+            <span class="compare-action-link-label">링크 없음</span>
+          </div>
         </div>`;
       }
     });
     html += '</div>';
-    
+
     document.getElementById('compareContent').innerHTML = html;
     document.getElementById('compareDisclaimer').textContent = data.disclaimer || '';
-  } catch (err) {
-    console.error('renderComparison error:', err);
-    showError('렌더링 에러: ' + (err.message || ''));
+  } catch(err) {
+    showError('렌더링 오류: ' + (err.message||''));
   }
-}
-
-function scoreToGrade(score) {
-  if (score >= 90) return 'A';
-  if (score >= 75) return 'B';
-  if (score >= 60) return 'C';
-  if (score >= 40) return 'D';
-  return 'F';
-}
-
-function renderInsights(products, winners) {
-  const insights = [];
-  
-  if (winners.total && winners.total.length === 1) {
-    const winnerId = winners.total[0];
-    const p = products.find(x => x.id === winnerId);
-    if (p) insights.push({
-      icon: '🥇',
-      text: `<strong>종합 1위</strong>: ${escapeHtml(p.name)} (${p.vScore}점)`
-    });
-  } else if (winners.total && winners.total.length > 1) {
-    insights.push({
-      icon: '🤝',
-      text: `<strong>종합 점수 동률</strong>: ${winners.total.length}개 제품이 같은 점수`
-    });
-  }
-  
-  if (winners.price && winners.price.length === 1) {
-    const winnerId = winners.price[0];
-    const p = products.find(x => x.id === winnerId);
-    if (p) insights.push({
-      icon: '💰',
-      text: `<strong>가성비 1위</strong>: ${escapeHtml(p.name)} (1일 ${p.keySpec.dailyCost}원)`
-    });
-  }
-  
-  if (winners.dose && winners.dose.length === 1) {
-    const winnerId = winners.dose[0];
-    const p = products.find(x => x.id === winnerId);
-    if (p) insights.push({
-      icon: '💊',
-      text: `<strong>고함량 1위</strong>: ${escapeHtml(p.name)} (1일 ${p.keySpec.dailyMg}mg)`
-    });
-  } else if (winners.dose && winners.dose.length === products.length) {
-    insights.push({
-      icon: '⚖️',
-      text: `<strong>함량 동급</strong>: 모든 제품이 1일 ${products[0].keySpec.dailyMg}mg`
-    });
-  }
-  
-  if (winners.cert && winners.cert.length === 1) {
-    const winnerId = winners.cert[0];
-    const p = products.find(x => x.id === winnerId);
-    if (p && p.detailScores.cert > 0) insights.push({
-      icon: '🏅',
-      text: `<strong>인증 1위</strong>: ${escapeHtml(p.name)} (${escapeHtml(p.keySpec.certs)})`
-    });
-  }
-  
-  if (winners.reviews && winners.reviews.length === 1) {
-    const winnerId = winners.reviews[0];
-    const p = products.find(x => x.id === winnerId);
-    if (p && p.keySpec.reviews > 0) insights.push({
-      icon: '💬',
-      text: `<strong>리뷰 1위</strong>: ${escapeHtml(p.name)} (${p.keySpec.reviews.toLocaleString()}개)`
-    });
-  }
-  
-  if (insights.length === 0) return '';
-  
-  return `<div class="insights">
-    <div class="insights-title">💡 한눈에 보기</div>
-    ${insights.map(i => `
-      <div class="insight-item">
-        <span class="insight-icon">${i.icon}</span>
-        <span class="insight-text">${i.text}</span>
-      </div>`).join('')}
-  </div>`;
 }
 
 function showScreen(name) {
@@ -1092,21 +550,9 @@ function showScreen(name) {
   document.getElementById('screen' + name).classList.add('active');
   window.scrollTo(0, 0);
 }
-
 function showError(msg) {
-  document.getElementById('compareContent').innerHTML = 
-    `<div class="error-box">⚠️ ${escapeHtml(msg)}</div>`;
+  document.getElementById('compareContent').innerHTML = `<div class="error-box">${escapeHtml(msg)}</div>`;
   showScreen('Compare');
-}
-
-function escapeHtml(str) {
-  if (str == null) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 </script>
 </body>
