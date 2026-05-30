@@ -157,12 +157,20 @@ export async function onRequest(context) {
     const f = record.fields || {};
     const productId = getField(f, "product_id", "productId", "\uC81C\uD488ID");
     const productName = getField(f, "\uC81C\uD488\uBA85", "name", "productName") || "";
+    // 빈 행/메모 행 필터: product_id가 없거나 제품명이 메모인 경우 스킵
+    if (!productId || !productName) return null;
+    if (productName.indexOf("아래부터") !== -1 || productName.indexOf("내용 작성") !== -1) return null;
     let imageUrl = getField(f, "\uc774\ubbf8\uc9c0URL", "imageUrl", "image", "\uc774\ubbf8\uc9c0", "photo") || "";
     if (Array.isArray(imageUrl) && imageUrl.length > 0) {
       const att = imageUrl[0];
       imageUrl = (att.thumbnails && att.thumbnails.large) ? att.thumbnails.large.url : (att.url || "");
     } else if (typeof imageUrl === "object" && imageUrl !== null) {
       imageUrl = imageUrl.url || "";
+    }
+    // 텍스트 필드에 "image.png (https://...)" 형태로 저장된 경우 URL만 추출
+    if (typeof imageUrl === "string" && imageUrl.indexOf("(http") !== -1) {
+      const um = imageUrl.match(/\((https?:\/\/[^\s)]+)\)/);
+      if (um) imageUrl = um[1];
     }
     const dailyMg = parseFloat(getField(f, "EPA_DHA_\uD569\uACC4_mg", "epaDha", "EPA_DHA")) || 0;
     const capsuleMg = parseFloat(getField(f, "\uCEA1\uC290\uC6A9\uB7C9_mg", "capsuleMg", "\uCEA1\uC290 \uC6A9\uB7C9 (mg)")) || 0;
@@ -190,7 +198,7 @@ export async function onRequest(context) {
     if (dailyMg > 2000) { total = Math.min(80, total); highDoseFlag = true; }
 
     return { record, productId, productName, imageUrl, coupangLink, tier, passFail, form, supplier, certs, purity, dailyMg, capsuleMg, dailyCost: Math.round(dailyCost), scores: { dose, form: formScore, source: sourceScore, cert: certScore, price: priceScore, total }, highDoseFlag };
-  });
+  }).filter(Boolean);
 
   const capsuleMgList = scored.map(it => it.capsuleMg).filter(m => m > 0).sort((a,b) => a-b);
   const capMin = capsuleMgList[0] || 0;
