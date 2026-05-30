@@ -288,24 +288,22 @@
     .product-spec-value { font-size: 11px; color: var(--green-deep); font-weight: 700; letter-spacing: -0.01em; }
     .product-tags { display: flex; flex-wrap: wrap; gap: 3px; }
 
-    /* ── 통계 막대 UI (EPA+DHA, 1일 비용, 캡슐 용량) ── */
-    .stat-bar { margin-top: 16px; }
-    .stat-bar-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-    .stat-bar-title { font-size: 13px; color: var(--ink); font-weight: 700; letter-spacing: -0.01em; }
-    .stat-bar-avg-text { font-size: 10px; color: var(--ink-faint); font-weight: 500; }
-    .stat-bar-avg-text strong { color: var(--ink-soft); font-weight: 600; }
-    .stat-bar-track-wrap { position: relative; margin-top: 22px; }
-    .stat-bar-track { height: 4px; background: var(--line); border-radius: 2px; position: relative; }
-    .stat-bar-fill { position: absolute; left: 0; height: 100%; background: var(--green-primary); border-radius: 2px; }
-    .stat-bar-endpoint { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; background: white; border: 2px solid var(--ink-faint); z-index: 1; }
+    /* ── 통계 막대 UI (H안: 인바디 점 + 평균 작은 회색 점 + 인라인 제목) ── */
+    .stat-bar { padding: 12px 0; border-top: 0.5px solid var(--line-soft); }
+    .stat-bar:first-child { border-top: none; padding-top: 6px; }
+    .stat-bar-line { font-size: 13px; color: var(--ink); line-height: 1.4; margin-bottom: 6px; }
+    .stat-bar-line .title { font-weight: 700; }
+    .stat-bar-line .value { font-size: 15px; font-weight: 800; color: var(--green-deep); margin-left: 6px; letter-spacing: -0.02em; }
+    .stat-bar-graph { position: relative; height: 30px; }
+    .stat-bar-track { position: absolute; top: 8px; left: 0; right: 0; height: 4px; background: var(--line); border-radius: 2px; }
+    .stat-bar-fill { position: absolute; top: 8px; left: 0; height: 4px; background: var(--green-primary); border-radius: 2px; }
+    .stat-bar-dot { position: absolute; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--green-primary); border: 3px solid white; outline: 1.5px solid var(--green-primary); transform: translateX(-50%); z-index: 3; }
+    .stat-bar-endpoint { position: absolute; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: white; border: 2px solid var(--ink-faint); transform: translateX(-50%); z-index: 1; }
     .stat-bar-endpoint.left { left: 0; }
     .stat-bar-endpoint.right { left: 100%; }
-    .stat-bar-dot { position: absolute; transform: translateX(-50%) translateY(-50%); top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--green-primary); border: 2.5px solid white; outline: 1.5px solid var(--green-primary); z-index: 2; }
-    .stat-bar-tooltip { position: absolute; transform: translateX(-50%); bottom: 10px; z-index: 3; }
-    .stat-bar-tooltip-badge { background: var(--green-deep); color: white; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; position: relative; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
-    .stat-bar-tooltip-badge .caption { font-size: 9px; font-weight: 400; opacity: 0.85; }
-    .stat-bar-tooltip-badge::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); bottom: -5px; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--green-deep); }
-    .stat-bar-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-faint); margin-top: 8px; }
+    .stat-bar-avg-dot { position: absolute; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); transform: translateX(-50%); z-index: 2; }
+    .stat-bar-avg-label { position: absolute; top: 18px; transform: translateX(-50%); font-size: 9px; color: var(--ink-faint); white-space: nowrap; }
+    .stat-bar-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-faint); margin-top: -2px; }
 
 
     .product-tag { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); letter-spacing: -0.01em; }
@@ -562,34 +560,24 @@ function renderStatBar(opts) {
   if (!value || min === max) return '';
   const pos = calcPos(value, min, max);
   if (pos == null) return '';
-  // 말풍선 위치 보정: 양 끝에 가까우면 안쪽으로 살짝 이동
-  let tooltipPos = pos;
-  if (pos < 18) tooltipPos = Math.max(pos, 14);
-  if (pos > 82) tooltipPos = Math.min(pos, 86);
+  const avgPos = calcPos(avg, min, max);
   const minLabel = opts.minLabel || '최소';
   const maxLabel = opts.maxLabel || '최대';
-  const avgHtml = (avg > 0)
-    ? `<span class="stat-bar-avg-text">평균 <strong>${fmtNumber(avg)}${unit}</strong></span>`
+  const avgHtml = (avg > 0 && avgPos != null)
+    ? `<div class="stat-bar-avg-dot" style="left:${avgPos}%"></div><div class="stat-bar-avg-label" style="left:${avgPos}%">평균 ${fmtNumber(avg)}${unit}</div>`
     : '';
   return `
     <div class="stat-bar">
-      <div class="stat-bar-header">
-        <span class="stat-bar-title">${title}</span>
-        ${avgHtml}
+      <div class="stat-bar-line">
+        <span class="title">${title}</span><span class="value">${fmtNumber(value)}${unit}</span>
       </div>
-      <div class="stat-bar-track-wrap">
-        <div class="stat-bar-track">
-          <div class="stat-bar-fill" style="width:${pos}%"></div>
-          <div class="stat-bar-endpoint left"></div>
-          <div class="stat-bar-endpoint right"></div>
-          <div class="stat-bar-dot" style="left:${pos}%"></div>
-          <div class="stat-bar-tooltip" style="left:${tooltipPos}%">
-            <div class="stat-bar-tooltip-badge">
-              <span class="caption">해당 제품</span>
-              ${fmtNumber(value)}${unit}
-            </div>
-          </div>
-        </div>
+      <div class="stat-bar-graph">
+        <div class="stat-bar-track"></div>
+        <div class="stat-bar-fill" style="width:${pos}%"></div>
+        <div class="stat-bar-endpoint left"></div>
+        <div class="stat-bar-endpoint right"></div>
+        ${avgHtml}
+        <div class="stat-bar-dot" style="left:${pos}%"></div>
       </div>
       <div class="stat-bar-ends">
         <span>${minLabel} ${fmtNumber(min)}${unit}</span>
@@ -598,8 +586,8 @@ function renderStatBar(opts) {
     </div>`;
 }
 
+
 function renderStatBars(item) {
-  // item: { dailyMg, dailyCost, capsuleMg }
   const d = distributions || {};
   let html = '';
   if (d.dose && safeNum(item.dailyMg) > 0) {
@@ -795,24 +783,24 @@ function renderProductCard(p) {
     : `<div class="product-image-fallback"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg></div>`;
   return `
     <article class="product-card rank-${p.rank}">
+      <div class="product-info-top">
+        <span class="product-rank-pill">${rankLabel}</span>
+        <div class="product-vscore-block">
+          <div class="product-vscore-num">${p.vScore||0}</div>
+          <div class="product-vscore-cap">V-SCORE</div>
+        </div>
+      </div>
       <div class="product-card-row">
         <div class="product-image-wrap">
           ${imageHtml}
           <span class="product-rank-badge">${p.rank}</span>
         </div>
         <div class="product-info">
-          <div class="product-info-top">
-            <span class="product-rank-pill">${rankLabel}</span>
-            <div class="product-vscore-block">
-              <div class="product-vscore-num">${p.vScore||0}</div>
-              <div class="product-vscore-cap">V-SCORE</div>
-            </div>
-          </div>
           <div class="product-name">${escapeHtml(p.name||'제품명 미상')}</div>
-          <div class="product-tags" style="margin-bottom: 4px;">${tierTag}${formTag}${certsTag}${highDoseTag}</div>
-          ${renderStatBars({ dailyMg: keySpec.dailyMg, dailyCost: keySpec.dailyCost, capsuleMg: keySpec.capsuleMg })}
+          <div class="product-tags">${tierTag}${formTag}${certsTag}${highDoseTag}</div>
         </div>
       </div>
+      ${renderStatBars({ dailyMg: keySpec.dailyMg, dailyCost: keySpec.dailyCost, capsuleMg: keySpec.capsuleMg })}
       <div class="product-scores" id="scores-${productId}">${scoreBars}</div>
       <div class="explanation" id="exp-${productId}"></div>
       <div class="product-actions">
@@ -858,24 +846,24 @@ function renderRestCard(r) {
         </div>
       </div>
       <div class="expanded-content">
+        <div class="expanded-info-top">
+          <span class="expanded-rank-pill">${r.rank}위</span>
+          <div class="product-vscore-block">
+            <div class="product-vscore-num">${r.vScore||0}</div>
+            <div class="product-vscore-cap">V-SCORE</div>
+          </div>
+        </div>
         <div class="expanded-card-row">
           <div class="expanded-image-wrap">
             ${expandedImageHtml}
             <span class="expanded-rank-badge">${r.rank}</span>
           </div>
           <div class="expanded-info">
-            <div class="expanded-info-top">
-              <span class="expanded-rank-pill">${r.rank}위</span>
-              <div class="product-vscore-block">
-                <div class="product-vscore-num">${r.vScore||0}</div>
-                <div class="product-vscore-cap">V-SCORE</div>
-              </div>
-            </div>
             <div class="expanded-name">${escapeHtml(r.name||'제품명 미상')}</div>
-            <div class="expanded-tags" style="margin-bottom: 4px;">${tags.join('')}</div>
-            ${renderStatBars({ dailyMg: r.dailyMg, dailyCost: r.dailyCost, capsuleMg: r.capsuleMg })}
+            <div class="expanded-tags">${tags.join('')}</div>
           </div>
         </div>
+        ${renderStatBars({ dailyMg: r.dailyMg, dailyCost: r.dailyCost, capsuleMg: r.capsuleMg })}
         <div class="expanded-actions">
           <button class="btn-collapse" onclick="toggleExpand('${productId}')">접기</button>
           ${link
