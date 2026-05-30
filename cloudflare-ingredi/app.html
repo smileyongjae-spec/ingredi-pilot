@@ -288,38 +288,25 @@
     .product-spec-value { font-size: 11px; color: var(--green-deep); font-weight: 700; letter-spacing: -0.01em; }
     .product-tags { display: flex; flex-wrap: wrap; gap: 3px; }
 
-    /* ── 캡슐 크기 UI (새 디자인) ── */
-    .capsule-bar { margin-top: 14px; padding-bottom: 4px; }
-    .capsule-bar-label { font-size: 9px; color: var(--ink-faint); font-weight: 600; margin-bottom: 10px; letter-spacing: -0.01em; }
-    .capsule-bar-track-wrap { position: relative; margin-bottom: 6px; }
-    .capsule-bar-track { height: 4px; background: var(--line); border-radius: 2px; position: relative; }
-    .capsule-bar-fill { position: absolute; left: 0; height: 100%; background: var(--green-primary); border-radius: 2px; }
-    .capsule-bar-dot {
-      position: absolute; transform: translateX(-50%) translateY(-50%); top: 50%;
-      width: 14px; height: 14px; border-radius: 50%;
-      background: var(--green-primary); border: 2.5px solid white;
-      outline: 1.5px solid var(--green-primary);
-    }
-    .capsule-bar-tooltip {
-      position: absolute; transform: translateX(-50%); bottom: 12px;
-      white-space: nowrap; text-align: center;
-    }
-    .capsule-bar-tooltip-label { font-size: 9px; color: var(--ink-faint); margin-bottom: 2px; }
-    .capsule-bar-tooltip-badge {
-      background: var(--green-deep); color: white;
-      font-size: 10px; font-weight: 600; padding: 2px 7px;
-      border-radius: 4px; display: inline-block; position: relative;
-    }
-    .capsule-bar-tooltip-badge::after {
-      content: ''; position: absolute; left: 50%; transform: translateX(-50%);
-      bottom: -5px; width: 0; height: 0;
-      border-left: 4px solid transparent; border-right: 4px solid transparent;
-      border-top: 5px solid var(--green-deep);
-    }
-    .capsule-bar-ends { display: flex; justify-content: space-between; font-size: 9px; color: var(--ink-faint); margin-top: 14px; }
-    /* 평균 마커 (회색 점선) */
-    .stat-bar-avg { position: absolute; top: -5px; bottom: -5px; width: 0; border-left: 1.5px dashed var(--ink-faint); transform: translateX(-50%); z-index: 1; pointer-events: none; }
-    .stat-bar-avg-label { position: absolute; bottom: -18px; transform: translateX(-50%); font-size: 9px; color: var(--ink-soft); white-space: nowrap; font-weight: 500; }
+    /* ── 통계 막대 UI (EPA+DHA, 1일 비용, 캡슐 용량) ── */
+    .stat-bar { margin-top: 16px; }
+    .stat-bar-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+    .stat-bar-title { font-size: 13px; color: var(--ink); font-weight: 700; letter-spacing: -0.01em; }
+    .stat-bar-avg-text { font-size: 10px; color: var(--ink-faint); font-weight: 500; }
+    .stat-bar-avg-text strong { color: var(--ink-soft); font-weight: 600; }
+    .stat-bar-track-wrap { position: relative; margin-top: 22px; }
+    .stat-bar-track { height: 4px; background: var(--line); border-radius: 2px; position: relative; }
+    .stat-bar-fill { position: absolute; left: 0; height: 100%; background: var(--green-primary); border-radius: 2px; }
+    .stat-bar-endpoint { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; background: white; border: 2px solid var(--ink-faint); z-index: 1; }
+    .stat-bar-endpoint.left { left: 0; }
+    .stat-bar-endpoint.right { left: 100%; }
+    .stat-bar-dot { position: absolute; transform: translateX(-50%) translateY(-50%); top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--green-primary); border: 2.5px solid white; outline: 1.5px solid var(--green-primary); z-index: 2; }
+    .stat-bar-tooltip { position: absolute; transform: translateX(-50%); bottom: 10px; z-index: 3; }
+    .stat-bar-tooltip-badge { background: var(--green-deep); color: white; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; position: relative; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+    .stat-bar-tooltip-badge .caption { font-size: 9px; font-weight: 400; opacity: 0.85; }
+    .stat-bar-tooltip-badge::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); bottom: -5px; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--green-deep); }
+    .stat-bar-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-faint); margin-top: 8px; }
+
 
     .product-tag { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); letter-spacing: -0.01em; }
     .product-tag.tag-warn { background: rgba(201, 83, 61, 0.1); color: var(--warn); }
@@ -567,31 +554,46 @@ function calcPos(value, min, max) {
   return Math.max(0, Math.min(100, Math.round((value - min) / (max - min) * 100)));
 }
 
+function fmtNumber(v) { return Number(v).toLocaleString(); }
+
 function renderStatBar(opts) {
-  // opts: { label, value, min, max, avg, unit, formatter }
-  const { label, value, min, max, avg, unit } = opts;
-  const fmt = opts.formatter || (v => v.toLocaleString());
+  // opts: { title, value, min, max, avg, unit, minLabel, maxLabel }
+  const { title, value, min, max, avg, unit } = opts;
   if (!value || min === max) return '';
   const pos = calcPos(value, min, max);
   if (pos == null) return '';
-  const avgPos = calcPos(avg, min, max);
+  // 말풍선 위치 보정: 양 끝에 가까우면 안쪽으로 살짝 이동
+  let tooltipPos = pos;
+  if (pos < 18) tooltipPos = Math.max(pos, 14);
+  if (pos > 82) tooltipPos = Math.min(pos, 86);
+  const minLabel = opts.minLabel || '최소';
+  const maxLabel = opts.maxLabel || '최대';
+  const avgHtml = (avg > 0)
+    ? `<span class="stat-bar-avg-text">평균 <strong>${fmtNumber(avg)}${unit}</strong></span>`
+    : '';
   return `
-    <div class="capsule-bar">
-      <div class="capsule-bar-label">${label}</div>
-      <div class="capsule-bar-track-wrap" style="margin-top:32px; margin-bottom:8px;">
-        <div class="capsule-bar-track">
-          <div class="capsule-bar-fill" style="width:${pos}%"></div>
-          ${avgPos != null ? `<div class="stat-bar-avg" style="left:${avgPos}%"><span class="stat-bar-avg-label">평균 ${fmt(avg)}${unit}</span></div>` : ''}
-          <div class="capsule-bar-dot" style="left:${pos}%"></div>
-          <div class="capsule-bar-tooltip" style="left:${pos}%">
-            <div class="capsule-bar-tooltip-label">해당 제품</div>
-            <div class="capsule-bar-tooltip-badge">${fmt(value)}${unit}</div>
+    <div class="stat-bar">
+      <div class="stat-bar-header">
+        <span class="stat-bar-title">${title}</span>
+        ${avgHtml}
+      </div>
+      <div class="stat-bar-track-wrap">
+        <div class="stat-bar-track">
+          <div class="stat-bar-fill" style="width:${pos}%"></div>
+          <div class="stat-bar-endpoint left"></div>
+          <div class="stat-bar-endpoint right"></div>
+          <div class="stat-bar-dot" style="left:${pos}%"></div>
+          <div class="stat-bar-tooltip" style="left:${tooltipPos}%">
+            <div class="stat-bar-tooltip-badge">
+              <span class="caption">해당 제품</span>
+              ${fmtNumber(value)}${unit}
+            </div>
           </div>
         </div>
       </div>
-      <div class="capsule-bar-ends">
-        <span>최소 ${fmt(min)}${unit}</span>
-        <span>최대 ${fmt(max)}${unit}</span>
+      <div class="stat-bar-ends">
+        <span>${minLabel} ${fmtNumber(min)}${unit}</span>
+        <span>${maxLabel} ${fmtNumber(max)}${unit}</span>
       </div>
     </div>`;
 }
@@ -602,7 +604,7 @@ function renderStatBars(item) {
   let html = '';
   if (d.dose && safeNum(item.dailyMg) > 0) {
     html += renderStatBar({
-      label: 'EPA+DHA 함량',
+      title: 'EPA+DHA 함량',
       value: safeNum(item.dailyMg),
       min: d.dose.min, max: d.dose.max, avg: d.dose.avg,
       unit: 'mg'
@@ -610,15 +612,16 @@ function renderStatBars(item) {
   }
   if (d.cost && safeNum(item.dailyCost) > 0) {
     html += renderStatBar({
-      label: '1일 복용 비용',
+      title: '1일 복용 비용',
       value: safeNum(item.dailyCost),
       min: d.cost.min, max: d.cost.max, avg: d.cost.avg,
-      unit: '원'
+      unit: '원',
+      minLabel: '최저', maxLabel: '최고'
     });
   }
   if (d.capsule && safeNum(item.capsuleMg) > 0) {
     html += renderStatBar({
-      label: '캡슐 용량 (크기, 목넘김)',
+      title: '캡슐 용량 (크기, 목넘김)',
       value: safeNum(item.capsuleMg),
       min: d.capsule.min, max: d.capsule.max, avg: d.capsule.avg,
       unit: 'mg'
@@ -628,33 +631,8 @@ function renderStatBars(item) {
 }
 
 function renderCapsuleBar(keySpec) {
-  // 기존 함수는 호환성 유지 (rest 카드 등에서 사용)
-  const mg = safeNum(keySpec.capsuleMg);
-  const pos = keySpec.capsulePosition;
-  if (!mg || pos == null) return '';
-  const minV = capsuleDist.min || 0;
-  const maxV = capsuleDist.max || 0;
-  const avg = (distributions && distributions.capsule) ? distributions.capsule.avg : 0;
-  const avgPos = (maxV > minV && avg > 0) ? Math.round((avg - minV) / (maxV - minV) * 100) : null;
-  return `
-    <div class="capsule-bar">
-      <div class="capsule-bar-label">캡슐 용량 (크기, 목넘김)</div>
-      <div class="capsule-bar-track-wrap" style="margin-top:32px; margin-bottom:8px;">
-        <div class="capsule-bar-track">
-          <div class="capsule-bar-fill" style="width:${pos}%"></div>
-          ${avgPos != null ? `<div class="stat-bar-avg" style="left:${avgPos}%"><span class="stat-bar-avg-label">평균 ${avg.toLocaleString()}mg</span></div>` : ''}
-          <div class="capsule-bar-dot" style="left:${pos}%"></div>
-          <div class="capsule-bar-tooltip" style="left:${pos}%">
-            <div class="capsule-bar-tooltip-label">해당 제품</div>
-            <div class="capsule-bar-tooltip-badge">${mg.toLocaleString()}mg</div>
-          </div>
-        </div>
-      </div>
-      <div class="capsule-bar-ends">
-        <span>최소 ${minV.toLocaleString()}mg</span>
-        <span>최대 ${maxV.toLocaleString()}mg</span>
-      </div>
-    </div>`;
+  // 호환성: 캡슐만 렌더 (옛 호출 처리용)
+  return renderStatBars({ capsuleMg: keySpec.capsuleMg });
 }
 
 function showScreen(name) {
@@ -894,18 +872,8 @@ function renderRestCard(r) {
               </div>
             </div>
             <div class="expanded-name">${escapeHtml(r.name||'제품명 미상')}</div>
-            <div class="expanded-spec">
-              <div>
-                <div class="expanded-spec-label">EPA+DHA</div>
-                <div class="expanded-spec-value">${safeNum(r.dailyMg).toLocaleString()}mg</div>
-              </div>
-              <div>
-                <div class="expanded-spec-label">1일 비용</div>
-                <div class="expanded-spec-value">${safeNum(r.dailyCost).toLocaleString()}원</div>
-              </div>
-            </div>
-            <div class="expanded-tags">${tags.join('')}</div>
-            ${renderCapsuleBar({ capsuleMg: r.capsuleMg, capsulePosition: r.capsulePosition, capsuleGrade: r.capsuleGrade })}
+            <div class="expanded-tags" style="margin-bottom: 4px;">${tags.join('')}</div>
+            ${renderStatBars({ dailyMg: r.dailyMg, dailyCost: r.dailyCost, capsuleMg: r.capsuleMg })}
           </div>
         </div>
         <div class="expanded-actions">
