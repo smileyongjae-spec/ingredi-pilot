@@ -196,6 +196,19 @@ export async function onRequest(context) {
   const capMin = capsuleMgList[0] || 0;
   const capMax = capsuleMgList[capsuleMgList.length-1] || 0;
   const capCount = capsuleMgList.length;
+  const capAvg = capCount > 0 ? Math.round(capsuleMgList.reduce((s,v) => s+v, 0) / capCount) : 0;
+
+  // EPA+DHA 함량 분포 (전체 제품 기준)
+  const doseMgList = scored.map(it => it.dailyMg).filter(m => m > 0).sort((a,b) => a-b);
+  const doseMin = doseMgList[0] || 0;
+  const doseMax = doseMgList[doseMgList.length-1] || 0;
+  const doseAvg = doseMgList.length > 0 ? Math.round(doseMgList.reduce((s,v) => s+v, 0) / doseMgList.length) : 0;
+
+  // 1일 복용 비용 분포 (전체 제품 기준)
+  const costList = scored.map(it => it.dailyCost).filter(c => c > 0).sort((a,b) => a-b);
+  const costMin = costList[0] || 0;
+  const costMax = costList[costList.length-1] || 0;
+  const costAvg = costList.length > 0 ? Math.round(costList.reduce((s,v) => s+v, 0) / costList.length) : 0;
 
   function capsuleGrade(mg) {
     if (!mg || mg <= 0) return null;
@@ -240,7 +253,12 @@ export async function onRequest(context) {
 
   return new Response(JSON.stringify({
     profile: { id: profileId, label: profile.label, weights: profile.weights },
-    query, capsuleDistribution: { min: capMin, max: capMax, count: capCount },
+    query, distributions: {
+      dose:    { min: doseMin, max: doseMax, avg: doseAvg, count: doseMgList.length },
+      cost:    { min: costMin, max: costMax, avg: costAvg, count: costList.length },
+      capsule: { min: capMin,  max: capMax,  avg: capAvg,  count: capCount }
+    },
+    capsuleDistribution: { min: capMin, max: capMax, count: capCount }, max: capMax, count: capCount },
     totalProducts: records.length, filteredCount: filtered.length, excludedCount: records.length - filtered.length,
     top3, rest, medicalConsult: profile.medicalConsult,
     disclaimer: "\u00A0\uBCF8 V-Score\uB294 \uACF5\uAC1C\uB41C \uC81C\uD488 \uB370\uC774\uD130 \uAE30\uBC18\uC758 \uAC1D\uAD00\uC801 \uC9C0\uD45C\uC774\uBA70, \uAC1C\uC778\uC758 \uAC74\uAC15 \uC0C1\uD0DC\u00B7\uC57D\uBB3C\u00B7\uC54C\uB808\uB974\uAE30\uC5D0 \ub530\ub77c \uCD5C\uC801 \uC81C\ud488\uC740 \ub2E4\ub97c \uC218 \uC788\uC2B5\ub2C8\ub2E4."
