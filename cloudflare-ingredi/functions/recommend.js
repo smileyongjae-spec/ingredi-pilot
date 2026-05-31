@@ -32,17 +32,17 @@ export async function onRequest(context) {
   const PROFILES = {
     "premium_seeker": {
       label: "\uCD5C\uACE0 \uD488\uC9C8 \uC120\uD638",
-      weights: { dose: 30, form: 20, source: 20, cert: 20, price: 10 },
+      weights: { dose: 30, form: 25, source: 25, cert: 15, price: 5 },
       filters: {}, medicalConsult: false
     },
     "budget_seeker": {
       label: "\uAC00\uC131\uBE44 \uC120\uD638",
-      weights: { dose: 20, form: 15, source: 15, cert: 10, price: 40 },
+      weights: { dose: 20, form: 10, source: 10, cert: 10, price: 50 },
       filters: {}, medicalConsult: false
     },
     "balanced": {
       label: "\uAD50\uD615\uD615 (\uAE30\uBCF8\uAC12)",
-      weights: { dose: 30, form: 20, source: 20, cert: 20, price: 10 },
+      weights: { dose: 25, form: 20, source: 20, cert: 20, price: 15 },
       filters: {}, medicalConsult: false
     },
     "pregnancy": {
@@ -105,48 +105,87 @@ export async function onRequest(context) {
   }
 
   function scoreDose(d) {
-    if (!d || d <= 0) return 20;
-    if (d >= 1500) return 100; if (d >= 1000) return 80;
-    if (d >= 600) return 60;  if (d >= 500) return 40;
-    return 20;
+    if (!d || d <= 0) return 10;
+    if (d >= 1200) return 100;
+    if (d >= 1000) return 85;
+    if (d >= 850)  return 70;
+    if (d >= 700)  return 55;
+    if (d >= 600)  return 40;
+    if (d >= 500)  return 25;
+    return 10;
   }
   function scoreForm(form) {
-    if (!form) return 50;
+    if (!form) return 65;
     const f = String(form).toLowerCase();
+    if (f.indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 65;
     if (f.indexOf("rtg") !== -1) return 100;
-    if (f.indexOf("phospholipid") !== -1 || f.indexOf("\uC778\uC9C0\uC9C8") !== -1) return 95;
-    if (f === "tg" || f.indexOf("triglyceride") !== -1) return 90;
-    if (f === "ee" || f.indexOf("ethyl") !== -1) return 60;
-    if (f.indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 30;
+    if (f.indexOf("phospholipid") !== -1 || f.indexOf("\uC778\uC9C0\uC9C8") !== -1) return 90;
+    if (f === "tg" || f.indexOf("triglyceride") !== -1) return 80;
+    if (f === "ee" || f.indexOf("ethyl") !== -1) return 70;
     return 50;
   }
   function scoreSource(supplier) {
-    if (!supplier) return 40;
+    if (!supplier || String(supplier).trim() === "") return 30;
     const s = String(supplier).toLowerCase();
-    if (s.indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 40;
-    const trusted = ["dsm", "basf", "epax", "croda", "gc rieber", "solutex", "kd\uD30C\uB9C8"];
-    for (const t of trusted) if (s.indexOf(t) !== -1) return 90;
-    const regions = ["\uB178\uB974\uC6E8\uC774", "\uD398\uB8E8", "\uC2A4\uD398\uC778", "\uCEA0\uB098\uB2E4", "\uC54C\uB798\uC2A4\uCE74"];
+    if (s.indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 30;
+    // 글로벌 프리미엄 원료사 → 85점
+    const premium = [
+      "dsm", "dsm-firmenich", "meg-3",
+      "basf", "pronova",
+      "kd-pharma", "kdpharma", "kd\uD30C\uB9C8", "kd\uD30C\uBA38",
+      "croda", "lysi",
+      "epax",
+      "gc rieber", "rieber", "m\u00F6ller", "moller", "\uBB60\uB7EC",
+      "aker biomarine", "aker", "\uC544\uCEE4",
+      "solutex", "omegavie", "\uC194\uD14C\uC2A4", "\uC194\uB958\uD14D\uC2A4",
+      "polaris", "\uD3F4\uB77C\uB9AC\uC2A4",
+      "alaskomega", "alask omega", "\uC54C\ub798\uC2A4\uCE74\uC624\uBA54\uAC00",
+      "organic technologies"
+    ];
+    for (const t of premium) if (s.indexOf(t) !== -1) return 85;
+    // 청정 지역 원산지 → 70점
+    const regions = [
+      "\uB178\uB974\uC6E8\uC774", "norway",
+      "\uD398\uB8E8", "peru", "anchovy",
+      "\uC54C\ub798\uC2A4\uCE74", "alaska",
+      "\uC544\uC774\uC2AC\ub780\ub4DC", "iceland",
+      "\uCEA0\uB098\uB2E4", "canada",
+      "\uCE60\ub808", "chile",
+      "\uD504\ub791\uC2A4", "france",
+      "\uC2A4\uD398\uC778", "spain"
+    ];
     for (const r of regions) if (s.indexOf(r) !== -1) return 70;
-    return 60;
+    return 50;
   }
   function scoreCert(certs) {
     if (!certs || String(certs).trim() === "" || String(certs).indexOf("\uBBF8\uAE30\uC7AC") !== -1) return 0;
     let score = 0;
     const c = String(certs).toUpperCase();
-    if (c.indexOf("IFOS") !== -1) { score += (c.indexOf("5-STAR") !== -1 || c.indexOf("5\uC2A4\uD0C0") !== -1) ? 40 : 25; }
+    const cLower = String(certs).toLowerCase();
+    if (c.indexOf("IFOS") !== -1) {
+      score += (c.indexOf("5-STAR") !== -1 || c.indexOf("5STAR") !== -1 || c.indexOf("\u3147\u3147") !== -1 || c.indexOf("FIVE STAR") !== -1) ? 40 : 25;
+    }
+    if (c.indexOf("GOED") !== -1) score += 25;
+    if (cLower.indexOf("3rd party") !== -1 || cLower.indexOf("third party") !== -1 || c.indexOf("USP") !== -1 || c.indexOf("CONSUMERLAB") !== -1) score += 20;
     if (c.indexOf("GMP") !== -1 || c.indexOf("CGMP") !== -1) score += 20;
-    if (c.indexOf("GOED") !== -1) score += 20;
-    if (c.indexOf("MSC") !== -1) score += 15;
     if (c.indexOf("NSF") !== -1) score += 15;
-    if (c.indexOf("ISO") !== -1) score += 10;
+    if (c.indexOf("MSC") !== -1) score += 15;
+    if (c.indexOf("FRIEND OF THE SEA") !== -1 || c.indexOf("FOS") !== -1) score += 15;
+    if (c.indexOf("IFFO") !== -1 || c.indexOf("MARINTRUST") !== -1) score += 10;
+    if (c.indexOf("ISO 22000") !== -1 || c.indexOf("ISO22000") !== -1) score += 10;
+    if (c.indexOf("HACCP") !== -1) score += 5;
+    if (c.indexOf("ISO 9001") !== -1 || c.indexOf("ISO9001") !== -1) score += 5;
     return Math.min(100, score);
   }
   function scorePrice(p) {
-    if (!p || p <= 0) return 50;
-    if (p <= 200) return 100; if (p <= 400) return 90; if (p <= 600) return 80;
-    if (p <= 900) return 60;  if (p <= 1200) return 40;
-    return 20;
+    if (!p || p <= 0) return 50; // 데이터 없음 → 중간
+    if (p <= 200)  return 100;
+    if (p <= 300)  return 85;
+    if (p <= 400)  return 70;
+    if (p <= 600)  return 55;
+    if (p <= 800)  return 40;
+    if (p <= 1000) return 25;
+    return 10;
   }
 
   if (debug && records.length > 0) {
