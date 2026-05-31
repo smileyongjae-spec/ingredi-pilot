@@ -293,7 +293,7 @@ export async function onRequest(context) {
     rank: idx+4, id: item.productId || item.record.id,
     name: item.productName, image: item.imageUrl||"", vScore: item.scores.total,
     tier: item.tier||"", dailyMg: item.dailyMg||0, dailyCost: item.dailyCost||0,
-    form: item.form||"", supplier: item.supplier||"", capsuleMg: item.capsuleMg||0,
+    form: item.form||"", supplier: item.supplier||"", certs: item.certs||"", capsuleMg: item.capsuleMg||0,
     capsuleGrade: item.capsuleGrade, capsulePosition: item.capsulePosition, capsulePercentile: item.capsulePercentile,
     coupangLink: item.coupangLink
   }));
