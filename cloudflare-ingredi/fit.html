@@ -154,7 +154,9 @@
     .ai-summary { background: white; border: 1.5px solid var(--green-mid); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
     .ai-summary-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 13px; font-weight: 700; color: var(--green-primary); letter-spacing: 0.04em; text-transform: uppercase; }
     .ai-summary-header svg { width: 14px; height: 14px; stroke: var(--green-primary); }
-    .ai-summary-text { font-size: 15px; line-height: 1.7; color: var(--ink); white-space: pre-wrap; }
+    .ai-summary-text { font-size: 15px; line-height: 1.7; color: var(--ink); }
+    .ai-summary-text p { margin: 0 0 12px 0; }
+    .ai-summary-text p:last-child { margin-bottom: 0; }
 
     /* 최고 심각도 배너 */
     .severity-banner { padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
@@ -333,6 +335,40 @@ function escapeHtml(str) {
 }
 
 // ── 영양제 그리드 렌더 ──
+
+function formatAiSummary(text) {
+  if (!text) return '';
+  // 문장 단위 분리: 마침표, 물음표, 느낌표 뒤에 공백 또는 줄바꿈
+  // 단, 숫자.숫자 (예: 1.5) 같은 건 제외
+  const sentences = text
+    .split(/(?<=[.!?。?!])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  // 1~2 문장씩 묶어서 문단 만들기
+  const paragraphs = [];
+  let current = [];
+  for (const s of sentences) {
+    current.push(s);
+    // 2문장 모이면 또는 마지막이면 문단 완성
+    if (current.length >= 2 || s === sentences[sentences.length - 1]) {
+      paragraphs.push(current.join(' '));
+      current = [];
+    }
+  }
+  // current에 남은 문장이 있으면 마지막 문단에 추가
+  if (current.length > 0) {
+    if (paragraphs.length > 0) {
+      paragraphs[paragraphs.length - 1] += ' ' + current.join(' ');
+    } else {
+      paragraphs.push(current.join(' '));
+    }
+  }
+
+  return paragraphs.map(p => '<p>' + escapeHtml(p) + '</p>').join('');
+}
+
+
 function renderItemGrid() {
   const grid = document.getElementById('itemGrid');
   grid.innerHTML = PRESET_ITEMS.map(name => {
@@ -476,7 +512,7 @@ function renderResult(data) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
         AI 종합 분석
       </div>
-      <div class="ai-summary-text">${escapeHtml(data.aiSummary)}</div>
+      <div class="ai-summary-text">${formatAiSummary(data.aiSummary)}</div>
     </div>`;
   }
 
