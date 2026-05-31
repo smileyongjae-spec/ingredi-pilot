@@ -756,11 +756,15 @@ function renderResult(data) {
 
 function renderProductCard(p) {
   const keySpec = p.keySpec || {};
-  const tierStr = keySpec.tier || '';
-  const tierTag = tierStr ? `<span class="product-tag tag-tier">${escapeHtml(tierStr)}</span>` : '';
   const formTag = keySpec.form ? `<span class="product-tag">${escapeHtml(keySpec.form)}</span>` : '';
-  const firstCert = firstOf(keySpec.certs);
-  const certsTag = firstCert ? `<span class="product-tag">${escapeHtml(firstCert)}</span>` : '';
+  // 인증 최대 3개까지 표시 (배열 또는 콤마 구분 문자열 처리)
+  const certsList = (function() {
+    const c = keySpec.certs;
+    if (!c) return [];
+    if (Array.isArray(c)) return c.slice(0, 3);
+    return String(c).split(/[,\/·]/).map(s => s.trim()).filter(Boolean).slice(0, 3);
+  })();
+  const certsTag = certsList.map(c => `<span class="product-tag">${escapeHtml(c)}</span>`).join('');
   const highDoseTag = p.highDoseFlag ? '<span class="product-tag tag-warn">고함량 주의</span>' : '';
   const scores = p.detailScores || {};
   const scoreBars = [
@@ -797,7 +801,7 @@ function renderProductCard(p) {
         </div>
         <div class="product-info">
           <div class="product-name">${escapeHtml(p.name||'제품명 미상')}</div>
-          <div class="product-tags">${tierTag}${formTag}${certsTag}${highDoseTag}</div>
+          <div class="product-tags">${formTag}${certsTag}${highDoseTag}</div>
         </div>
       </div>
       ${renderStatBars({ dailyMg: keySpec.dailyMg, dailyCost: keySpec.dailyCost, capsuleMg: keySpec.capsuleMg })}
@@ -825,12 +829,18 @@ function renderRestCard(r) {
   const expandedImageHtml = r.image
     ? `<img class="expanded-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name||'')}" onerror="this.style.display='none'">`
     : `<div class="expanded-image-fallback"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg></div>`;
-  const tier = r.tier ? ` · ${escapeHtml(r.tier)}` : '';
+  const tier = '';
   const productId = r.id || `rest-${r.rank}`;
   const tags = [];
-  if (r.tier) tags.push(`<span class="product-tag">${escapeHtml(r.tier)}</span>`);
   if (r.form) tags.push(`<span class="product-tag">${escapeHtml(r.form)}</span>`);
-  if (r.supplier) tags.push(`<span class="product-tag">${escapeHtml(r.supplier)}</span>`);
+  // 인증 최대 3개까지 표시
+  const restCertsList = (function() {
+    const c = r.certs;
+    if (!c) return [];
+    if (Array.isArray(c)) return c.slice(0, 3);
+    return String(c).split(/[,\/·]/).map(s => s.trim()).filter(Boolean).slice(0, 3);
+  })();
+  restCertsList.forEach(c => tags.push(`<span class="product-tag">${escapeHtml(c)}</span>`));
   return `
     <article class="rest-card" id="rest-${productId}">
       <div class="rest-card-row">
