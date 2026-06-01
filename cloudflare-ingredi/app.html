@@ -308,8 +308,10 @@
     /* ── 용어 설명: 물음표 아이콘 + 점선 태그 ── */
     .q-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; margin-left: 4px; vertical-align: middle; border: none; font-family: inherit; }
     .q-icon:hover { background: var(--green-mid); color: white; }
-    .product-tag.tag-info { cursor: pointer; border-bottom: 1.5px dotted var(--green-mid); }
+    .product-tag.tag-info { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
     .product-tag.tag-info:active { background: var(--green-mid); color: white; }
+    .product-tag .tag-q-badge { width: 15px; height: 15px; border-radius: 50%; background: var(--green-primary); color: white; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .product-tag.tag-info:active .tag-q-badge { background: white; color: var(--green-primary); }
 
     /* ── 하단 시트 ── */
     .term-sheet-overlay { position: fixed; inset: 0; background: rgba(27,58,46,0.35); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
@@ -876,7 +878,7 @@ function renderResult(data) {
 
 function renderProductCard(p) {
   const keySpec = p.keySpec || {};
-  const formTag = keySpec.form ? `<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(keySpec.form)}')">${escapeHtml(keySpec.form)}</span>` : '';
+  const formTag = keySpec.form ? `<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(keySpec.form)}')">${escapeHtml(keySpec.form)}<span class="tag-q-badge">?</span></span>` : '';
   // 인증 최대 3개까지 표시 (배열 또는 콤마 구분 문자열 처리)
   const certsList = (function() {
     const c = keySpec.certs;
@@ -884,7 +886,7 @@ function renderProductCard(p) {
     if (Array.isArray(c)) return c.slice(0, 3);
     return String(c).split(/[,\/·]/).map(s => s.trim()).filter(Boolean).slice(0, 3);
   })();
-  const certsTag = certsList.map(c => `<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(c)}')">${escapeHtml(c)}</span>`).join('');
+  const certsTag = certsList.map(c => `<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(c)}')">${escapeHtml(c)}<span class="tag-q-badge">?</span></span>`).join('');
   const highDoseTag = p.highDoseFlag ? '<span class="product-tag tag-warn">고함량 주의</span>' : '';
   const scores = p.detailScores || {};
   const scoreBars = [
@@ -952,7 +954,7 @@ function renderRestCard(r) {
   const tier = '';
   const productId = r.id || `rest-${r.rank}`;
   const tags = [];
-  if (r.form) tags.push(`<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(r.form)}')">${escapeHtml(r.form)}</span>`);
+  if (r.form) tags.push(`<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(r.form)}')">${escapeHtml(r.form)}<span class="tag-q-badge">?</span></span>`);
   // 인증 최대 3개까지 표시
   const restCertsList = (function() {
     const c = r.certs;
@@ -960,7 +962,7 @@ function renderRestCard(r) {
     if (Array.isArray(c)) return c.slice(0, 3);
     return String(c).split(/[,\/·]/).map(s => s.trim()).filter(Boolean).slice(0, 3);
   })();
-  restCertsList.forEach(c => tags.push(`<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(c)}')">${escapeHtml(c)}</span>`));
+  restCertsList.forEach(c => tags.push(`<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(c)}')">${escapeHtml(c)}<span class="tag-q-badge">?</span></span>`));
   return `
     <article class="rest-card" id="rest-${productId}">
       <div class="rest-card-row">
