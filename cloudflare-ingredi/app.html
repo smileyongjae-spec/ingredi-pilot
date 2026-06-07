@@ -305,6 +305,11 @@
     .stat-bar-avg-label { position: absolute; top: 18px; transform: translateX(-50%); font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
     .stat-bar-ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-faint); margin-top: -2px; }
 
+    /* ── 수수료 고지 문구 ── */
+    .disclosure { border-top: 0.5px solid var(--line-soft); margin-top: 20px; padding: 14px 8px 4px; }
+    .disclosure-text { font-size: 11px; line-height: 1.6; color: var(--ink-faint); text-align: center; margin: 0; }
+    .disclosure-text strong { color: var(--ink-soft); font-weight: 600; }
+
     /* ── 용어 설명: 물음표 아이콘 + 점선 태그 ── */
     .q-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; margin-left: 4px; vertical-align: middle; border: none; font-family: inherit; }
     .q-icon:hover { background: var(--green-mid); color: white; }
@@ -525,6 +530,10 @@
         <a class="compare-entry-btn primary fit-btn" href="/fit.html">내 조합 점검하기</a>
       </div>
     </div>
+
+    <div class="disclosure">
+      <p class="disclosure-text"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 모든 추천은 임상 근거와 데이터로만 이루어집니다. 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 제품 추천 결과에 영향을 주지 않습니다.</p>
+    </div>
   </main>
 
   <div class="loading screen" id="screenLoading">
@@ -543,6 +552,9 @@
     <div id="resultCompareEntry"></div>
     <div id="resultRest"></div>
     <div class="disclaimer" id="resultDisclaimer"></div>
+    <div class="disclosure">
+      <p class="disclosure-text"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 모든 추천은 임상 근거와 데이터로만 이루어집니다. 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 제품 추천 결과에 영향을 주지 않습니다.</p>
+    </div>
   </main>
 
   <div class="term-sheet-overlay" id="termSheetOverlay" onclick="closeTermSheet()"></div>
