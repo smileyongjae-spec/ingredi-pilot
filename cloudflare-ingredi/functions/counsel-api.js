@@ -252,8 +252,9 @@ export async function onRequest(context) {
       : encodeURIComponent("1=1");
     const faqUrl = "https://api.airtable.com/v0/" + BASE_ID + "/" + faqTableName + "?maxRecords=10&filterByFormula=" + fFormula;
 
-    // product: Pass만, 20건 제한
-    const productUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=20&filterByFormula=" + encodeURIComponent("{함량_Pass_Fail}='Pass'");
+    // product: #2a fix — 서버사이드 Pass 필터 제거 (필드명/값 불일치 시 0건 반환되던 문제).
+    //                     Fail 제외는 아래 [7] JS 필터가 처리. maxRecords 100으로 풀 확보.
+    const productUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=100";
 
     const [kRes, fRes, pRes] = await Promise.all([
       fetch(knowledgeUrl, { headers: { Authorization: "Bearer " + TOKEN } }).then(r => r.ok ? r.json() : { records: [] }).catch(() => ({ records: [] })),
