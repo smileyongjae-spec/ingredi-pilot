@@ -1,6 +1,12 @@
 // Cloudflare Pages Function: Integrated counseling endpoint
-// File path: functions/consult.js
-// URL: /consult?q=<user_question>
+// File path: functions/counsel-api.js
+// URL: /counsel-api?q=<user_question>
+//
+// v4 (#2a): 성분명 단독 입력 시 '성분 설명 카드 + 제품 리스트'로 분기
+//   - detectIngredient(): EPA/DHA/오메가3/rTG/TG/EE/ALA/DPA 정확 매칭 (문장형 질문은 길이로 배제)
+//   - 성분 모드에서는 Claude 호출 스킵, knowledge 기반 카드(폴백 포함) 반환
+//   - 제형 성분(rTG/TG/EE)은 해당 제형으로 제품 필터, 그 외엔 상위 제품
+//   - 응답에 mode/ingredientCard/ingredientProducts 추가 (기존 recommendation 호환 유지)
 //
 // v3 fixes:
 // - FAQ 컬럼명 수정: "질문(사용자 표현)" → "질문 (사용자 표현)" (공백 추가)
@@ -126,6 +132,42 @@ export async function onRequest(context) {
     if (p <= 900) return 60;  if (p <= 1200) return 40;
     return 20;
   }
+
+  // ─── 성분 엔티티 감지 (#2a) ───────────────────────
+  // 성분명을 '단독 입력'으로 정확 매칭. 문장형 질문(예: "EPA와 DHA 차이가 뭐야?")은
+  // 정규화 길이로 배제하여 일반 카운슬링으로 흘려보낸다.
+  function normEntity(s) { return String(s || "").replace(/[\s\-_\u00B7]/g, "").toLowerCase(); }
+  const INGREDIENT_TERMS = [
+    { key: "epadha", label: "EPA+DHA", aliases: ["epa+dha", "epadha"] },
+    { key: "epa",    label: "EPA",     aliases: ["epa"] },
+    { key: "dha",    label: "DHA",     aliases: ["dha"] },
+    { key: "omega3", label: "\uC624\uBA54\uAC003", aliases: ["\uC624\uBA54\uAC003", "omega3", "\uC624\uBA54\uAC00\uC4F0\uB9AC"] },
+    { key: "rtg",    label: "rTG",     aliases: ["rtg", "\uC54C\uD2F0\uC9C0"], form: "rtg" },
+    { key: "tg",     label: "TG",      aliases: ["tg"], form: "tg" },
+    { key: "ee",     label: "EE",      aliases: ["ee", "\uC5D0\uD2F8\uC5D0\uC2A4\uD130", "\uC5D0\uD2F8\uC5D0\uC2A4\uD14C\uB974"], form: "ee" },
+    { key: "ala",    label: "ALA",     aliases: ["ala"] },
+    { key: "dpa",    label: "DPA",     aliases: ["dpa"] }
+  ];
+  function detectIngredient(q) {
+    const n = normEntity(q);
+    if (!n || n.length > 10) return null;   // 문장형 질문 제외
+    for (const t of INGREDIENT_TERMS) {
+      if (t.aliases.some(a => normEntity(a) === n)) return t;
+    }
+    return null;
+  }
+  // knowledge 테이블에 값이 없을 때를 대비한 내장 폴백 (Airtable 우선 → 폴백 순)
+  const INGREDIENT_FALLBACK = {
+    epadha: { definition: "\uC624\uBA54\uAC003\uC758 \uD575\uC2EC \uC131\uBD84\uC73C\uB85C, EPA\uB294 \uD608\uD589\u00B7\uC5FC\uC99D, DHA\uB294 \uB1CC\u00B7\uB208 \uAC74\uAC15\uC5D0 \uB3C4\uC6C0\uC744 \uC90D\uB2C8\uB2E4. \uD558\uB8E8 \uAD8C\uC7A5\uB7C9\uC740 \uBCF4\uD1B5 500~2,000mg\uC785\uB2C8\uB2E4.", points: ["EPA: \uD608\uD589\u00B7\uC5FC\uC99D \uAC1C\uC120", "DHA: \uB1CC\u00B7\uB208 \uAC74\uAC15"] },
+    epa:    { definition: "EPA\uB294 \uD608\uD589 \uAC1C\uC120\uACFC \uC5FC\uC99D \uC644\uD654\uC5D0 \uAD00\uC5EC\uD558\uB294 \uC624\uBA54\uAC003 \uC9C0\uBC29\uC0B0\uC785\uB2C8\uB2E4.", points: ["\uD608\uD589 \uAC1C\uC120", "\uC5FC\uC99D \uC644\uD654"] },
+    dha:    { definition: "DHA\uB294 \uB1CC\u00B7\uC2E0\uACBD\u00B7\uB9DD\uB9C9\uC744 \uAD6C\uC131\uD558\uB294 \uC624\uBA54\uAC003 \uC9C0\uBC29\uC0B0\uC73C\uB85C \uC778\uC9C0\u00B7\uC2DC\uB825 \uAC74\uAC15\uC5D0 \uAD00\uC5EC\uD569\uB2C8\uB2E4.", points: ["\uB1CC\u00B7\uC2E0\uACBD \uAC74\uAC15", "\uC2DC\uB825 \uAC74\uAC15"] },
+    omega3: { definition: "\uC624\uBA54\uAC003\uC740 EPA\u00B7DHA\u00B7ALA \uB4F1\uC73C\uB85C \uAD6C\uC131\uB41C \uD544\uC218 \uC9C0\uBC29\uC0B0 \uADF8\uB8F9\uC785\uB2C8\uB2E4.", points: [] },
+    rtg:    { definition: "rTG\uB294 \uD761\uC218\uC728\uC774 \uAC00\uC7A5 \uB192\uC740 3\uC138\uB300 \uC624\uBA54\uAC003 \uD615\uD0DC\uC785\uB2C8\uB2E4. TG\u2192EE\u2192rTG \uC21C\uC73C\uB85C \uC815\uC81C\uB429\uB2C8\uB2E4.", points: ["\uD761\uC218\uC728 \uAC00\uC7A5 \uB192\uC74C", "\uC0B0\uD654 \uC548\uC815\uC131 \uC6B0\uC218"] },
+    tg:     { definition: "TG\uB294 \uC790\uC5F0 \uC5B4\uC720\uC5D0 \uAC00\uAE4C\uC6B4 \uD615\uD0DC\uB85C \uD761\uC218\uAC00 \uC548\uC815\uC801\uC785\uB2C8\uB2E4.", points: ["\uC790\uC5F0 \uD615\uD0DC", "\uD761\uC218 \uC591\uD638"] },
+    ee:     { definition: "EE\uB294 \uB18D\uCD95 \uACFC\uC815\uC5D0\uC11C \uB9CC\uB4E4\uC5B4\uC9C0\uB294 \uD615\uD0DC\uB85C \uAC00\uACA9\uC774 \uD569\uB9AC\uC801\uC774\uB098 \uD761\uC218\uC728\uC740 \uB2E4\uC18C \uB0AE\uB2E4\uB294 \uBCF4\uACE0\uAC00 \uC788\uC2B5\uB2C8\uB2E4.", points: [] },
+    ala:    { definition: "ALA\uB294 \uB4E4\uAE30\uB984\u00B7\uC544\uB9C8\uC528 \uB4F1 \uC2DD\uBB3C\uC131 \uC624\uBA54\uAC003\uC73C\uB85C, \uCCB4\uB0B4\uC5D0\uC11C \uC77C\uBD80\uB9CC EPA\u00B7DHA\uB85C \uC804\uD658\uB429\uB2C8\uB2E4.", points: [] },
+    dpa:    { definition: "DPA\uB294 EPA\uC640 DHA \uC0AC\uC774\uC758 \uC911\uAC04 \uB300\uC0AC\uCCB4\uB85C \uBCF4\uC870\uC801 \uC5ED\uD560\uC744 \uD558\uB294 \uC624\uBA54\uAC003 \uC9C0\uBC29\uC0B0\uC785\uB2C8\uB2E4.", points: [] }
+  };
 
   try {
     // ─── [1] CATEGORY GATE ───────────────────────────
@@ -292,11 +334,17 @@ export async function onRequest(context) {
     const matchedProfileId = matchProfileLocal(query);
     const profile = PROFILES[matchedProfileId];
 
+    // 성분 단독 입력 여부 (#2a)
+    const ingredient = detectIngredient(query);
+
     // ─── [6] CALL CLAUDE (RAG) ───────────────────────
     let answer = "";
     let claudeError = null;
 
-    if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
+    if (ingredient) {
+      // 성분 모드: 카드가 답을 대신하므로 Claude 호출 스킵 (속도·비용 절약)
+      answer = "";
+    } else if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
       answer = "\uC8C4\uC1A1\uD569\uB2C8\uB2E4. \ud574\ub2f9 \uc9c8\ubb38\uc5d0 \ub300\ud55c \uc815\ubcf4\uac00 ingredi \uc9c0\uc2DDDB\uc5d0 \uc544\uc9c1 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \ub2e4\ub9cc \uad00\ub828\ub420 \uc218 \uc788\ub294 \uc81c\ud488\uc744 \ucd94\ucc9c\ub4dc\ub9b4\uac8c\uc694.";
     } else {
       // v3: 마크다운/이모지 금지 프롬프트 추가
@@ -363,6 +411,22 @@ export async function onRequest(context) {
       }
     }
 
+    // ─── [6.5] 성분 설명 카드 구성 (#2a) ──────────────
+    // knowledge 매칭 결과를 우선 사용하고, 없으면 내장 폴백으로 채운다.
+    let ingredientCard = null;
+    if (ingredient) {
+      const kHit = knowledgeMatched[0] || null;
+      const fb = INGREDIENT_FALLBACK[ingredient.key] || {};
+      ingredientCard = {
+        term: ingredient.label,
+        badge: "\uC131\uBD84",
+        definition: (kHit && kHit.oneline) ? kHit.oneline : (fb.definition || ""),
+        evidence:   (kHit && kHit.evidence) ? kHit.evidence : "",
+        points: fb.points || [],
+        knowledgeId: kHit ? kHit.id : null
+      };
+    }
+
     // ─── [7] RECOMMEND PRODUCTS ──────────────────────
     const records = pRes.records || [];
     const scored = records.map(r => {
@@ -408,6 +472,23 @@ export async function onRequest(context) {
     });
     filtered.sort((a, b) => b.scores.total - a.scores.total);
 
+    // 성분 모드 제품 리스트 (#2a): 제형 성분이면 해당 제형으로 필터, 그 외엔 상위 제품
+    let ingredientProducts = [];
+    if (ingredient) {
+      let pool = filtered;
+      if (ingredient.form) {
+        const ff = ingredient.form;
+        const formed = filtered.filter(it => String(it.form || "").toLowerCase().indexOf(ff) !== -1);
+        if (formed.length > 0) pool = formed;
+      }
+      ingredientProducts = pool.slice(0, 6).map((item, idx) => ({
+        rank: idx + 1, id: item.id, name: item.name, image: item.image || "",
+        vScore: item.scores.total,
+        keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, form: item.form, certs: item.certs, tier: item.tier },
+        coupangLink: item.coupangLink, highDoseFlag: item.highDoseFlag
+      }));
+    }
+
     const top3 = filtered.slice(0, 3).map((item, idx) => ({
       rank: idx + 1, id: item.id, name: item.name, image: item.image || "",
       vScore: item.scores.total, detailScores: item.scores,
@@ -417,6 +498,9 @@ export async function onRequest(context) {
 
     return new Response(JSON.stringify({
       query, category: matchedCategory, answer,
+      mode: ingredient ? "ingredient" : "counsel",
+      ingredientCard,
+      ingredientProducts,
       sources: {
         knowledge: knowledgeMatched.map(k => ({ id: k.id, oneline: k.oneline, evidence: k.evidence || null })),
         faq: faqMatched.map(f => ({ id: f.id, question: f.question }))
