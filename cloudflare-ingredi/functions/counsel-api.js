@@ -454,7 +454,7 @@ export async function onRequest(context) {
       const certsRaw    = getField(f, "\uC778\uC99D");
       const certs       = Array.isArray(certsRaw) ? certsRaw.join(", ") : String(certsRaw || "");
       const dailyCost   = parseFloat(getField(f, "1\uC77C\uBE44\uC6A9_\uC6D0")) || 0;
-      const capsuleMg   = parseFloat(getField(f, "캡슐_중량_mg", "1캡슐_중량_mg", "캡슐_mg", "1캡슐_mg", "캡슐중량_mg", "캡슐크기_mg")) || 0;
+      const capsuleMg   = parseFloat(getField(f, "캡슐용량_mg", "capsuleMg", "캡슐 용량 (mg)")) || 0;
       const tier        = getField(f, "Tier\uB4F1\uAE09") || "";
       const passFail    = getField(f, "\uD568\uB7C9_Pass_Fail") || "";
       const coupangLink = getField(f, "coupang_url", "coupangUrl", "coupangLink", "\uCFE0\uD314_\uD30C\uD2B8\uB108\uC2A4_\uB9C1\uD06C") || "";
@@ -526,12 +526,13 @@ export async function onRequest(context) {
       ingredientProducts = pool.slice(0, 60).map(toCard);
     } else if (isProductMode) {
       listMode = "product";
-      const matchedId = getField(productMatchRecord.fields, "product_id", "productId");
-      const matched = filtered.find(it => it.id === matchedId);
-      listTerm = (matched && matched.name) || (getField(productMatchRecord.fields, "\uC81C\uD488\uBA85", "name") || "") || query;
-      const rest = filtered.filter(it => it.id !== matchedId);
-      const pool = matched ? [matched, ...rest] : filtered;
-      ingredientProducts = pool.slice(0, 60).map(toCard);
+      listTerm = query;
+      const qn = normEntity(query);
+      const matchedItems = filtered.filter(it => {
+        const nn = normEntity(it.name);
+        return nn && (nn.indexOf(qn) !== -1 || qn.indexOf(nn) !== -1);
+      });
+      ingredientProducts = matchedItems.slice(0, 60).map(toCard);
     }
 
     const top3 = filtered.slice(0, 3).map((item, idx) => ({
