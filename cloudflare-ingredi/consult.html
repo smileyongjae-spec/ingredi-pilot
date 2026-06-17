@@ -101,11 +101,40 @@
     .btn-mini.primary:hover { background: var(--green-deep); }
     .btn-mini:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
 
-    /* ── 자세히 보기 인라인 설명 ── */
-    .explanation { margin-top: 8px; padding: 12px; background: var(--green-bg); border-left: 3px solid var(--green-primary); border-radius: 6px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); display: none; }
-    .explanation.active { display: block; animation: fadeIn 0.3s ease; }
-    .explanation-loading { display: flex; align-items: center; gap: 8px; color: var(--ink-faint); font-size: 13px; }
-    .explanation-loading::before { content: ''; width: 11px; height: 11px; border: 2px solid var(--line); border-top-color: var(--green-primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
+    /* ── 자세히 보기: 통계 막대 그래프 (app.html H안 이식) ── */
+    .detail-panel { display: none; margin-top: 8px; padding-top: 2px; }
+    .detail-panel.active { display: block; animation: fadeIn 0.3s ease; }
+    .stat-bar { padding: 12px 0; border-top: 0.5px solid var(--line-soft); }
+    .stat-bar:first-child { border-top: none; padding-top: 6px; }
+    .stat-bar-line { font-size: 15px; color: var(--ink); line-height: 1.4; margin-bottom: 6px; }
+    .stat-bar-line .title { font-weight: 700; }
+    .stat-bar-line .value { font-size: 17px; font-weight: 800; color: var(--green-deep); margin-left: 6px; letter-spacing: -0.02em; }
+    .stat-bar-graph { position: relative; height: 30px; }
+    .stat-bar-track { position: absolute; top: 8px; left: 0; right: 0; height: 4px; background: var(--line); border-radius: 2px; }
+    .stat-bar-fill { position: absolute; top: 8px; left: 0; height: 4px; background: var(--green-primary); border-radius: 2px; }
+    .stat-bar-dot { position: absolute; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--green-primary); border: 3px solid white; outline: 1.5px solid var(--green-primary); transform: translateX(-50%); z-index: 3; }
+    .stat-bar-endpoint { position: absolute; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: white; border: 2px solid var(--ink-faint); transform: translateX(-50%); z-index: 1; }
+    .stat-bar-endpoint.left { left: 0; }
+    .stat-bar-endpoint.right { left: 100%; }
+    .stat-bar-avg-dot { position: absolute; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); transform: translateX(-50%); z-index: 2; }
+    .stat-bar-avg-label { position: absolute; top: 18px; transform: translateX(-50%); font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
+    .stat-bar-ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-faint); margin-top: -2px; }
+    .q-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; margin-left: 4px; vertical-align: middle; border: none; font-family: inherit; }
+    .q-icon:hover { background: var(--green-mid); color: white; }
+
+    /* ── 용어 하단 시트 ── */
+    .term-sheet-overlay { position: fixed; inset: 0; background: rgba(27,58,46,0.35); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+    .term-sheet-overlay.active { opacity: 1; pointer-events: auto; }
+    .term-sheet { position: fixed; left: 50%; transform: translateX(-50%) translateY(100%); bottom: 0; width: 100%; max-width: 480px; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,0.15); z-index: 101; transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); padding: 10px 22px max(22px, env(safe-area-inset-bottom)); }
+    .term-sheet.active { transform: translateX(-50%) translateY(0); }
+    .term-sheet-handle { width: 38px; height: 4px; background: var(--line); border-radius: 2px; margin: 0 auto 16px; cursor: pointer; }
+    .term-sheet-title { font-size: 18px; font-weight: 800; color: var(--green-deep); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .term-sheet-badge { font-size: 11px; background: var(--green-light); color: var(--green-primary); padding: 3px 9px; border-radius: 100px; font-weight: 700; }
+    .term-sheet-body { font-size: 14px; line-height: 1.7; color: var(--ink-soft); }
+    .term-sheet-points { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .term-sheet-point { font-size: 13px; color: var(--green-primary); font-weight: 600; display: flex; gap: 6px; align-items: flex-start; }
+    .term-sheet-close { width: 100%; margin-top: 18px; padding: 13px; background: var(--green-light); color: var(--green-deep); border: none; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .term-sheet-close:hover { background: #DCE9DF; }
 
     /* ── 더 보기 버튼 ── */
     .more-btn { width: 100%; margin: 2px 0 10px; padding: 12px; background: white; border: 1.5px solid var(--green-primary); border-radius: var(--radius-sm); color: var(--green-primary); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: -0.01em; transition: background 0.15s ease; }
@@ -126,7 +155,7 @@
     .empty-recommendation { text-align: center; padding: 24px 16px; background: var(--green-bg); border-radius: var(--radius-md); color: var(--ink-soft); font-size: 15px; }
     .error-box { text-align: center; padding: 40px 20px; color: var(--warn); }
 
-    /* ── 성분 제품 리스트 헤더 (#2a) ── */
+    /* ── 성분/제품 리스트 헤더 ── */
     .ingredient-products-head { font-size: 16px; font-weight: 700; color: var(--green-deep); margin-bottom: 12px; padding: 0 4px; letter-spacing: -0.01em; }
   </style>
 </head>
@@ -164,12 +193,22 @@
       <a class="fit-cta-btn" href="/fit.html">내 조합 점검하기</a>
     </div>
   </main>
+
+  <div class="term-sheet-overlay" id="termSheetOverlay" onclick="closeTermSheet()"></div>
+  <div class="term-sheet" id="termSheet">
+    <div class="term-sheet-handle" onclick="closeTermSheet()"></div>
+    <div class="term-sheet-title" id="termSheetTitle"></div>
+    <div class="term-sheet-body" id="termSheetBody"></div>
+    <div class="term-sheet-points" id="termSheetPoints"></div>
+    <button class="term-sheet-close" onclick="closeTermSheet()">닫기</button>
+  </div>
 </div>
 
 <script>
 const API_BASE = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const query = params.get('q') || '';
+let distributions = null;
 
 if (!query) { window.location.href = '/app.html'; }
 else { loadConsultation(query); }
@@ -228,6 +267,91 @@ function firstOf(v) {
   return String(v);
 }
 
+// ── 용어 설명 데이터 (막대 ? 시트) ──
+const TERM_INFO = {
+  "epadha": { title: "EPA+DHA 함량", badge: "핵심 지표",
+    body: "오메가3의 핵심 성분이에요. EPA는 혈행·염증 개선, DHA는 뇌·눈 건강에 도움을 줍니다. 하루 권장량은 보통 500~2,000mg이에요.",
+    points: ["막대에서 이 제품의 위치와 평균을 비교해보세요"] },
+  "cost": { title: "1일 복용 비용", badge: "가격 지표",
+    body: "하루에 권장량을 섭취하는 데 드는 비용이에요. 제품 가격 ÷ 복용 일수로 계산해요. 낮을수록 가성비가 좋아요.",
+    points: ["평균보다 왼쪽에 있으면 저렴한 편이에요"] },
+  "capsule": { title: "캡슐 크기 (목넘김)", badge: "복용 편의",
+    body: "캡슐 1알의 무게예요. 작을수록 삼키기 편해요. 고함량이면서 작은 캡슐이 가장 좋아요.",
+    points: ["평균보다 왼쪽이면 비교적 작은 캡슐이에요"] }
+};
+
+function openTermSheet(key) {
+  const info = TERM_INFO[key];
+  if (!info) return;
+  document.getElementById("termSheetTitle").innerHTML =
+    escapeHtml(info.title) + (info.badge ? ` <span class="term-sheet-badge">${escapeHtml(info.badge)}</span>` : "");
+  document.getElementById("termSheetBody").textContent = info.body;
+  const pointsEl = document.getElementById("termSheetPoints");
+  pointsEl.innerHTML = (info.points || []).map(p => `<div class="term-sheet-point">✓ ${escapeHtml(p)}</div>`).join("");
+  document.getElementById("termSheetOverlay").classList.add("active");
+  document.getElementById("termSheet").classList.add("active");
+}
+window.openTermSheet = openTermSheet;
+
+function closeTermSheet() {
+  document.getElementById("termSheetOverlay").classList.remove("active");
+  document.getElementById("termSheet").classList.remove("active");
+}
+window.closeTermSheet = closeTermSheet;
+
+// ── 통계 막대 ──
+function calcPos(value, min, max) {
+  if (!value || max === min) return null;
+  return Math.max(0, Math.min(100, Math.round((value - min) / (max - min) * 100)));
+}
+function fmtNumber(v) { return Number(v).toLocaleString(); }
+
+function renderStatBar(opts) {
+  const { title, value, min, max, avg, unit } = opts;
+  if (!value || min === max) return '';
+  const pos = calcPos(value, min, max);
+  if (pos == null) return '';
+  const avgPos = calcPos(avg, min, max);
+  const minLabel = opts.minLabel || '최소';
+  const maxLabel = opts.maxLabel || '최대';
+  const avgHtml = (avg > 0 && avgPos != null)
+    ? `<div class="stat-bar-avg-dot" style="left:${avgPos}%"></div><div class="stat-bar-avg-label" style="left:${avgPos}%">평균 ${fmtNumber(avg)}${unit}</div>`
+    : '';
+  return `
+    <div class="stat-bar">
+      <div class="stat-bar-line">
+        <span class="title">${title}</span><span class="value">${fmtNumber(value)}${unit}</span>${opts.termKey ? `<button class="q-icon" onclick="openTermSheet('${opts.termKey}')">?</button>` : ''}
+      </div>
+      <div class="stat-bar-graph">
+        <div class="stat-bar-track"></div>
+        <div class="stat-bar-fill" style="width:${pos}%"></div>
+        <div class="stat-bar-endpoint left"></div>
+        <div class="stat-bar-endpoint right"></div>
+        ${avgHtml}
+        <div class="stat-bar-dot" style="left:${pos}%"></div>
+      </div>
+      <div class="stat-bar-ends">
+        <span>${minLabel} ${fmtNumber(min)}${unit}</span>
+        <span>${maxLabel} ${fmtNumber(max)}${unit}</span>
+      </div>
+    </div>`;
+}
+
+function renderStatBars(ks) {
+  const d = distributions || {};
+  let html = '';
+  if (d.dose && safeNum(ks.dailyMg) > 0) {
+    html += renderStatBar({ title: 'EPA+DHA 함량', termKey: 'epadha', value: safeNum(ks.dailyMg), min: d.dose.min, max: d.dose.max, avg: d.dose.avg, unit: 'mg' });
+  }
+  if (d.cost && safeNum(ks.dailyCost) > 0) {
+    html += renderStatBar({ title: '1일 복용 비용', termKey: 'cost', value: safeNum(ks.dailyCost), min: d.cost.min, max: d.cost.max, avg: d.cost.avg, unit: '원', minLabel: '최저', maxLabel: '최고' });
+  }
+  if (d.capsule && safeNum(ks.capsuleMg) > 0) {
+    html += renderStatBar({ title: '캡슐 크기 (목넘김)', termKey: 'capsule', value: safeNum(ks.capsuleMg), min: d.capsule.min, max: d.capsule.max, avg: d.capsule.avg, unit: 'mg' });
+  }
+  return html || '<div style="font-size:13px;color:var(--ink-faint);padding:8px 0;">표시할 상세 지표가 없어요.</div>';
+}
+
 async function loadConsultation(q) {
   document.getElementById('queryText').textContent = q;
   try {
@@ -242,7 +366,6 @@ async function loadConsultation(q) {
   }
 }
 
-// 의료 주의 알림 (성분/카운슬 공용)
 function renderMedicalAlertFromFlags(flags) {
   const alertBox = document.getElementById('medicalAlert');
   if (flags && flags.requiresMedicalConsult) {
@@ -256,8 +379,8 @@ function renderMedicalAlertFromFlags(flags) {
   } else { alertBox.innerHTML = ''; }
 }
 
-// 제품 카드 (카운슬·성분 공용) — 둘째 버튼 '자세히 보기' = 인라인 AI 설명
-function productCardHtml(p, profileId) {
+// 제품 카드 — '자세히 보기' = 통계 막대 인라인 펼침
+function productCardHtml(p) {
   const ks = p.keySpec || {};
   const tags = [
     ks.tier ? `<span class="product-tag">${escapeHtml(ks.tier)}</span>` : '',
@@ -268,7 +391,6 @@ function productCardHtml(p, profileId) {
     ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name||'')}" onerror="this.outerHTML='<div class=\\'product-image-fallback\\'></div>'">`
     : `<div class="product-image-fallback"></div>`;
   const pid = escapeHtml(p.id || '');
-  const pf = escapeHtml(profileId || 'balanced');
   return `
     <article class="product-card rank-${p.rank}">
       <div class="product-card-row">
@@ -287,37 +409,20 @@ function productCardHtml(p, profileId) {
         </div>
       </div>
       <div class="product-card-actions">
-        <button class="btn-mini secondary" onclick="explainProduct('${pid}','${pf}')">자세히 보기</button>
+        <button class="btn-mini secondary" onclick="toggleDetail('${pid}')">자세히 보기</button>
         ${p.coupangLink
           ? `<a class="btn-mini primary" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">쿠팡에서 보기</a>`
           : `<button class="btn-mini primary" disabled>링크 없음</button>`}
       </div>
-      <div class="explanation" id="exp-${pid}"></div>
+      <div class="detail-panel" id="detail-${pid}">${renderStatBars(ks)}</div>
     </article>`;
 }
 
-// '자세히 보기' — app.html과 동일하게 /explain-recommendation 호출하여 인라인 펼침
-async function explainProduct(productId, profileId) {
-  const expEl = document.getElementById('exp-' + productId);
-  if (!expEl) return;
-  if (expEl.classList.contains('active')) { expEl.classList.remove('active'); return; }
-  expEl.classList.add('active');
-  expEl.innerHTML = '<div class="explanation-loading">AI가 분석하고 있어요…</div>';
-  try {
-    const res = await fetch(`${API_BASE}/explain-recommendation?profile=${encodeURIComponent(profileId)}&id=${encodeURIComponent(productId)}`);
-    const data = await res.json();
-    if (data.error) {
-      expEl.innerHTML = String(data.error).indexOf('claude') !== -1
-        ? '⏳ <strong>AI 설명 기능 준비 중</strong><br><small>곧 더 자세한 설명을 제공해드릴게요.</small>'
-        : '설명을 불러올 수 없어요.';
-      return;
-    }
-    expEl.innerHTML = escapeHtml(data.explanation || '').replace(/\n/g, '<br>');
-  } catch (err) {
-    expEl.innerHTML = '일시적인 오류가 발생했어요.';
-  }
+function toggleDetail(id) {
+  const el = document.getElementById('detail-' + id);
+  if (el) el.classList.toggle('active');
 }
-window.explainProduct = explainProduct;
+window.toggleDetail = toggleDetail;
 
 function showMoreProducts() {
   const more = document.getElementById('moreProducts');
@@ -327,8 +432,8 @@ function showMoreProducts() {
 }
 window.showMoreProducts = showMoreProducts;
 
-// 성분 모드 제품 리스트 (#2a): 10개 먼저 + 더 보기로 전체 펼침
-function renderIngredientProducts(data) {
+// 성분/제품 모드 제품 리스트: 10개 먼저 + 더 보기로 전체 펼침
+function renderProductListMode(data) {
   const products = data.ingredientProducts || [];
   const recEl = document.getElementById('recommendContent');
   if (products.length === 0) {
@@ -337,20 +442,23 @@ function renderIngredientProducts(data) {
   }
   const profileId = (data.recommendation && data.recommendation.profile && data.recommendation.profile.id) || 'balanced';
   const term = data.ingredientTerm || data.query || '';
+  const headText = data.mode === 'product'
+    ? `'${escapeHtml(term)}' 검색 결과`
+    : `${escapeHtml(term)} 관련 제품 ${products.length}개`;
+
   const INITIAL = 10;
   const visible = products.slice(0, INITIAL);
   const hidden = products.slice(INITIAL);
-
-  const visibleHtml = visible.map(p => productCardHtml(p, profileId)).join('');
+  const visibleHtml = visible.map(productCardHtml).join('');
   const hiddenHtml = hidden.length
-    ? `<div id="moreProducts" style="display:none">${hidden.map(p => productCardHtml(p, profileId)).join('')}</div>` +
+    ? `<div id="moreProducts" style="display:none">${hidden.map(productCardHtml).join('')}</div>` +
       `<button id="moreProductsBtn" class="more-btn" onclick="showMoreProducts()">추천 제품 더 보기 (+${hidden.length})</button>`
     : '';
-
   const ids = products.slice(0, 3).map(p => p.id).join(',');
+
   recEl.innerHTML = `
     <section class="recommend-section">
-      <div class="ingredient-products-head">${escapeHtml(term)} 관련 제품 ${products.length}개</div>
+      <div class="ingredient-products-head">${headText}</div>
       ${visibleHtml}
       ${hiddenHtml}
       <div class="compare-cta">
@@ -365,8 +473,7 @@ function renderCounselProducts(data) {
   const recEl = document.getElementById('recommendContent');
   if (data.recommendation && data.recommendation.top3 && data.recommendation.top3.length > 0) {
     const rec = data.recommendation;
-    const profileId = rec.profile.id;
-    const top3Html = rec.top3.map(p => productCardHtml(p, profileId)).join('');
+    const top3Html = rec.top3.map(productCardHtml).join('');
     const top3Ids = rec.top3.map(p => p.id).join(',');
     recEl.innerHTML = `
       <section class="recommend-section">
@@ -379,8 +486,8 @@ function renderCounselProducts(data) {
         </div>
         ${top3Html}
         <div class="compare-cta">
-          <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${profileId}">Top 3 비교</a>
-          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${profileId}">직접 선택</a>
+          <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${rec.profile.id}">Top 3 비교</a>
+          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${rec.profile.id}">직접 선택</a>
         </div>
       </section>`;
   } else if (data.category !== 'out_of_scope') {
@@ -389,14 +496,18 @@ function renderCounselProducts(data) {
 }
 
 function renderResult(data) {
+  if (data.distributions) distributions = data.distributions;
+
   const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
   const fCount = data.flags ? data.flags.faqCount || 0 : 0;
   document.getElementById('queryMeta').textContent =
-    data.category === 'out_of_scope' ? '지원하지 않는 카테고리' : `관련 정보 ${kCount + fCount}건 검색`;
+    data.mode === 'product' ? '제품 검색 결과'
+    : data.category === 'out_of_scope' ? '지원하지 않는 카테고리'
+    : `관련 정보 ${kCount + fCount}건 검색`;
 
   renderMedicalAlertFromFlags(data.flags);
 
-  // AI 답변 (성분·카운슬 공용)
+  // AI 답변 (성분·카운슬 공용 / 제품 모드는 answer 비어 있음)
   const answerEl = document.getElementById('answerContent');
   if (data.answer) {
     answerEl.innerHTML = `
@@ -406,9 +517,9 @@ function renderResult(data) {
       </article>`;
   } else { answerEl.innerHTML = ''; }
 
-  // 제품 영역 — 성분 모드면 10+더보기, 아니면 Top 3
-  if (data.mode === 'ingredient') {
-    renderIngredientProducts(data);
+  // 제품 영역
+  if (data.mode === 'ingredient' || data.mode === 'product') {
+    renderProductListMode(data);
   } else {
     renderCounselProducts(data);
   }
