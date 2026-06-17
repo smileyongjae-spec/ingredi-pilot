@@ -456,9 +456,9 @@
         AI 카운슬링
       </div>
       <div class="consult-input-title">ingredi에게 물어보세요</div>
-      <div class="consult-input-desc">증상·고민·궁금한 점을 자유롭게 입력하면<br>AI가 답변과 관련 제품을 함께 추천해드려요</div>
+      <div class="consult-input-desc">증상·성분·제품명 무엇이든 입력해보세요<br>AI가 답변과 함께 딱 맞는 제품을 찾아드려요</div>
       <div class="free-input-wrap">
-        <input type="text" class="free-input" id="freeInput" placeholder="예: 혈행 개선에 좋은 오메가3" autocomplete="off">
+        <input type="text" class="free-input" id="freeInput" placeholder="예: 혈행 개선 · EPA · 담백하루" autocomplete="off">
         <button class="free-input-btn" id="freeInputBtn" aria-label="질문하기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14M13 5l7 7-7 7"/>
@@ -467,9 +467,18 @@
       </div>
       <div class="input-examples">
         <span class="input-example-chip" onclick="setInput('혈행 개선에 좋은 오메가3')">혈행 개선</span>
-        <span class="input-example-chip" onclick="setInput('임산부도 오메가3 먹어도 돼?')">임신 중 복용</span>
+        <span class="input-example-chip" onclick="setInput('눈 건강에 좋은 오메가3 추천')">눈 건강</span>
+        <span class="input-example-chip" onclick="setInput('EPA와 DHA 차이가 뭐야?')">EPA·DHA</span>
         <span class="input-example-chip" onclick="setInput('rTG와 EE 차이가 뭐야?')">rTG vs EE</span>
-        <span class="input-example-chip" onclick="setInput('수술 전에 끊어야 해?')">수술 전 주의</span>
+        <span class="input-example-chip" onclick="setInput('담백하루')">담백하루</span>
+      </div>
+    </div>
+
+    <div class="compare-entry-section">
+      <div class="compare-entry-title">성별·나이 맞춤 추천</div>
+      <div class="compare-entry-desc">몇 가지만 고르면 나에게 맞는 오메가3를 추천해드려요</div>
+      <div class="compare-entry-buttons">
+        <a class="compare-entry-btn primary" href="/for-me.html">맞춤 추천 받기</a>
       </div>
     </div>
 
