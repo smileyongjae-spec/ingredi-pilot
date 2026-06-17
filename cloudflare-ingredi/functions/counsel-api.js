@@ -342,10 +342,7 @@ export async function onRequest(context) {
     let answer = "";
     let claudeError = null;
 
-    if (ingredient) {
-      // 성분 모드: 카드가 답을 대신하므로 Claude 호출 스킵 (속도·비용 절약)
-      answer = "";
-    } else if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
+    if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
       answer = "\uC8C4\uC1A1\uD569\uB2C8\uB2E4. \ud574\ub2f9 \uc9c8\ubb38\uc5d0 \ub300\ud55c \uc815\ubcf4\uac00 ingredi \uc9c0\uc2DDDB\uc5d0 \uc544\uc9c1 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \ub2e4\ub9cc \uad00\ub828\ub420 \uc218 \uc788\ub294 \uc81c\ud488\uc744 \ucd94\ucc9c\ub4dc\ub9b4\uac8c\uc694.";
     } else {
       // v3: 마크다운/이모지 금지 프롬프트 추가
@@ -412,21 +409,7 @@ export async function onRequest(context) {
       }
     }
 
-    // ─── [6.5] 성분 설명 카드 구성 (#2a) ──────────────
-    // knowledge 매칭 결과를 우선 사용하고, 없으면 내장 폴백으로 채운다.
-    let ingredientCard = null;
-    if (ingredient) {
-      const kHit = knowledgeMatched[0] || null;
-      const fb = INGREDIENT_FALLBACK[ingredient.key] || {};
-      ingredientCard = {
-        term: ingredient.label,
-        badge: "\uC131\uBD84",
-        definition: (kHit && kHit.oneline) ? kHit.oneline : (fb.definition || ""),
-        evidence:   (kHit && kHit.evidence) ? kHit.evidence : "",
-        points: fb.points || [],
-        knowledgeId: kHit ? kHit.id : null
-      };
-    }
+    // ([6.5] 성분 카드 제거 — Req1: 성분 모드도 위 [6]의 AI 답변을 그대로 사용)
 
     // ─── [7] RECOMMEND PRODUCTS ──────────────────────
     const records = pRes.records || [];
@@ -482,7 +465,7 @@ export async function onRequest(context) {
         const formed = filtered.filter(it => String(it.form || "").toLowerCase().indexOf(ff) !== -1);
         if (formed.length > 0) pool = formed;
       }
-      ingredientProducts = pool.slice(0, 6).map((item, idx) => ({
+      ingredientProducts = pool.slice(0, 60).map((item, idx) => ({
         rank: idx + 1, id: item.id, name: item.name, image: item.image || "",
         vScore: item.scores.total,
         keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, form: item.form, certs: item.certs, tier: item.tier },
@@ -500,7 +483,7 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({
       query, category: matchedCategory, answer,
       mode: ingredient ? "ingredient" : "counsel",
-      ingredientCard,
+      ingredientTerm: ingredient ? ingredient.label : null,
       ingredientProducts,
       sources: {
         knowledge: knowledgeMatched.map(k => ({ id: k.id, oneline: k.oneline, evidence: k.evidence || null })),
