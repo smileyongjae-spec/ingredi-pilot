@@ -169,6 +169,20 @@ export async function onRequest(context) {
     dpa:    { definition: "DPA\uB294 EPA\uC640 DHA \uC0AC\uC774\uC758 \uC911\uAC04 \uB300\uC0AC\uCCB4\uB85C \uBCF4\uC870\uC801 \uC5ED\uD560\uC744 \uD558\uB294 \uC624\uBA54\uAC003 \uC9C0\uBC29\uC0B0\uC785\uB2C8\uB2E4.", points: [] }
   };
 
+  // ─── 제품명 감지 (2b) ─────────────────────────────
+  // product_v2 레코드 이름과 부분일치하면 해당 레코드 반환.
+  function detectProductName(q, records) {
+    const n = normEntity(q);
+    if (!n || n.length < 2) return null;
+    for (const r of (records || [])) {
+      const name = getField(r.fields, "\uC81C\uD488\uBA85", "name") || "";
+      const nn = normEntity(name);
+      if (!nn) continue;
+      if (nn.indexOf(n) !== -1 || n.indexOf(nn) !== -1) return r;
+    }
+    return null;
+  }
+
   try {
     // ─── [1] CATEGORY GATE ───────────────────────────
     const supportedCategories = {
@@ -194,12 +208,11 @@ export async function onRequest(context) {
     const healthKeywords = ["\ud658\ud589", "\ud63c\uc911", "\uc9c0\ubc29", "\uc5fc\uc99d", "\uc2ec\ud608\uad00", "\ub1cc", "\uc2dc\ub825", "\uace0\ud63c\uc555", "\ub2f9\ub1a8", "\ucf5c\ub808\uc2a4\ud14c\ub864", "\uad00\uc808"];
     const isHealthQuery = healthKeywords.some(k => lowerQuery.indexOf(k) !== -1);
 
+    // 2b: 카테고리·건강 키워드 둘 다 없으면 '제품명일 수 있음'으로 보고 일단 진행.
+    //     제품 fetch 후 제품명 매칭 실패 시에만 out_of_scope 반환.
+    let maybeProduct = false;
     if (!matchedCategory && !isHealthQuery) {
-      return new Response(JSON.stringify({
-        query, category: "out_of_scope",
-        answer: "\uC8C4\uC1A1\uD569\uB2C8\uB2E4. ingredi\ub294 \ud604\uc7ac \uc624\uba54\uac003, \ud504\ub85c\ubc14\uc774\uc624\ud2f1\uc2a4, \ube44\ud0c0\ubbfcC\uc5d0 \ub300\ud55c \uc815\ubcf4\ub9cc \uc81c\uacf5\ud569\ub2c8\ub2e4.",
-        sources: [], flags: { outOfScope: true }, recommendation: null
-      }), { status: 200, headers });
+      maybeProduct = true;
     }
     if (!matchedCategory) matchedCategory = "omega3";
 
@@ -338,11 +351,29 @@ export async function onRequest(context) {
     // 성분 단독 입력 여부 (#2a)
     const ingredient = detectIngredient(query);
 
+    // 제품명 매칭 (2b) — maybeProduct일 때만 검사
+    let productMatchRecord = null;
+    if (maybeProduct) {
+      productMatchRecord = detectProductName(query, pRes.records || []);
+      if (!productMatchRecord) {
+        // 카테고리도 건강 키워드도 제품명도 아님 → out_of_scope
+        return new Response(JSON.stringify({
+          query, category: "out_of_scope",
+          answer: "\uC8C4\uC1A1\uD569\uB2C8\uB2E4. ingredi\ub294 \ud604\uc7ac \uc624\uba54\uac003, \ud504\ub85c\ubc14\uc774\uc624\ud2f1\uc2a4, \ube44\ud0c0\ubbfcC\uc5d0 \ub300\ud55c \uc815\ubcf4\ub9cc \uc81c\uacf5\ud569\ub2c8\ub2e4.",
+          sources: [], flags: { outOfScope: true }, recommendation: null
+        }), { status: 200, headers });
+      }
+    }
+    const isProductMode = !!productMatchRecord;
+
     // ─── [6] CALL CLAUDE (RAG) ───────────────────────
     let answer = "";
     let claudeError = null;
 
-    if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
+    if (isProductMode) {
+      // 제품 모드: 해당 제품 카드를 보여주므로 답변 생성 스킵
+      answer = "";
+    } else if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
       answer = "\uC8C4\uC1A1\uD569\uB2C8\uB2E4. \ud574\ub2f9 \uc9c8\ubb38\uc5d0 \ub300\ud55c \uc815\ubcf4\uac00 ingredi \uc9c0\uc2DDDB\uc5d0 \uc544\uc9c1 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \ub2e4\ub9cc \uad00\ub828\ub420 \uc218 \uc788\ub294 \uc81c\ud488\uc744 \ucd94\ucc9c\ub4dc\ub9b4\uac8c\uc694.";
     } else {
       // v3: 마크다운/이모지 금지 프롬프트 추가
@@ -423,6 +454,7 @@ export async function onRequest(context) {
       const certsRaw    = getField(f, "\uC778\uC99D");
       const certs       = Array.isArray(certsRaw) ? certsRaw.join(", ") : String(certsRaw || "");
       const dailyCost   = parseFloat(getField(f, "1\uC77C\uBE44\uC6A9_\uC6D0")) || 0;
+      const capsuleMg   = parseFloat(getField(f, "캡슐_중량_mg", "1캡슐_중량_mg", "캡슐_mg", "1캡슐_mg", "캡슐중량_mg", "캡슐크기_mg")) || 0;
       const tier        = getField(f, "Tier\uB4F1\uAE09") || "";
       const passFail    = getField(f, "\uD568\uB7C9_Pass_Fail") || "";
       const coupangLink = getField(f, "coupang_url", "coupangUrl", "coupangLink", "\uCFE0\uD314_\uD30C\uD2B8\uB108\uC2A4_\uB9C1\uD06C") || "";
@@ -445,7 +477,7 @@ export async function onRequest(context) {
       let highDoseFlag = false;
       if (dailyMg > 2000) { total = Math.min(80, total); highDoseFlag = true; }
 
-      return { id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost), form, supplier, certs, tier, passFail, coupangLink, scores: { dose, form: formScore, source: srcScore, cert: certScore, price: priceScore, total }, highDoseFlag };
+      return { id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost), capsuleMg, form, supplier, certs, tier, passFail, coupangLink, scores: { dose, form: formScore, source: srcScore, cert: certScore, price: priceScore, total }, highDoseFlag };
     });
 
     let filtered = scored.filter(item => {
@@ -456,35 +488,65 @@ export async function onRequest(context) {
     });
     filtered.sort((a, b) => b.scores.total - a.scores.total);
 
-    // 성분 모드 제품 리스트 (#2a): 제형 성분이면 해당 제형으로 필터, 그 외엔 상위 제품
+    // 통계 분포 (자세히 보기 막대 그래프용) — 전체 제품 기준 최소/평균/최대
+    function computeDist(vals) {
+      const v = vals.filter(x => x > 0);
+      if (v.length === 0) return null;
+      const sum = v.reduce((a, b) => a + b, 0);
+      return { min: Math.min(...v), max: Math.max(...v), avg: Math.round(sum / v.length) };
+    }
+    const distributions = {
+      dose:    computeDist(scored.map(s => s.dailyMg)),
+      cost:    computeDist(scored.map(s => s.dailyCost)),
+      capsule: computeDist(scored.map(s => s.capsuleMg))
+    };
+
+    function toCard(item, idx) {
+      return {
+        rank: idx + 1, id: item.id, name: item.name, image: item.image || "",
+        vScore: item.scores.total,
+        keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, capsuleMg: item.capsuleMg, form: item.form, certs: item.certs, tier: item.tier },
+        coupangLink: item.coupangLink, highDoseFlag: item.highDoseFlag
+      };
+    }
+
+    // 성분/제품 모드 제품 리스트
     let ingredientProducts = [];
+    let listMode = null;
+    let listTerm = null;
     if (ingredient) {
+      listMode = "ingredient";
+      listTerm = ingredient.label;
       let pool = filtered;
       if (ingredient.form) {
         const ff = ingredient.form;
         const formed = filtered.filter(it => String(it.form || "").toLowerCase().indexOf(ff) !== -1);
         if (formed.length > 0) pool = formed;
       }
-      ingredientProducts = pool.slice(0, 60).map((item, idx) => ({
-        rank: idx + 1, id: item.id, name: item.name, image: item.image || "",
-        vScore: item.scores.total,
-        keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, form: item.form, certs: item.certs, tier: item.tier },
-        coupangLink: item.coupangLink, highDoseFlag: item.highDoseFlag
-      }));
+      ingredientProducts = pool.slice(0, 60).map(toCard);
+    } else if (isProductMode) {
+      listMode = "product";
+      const matchedId = getField(productMatchRecord.fields, "product_id", "productId");
+      const matched = filtered.find(it => it.id === matchedId);
+      listTerm = (matched && matched.name) || (getField(productMatchRecord.fields, "\uC81C\uD488\uBA85", "name") || "") || query;
+      const rest = filtered.filter(it => it.id !== matchedId);
+      const pool = matched ? [matched, ...rest] : filtered;
+      ingredientProducts = pool.slice(0, 60).map(toCard);
     }
 
     const top3 = filtered.slice(0, 3).map((item, idx) => ({
       rank: idx + 1, id: item.id, name: item.name, image: item.image || "",
       vScore: item.scores.total, detailScores: item.scores,
-      keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, form: item.form, supplier: item.supplier, certs: item.certs, tier: item.tier },
+      keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, capsuleMg: item.capsuleMg, form: item.form, supplier: item.supplier, certs: item.certs, tier: item.tier },
       coupangLink: item.coupangLink, highDoseFlag: item.highDoseFlag
     }));
 
     return new Response(JSON.stringify({
       query, category: matchedCategory, answer,
-      mode: ingredient ? "ingredient" : "counsel",
-      ingredientTerm: ingredient ? ingredient.label : null,
+      mode: listMode || "counsel",
+      ingredientTerm: listTerm,
       ingredientProducts,
+      distributions,
       sources: {
         knowledge: knowledgeMatched.map(k => ({ id: k.id, oneline: k.oneline, evidence: k.evidence || null })),
         faq: faqMatched.map(f => ({ id: f.id, question: f.question }))
