@@ -77,13 +77,13 @@
     .product-image-fallback { width: 76px; height: 96px; border-radius: 6px; background: linear-gradient(135deg, #FFF8E5 0%, #F5E6B8 100%); }
     .rank-2 .product-image-fallback { background: linear-gradient(135deg, #E5E8EB 0%, #C4C8CC 100%); }
     .rank-3 .product-image-fallback { background: linear-gradient(135deg, #F5DDC8 0%, #DAB494 100%); }
-    .product-rank-badge { position: absolute; top: -6px; left: -6px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2; }
+    .product-rank-badge { position: absolute; top: -6px; left: -6px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; background: var(--green-mid); box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2; }
     .rank-1 .product-rank-badge { background: var(--gold); }
     .rank-2 .product-rank-badge { background: var(--silver); }
     .rank-3 .product-rank-badge { background: var(--bronze); }
     .product-info { flex: 1; min-width: 0; }
     .product-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 5px; }
-    .product-rank-pill { font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.04em; flex-shrink: 0; }
+    .product-rank-pill { font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.04em; flex-shrink: 0; background: var(--green-mid); color: white; }
     .rank-1 .product-rank-pill { background: var(--gold); color: white; }
     .rank-2 .product-rank-pill { background: var(--silver); color: white; }
     .rank-3 .product-rank-pill { background: var(--bronze); color: white; }
@@ -100,6 +100,18 @@
     .btn-mini.primary { background: var(--green-primary); color: white; }
     .btn-mini.primary:hover { background: var(--green-deep); }
     .btn-mini:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
+
+    /* ── 자세히 보기 인라인 설명 ── */
+    .explanation { margin-top: 8px; padding: 12px; background: var(--green-bg); border-left: 3px solid var(--green-primary); border-radius: 6px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); display: none; }
+    .explanation.active { display: block; animation: fadeIn 0.3s ease; }
+    .explanation-loading { display: flex; align-items: center; gap: 8px; color: var(--ink-faint); font-size: 13px; }
+    .explanation-loading::before { content: ''; width: 11px; height: 11px; border: 2px solid var(--line); border-top-color: var(--green-primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
+
+    /* ── 더 보기 버튼 ── */
+    .more-btn { width: 100%; margin: 2px 0 10px; padding: 12px; background: white; border: 1.5px solid var(--green-primary); border-radius: var(--radius-sm); color: var(--green-primary); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: -0.01em; transition: background 0.15s ease; }
+    .more-btn:hover { background: var(--green-light); }
+    .more-btn:active { transform: scale(0.98); }
+
     .compare-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
     .compare-cta-btn { padding: 11px; border: 1.5px solid var(--green-primary); border-radius: var(--radius-sm); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: -0.01em; text-decoration: none; text-align: center; background: white; color: var(--green-primary); }
     .compare-cta-btn:hover { background: var(--green-light); }
@@ -114,15 +126,7 @@
     .empty-recommendation { text-align: center; padding: 24px 16px; background: var(--green-bg); border-radius: var(--radius-md); color: var(--ink-soft); font-size: 15px; }
     .error-box { text-align: center; padding: 40px 20px; color: var(--warn); }
 
-    /* ── 성분 설명 카드 (#2a) ── */
-    .ingredient-card { background: white; border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 18px; margin-bottom: 22px; box-shadow: var(--shadow-sm); }
-    .ingredient-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-    .ingredient-term { font-size: 22px; font-weight: 800; color: var(--green-deep); letter-spacing: -0.02em; }
-    .ingredient-badge { font-size: 12px; font-weight: 700; background: var(--green-light); color: var(--green-primary); padding: 3px 10px; border-radius: 100px; }
-    .ingredient-def { font-size: 16px; line-height: 1.75; color: var(--ink); letter-spacing: -0.01em; }
-    .ingredient-points { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
-    .ingredient-point { font-size: 14px; color: var(--green-primary); font-weight: 600; display: flex; gap: 6px; align-items: flex-start; }
-    .ingredient-evidence { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-faint); }
+    /* ── 성분 제품 리스트 헤더 (#2a) ── */
     .ingredient-products-head { font-size: 16px; font-weight: 700; color: var(--green-deep); margin-bottom: 12px; padding: 0 4px; letter-spacing: -0.01em; }
   </style>
 </head>
@@ -180,18 +184,15 @@ function escapeHtml(str) {
 // 답변 텍스트 렌더링 — * 항목은 불릿으로, 나머지 마크다운은 제거
 function renderAnswerText(str) {
   if (!str) return '';
-
-  // 1단계: 불필요한 마크다운 제거
   let cleaned = str
-    .replace(/^#{1,4}\s*/gm, '')          // ### 헤더
-    .replace(/\*\*([^*\n]+)\*\*/g, '$1')  // **굵게**
-    .replace(/__([^_\n]+)__/g, '$1')      // __밑줄__
-    .replace(/^[-]{3,}\s*$/gm, '')        // --- 구분선
-    .replace(/^>\s*/gm, '')              // > 인용
-    .replace(/\n{3,}/g, '\n\n')          // 3줄 이상 빈줄 축소
+    .replace(/^#{1,4}\s*/gm, '')
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')
+    .replace(/__([^_\n]+)__/g, '$1')
+    .replace(/^[-]{3,}\s*$/gm, '')
+    .replace(/^>\s*/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-  // 2단계: "* 항목" 줄을 <li>로 변환하여 HTML 렌더링
   const lines = cleaned.split('\n');
   let html = '';
   let inList = false;
@@ -241,7 +242,7 @@ async function loadConsultation(q) {
   }
 }
 
-// 의료 주의 알림 (성분/카운슬 양쪽 공용)
+// 의료 주의 알림 (성분/카운슬 공용)
 function renderMedicalAlertFromFlags(flags) {
   const alertBox = document.getElementById('medicalAlert');
   if (flags && flags.requiresMedicalConsult) {
@@ -255,8 +256,8 @@ function renderMedicalAlertFromFlags(flags) {
   } else { alertBox.innerHTML = ''; }
 }
 
-// 제품 카드 (카운슬·성분 양쪽 공용)
-function productCardHtml(p) {
+// 제품 카드 (카운슬·성분 공용) — 둘째 버튼 '자세히 보기' = 인라인 AI 설명
+function productCardHtml(p, profileId) {
   const ks = p.keySpec || {};
   const tags = [
     ks.tier ? `<span class="product-tag">${escapeHtml(ks.tier)}</span>` : '',
@@ -266,6 +267,8 @@ function productCardHtml(p) {
   const imageHtml = p.image
     ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name||'')}" onerror="this.outerHTML='<div class=\\'product-image-fallback\\'></div>'">`
     : `<div class="product-image-fallback"></div>`;
+  const pid = escapeHtml(p.id || '');
+  const pf = escapeHtml(profileId || 'balanced');
   return `
     <article class="product-card rank-${p.rank}">
       <div class="product-card-row">
@@ -284,83 +287,86 @@ function productCardHtml(p) {
         </div>
       </div>
       <div class="product-card-actions">
+        <button class="btn-mini secondary" onclick="explainProduct('${pid}','${pf}')">자세히 보기</button>
         ${p.coupangLink
           ? `<a class="btn-mini primary" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">쿠팡에서 보기</a>`
           : `<button class="btn-mini primary" disabled>링크 없음</button>`}
-        <a class="btn-mini secondary" href="/app.html">전체 추천 보기</a>
       </div>
+      <div class="explanation" id="exp-${pid}"></div>
     </article>`;
 }
 
-// 성분 모드 렌더링 (#2a)
-function renderIngredientMode(data) {
-  const card = data.ingredientCard;
-  document.getElementById('queryMeta').textContent = `${card.term} · 성분 정보`;
-  renderMedicalAlertFromFlags(data.flags);
+// '자세히 보기' — app.html과 동일하게 /explain-recommendation 호출하여 인라인 펼침
+async function explainProduct(productId, profileId) {
+  const expEl = document.getElementById('exp-' + productId);
+  if (!expEl) return;
+  if (expEl.classList.contains('active')) { expEl.classList.remove('active'); return; }
+  expEl.classList.add('active');
+  expEl.innerHTML = '<div class="explanation-loading">AI가 분석하고 있어요…</div>';
+  try {
+    const res = await fetch(`${API_BASE}/explain-recommendation?profile=${encodeURIComponent(profileId)}&id=${encodeURIComponent(productId)}`);
+    const data = await res.json();
+    if (data.error) {
+      expEl.innerHTML = String(data.error).indexOf('claude') !== -1
+        ? '⏳ <strong>AI 설명 기능 준비 중</strong><br><small>곧 더 자세한 설명을 제공해드릴게요.</small>'
+        : '설명을 불러올 수 없어요.';
+      return;
+    }
+    expEl.innerHTML = escapeHtml(data.explanation || '').replace(/\n/g, '<br>');
+  } catch (err) {
+    expEl.innerHTML = '일시적인 오류가 발생했어요.';
+  }
+}
+window.explainProduct = explainProduct;
 
-  const pointsHtml = (card.points && card.points.length)
-    ? `<div class="ingredient-points">${card.points.map(p => `<div class="ingredient-point">✓ ${escapeHtml(p)}</div>`).join('')}</div>`
-    : '';
-  const evidenceHtml = card.evidence
-    ? `<div class="ingredient-evidence">근거 · ${escapeHtml(card.evidence)}</div>`
-    : '';
-  document.getElementById('answerContent').innerHTML = `
-    <article class="ingredient-card">
-      <div class="ingredient-card-head">
-        <span class="ingredient-term">${escapeHtml(card.term)}</span>
-        ${card.badge ? `<span class="ingredient-badge">${escapeHtml(card.badge)}</span>` : ''}
-      </div>
-      <div class="ingredient-def">${escapeHtml(card.definition || '')}</div>
-      ${pointsHtml}
-      ${evidenceHtml}
-    </article>`;
+function showMoreProducts() {
+  const more = document.getElementById('moreProducts');
+  const btn = document.getElementById('moreProductsBtn');
+  if (more) more.style.display = 'block';
+  if (btn) btn.style.display = 'none';
+}
+window.showMoreProducts = showMoreProducts;
 
+// 성분 모드 제품 리스트 (#2a): 10개 먼저 + 더 보기로 전체 펼침
+function renderIngredientProducts(data) {
   const products = data.ingredientProducts || [];
   const recEl = document.getElementById('recommendContent');
-  if (products.length > 0) {
-    const ids = products.slice(0, 3).map(p => p.id).join(',');
-    const profileId = (data.recommendation && data.recommendation.profile && data.recommendation.profile.id) || 'balanced';
-    recEl.innerHTML = `
-      <section class="recommend-section">
-        <div class="ingredient-products-head">${escapeHtml(card.term)} 관련 제품 ${products.length}개</div>
-        ${products.map(productCardHtml).join('')}
-        <div class="compare-cta">
-          <a class="compare-cta-btn primary" href="/compare.html?ids=${ids}&profile=${profileId}">상위 비교</a>
-          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${profileId}">직접 선택</a>
-        </div>
-      </section>`;
-  } else {
+  if (products.length === 0) {
     recEl.innerHTML = `<div class="empty-recommendation">관련 제품을 찾지 못했어요.</div>`;
+    return;
   }
+  const profileId = (data.recommendation && data.recommendation.profile && data.recommendation.profile.id) || 'balanced';
+  const term = data.ingredientTerm || data.query || '';
+  const INITIAL = 10;
+  const visible = products.slice(0, INITIAL);
+  const hidden = products.slice(INITIAL);
 
-  document.getElementById('disclaimer').textContent = data.disclaimer || '';
+  const visibleHtml = visible.map(p => productCardHtml(p, profileId)).join('');
+  const hiddenHtml = hidden.length
+    ? `<div id="moreProducts" style="display:none">${hidden.map(p => productCardHtml(p, profileId)).join('')}</div>` +
+      `<button id="moreProductsBtn" class="more-btn" onclick="showMoreProducts()">추천 제품 더 보기 (+${hidden.length})</button>`
+    : '';
+
+  const ids = products.slice(0, 3).map(p => p.id).join(',');
+  recEl.innerHTML = `
+    <section class="recommend-section">
+      <div class="ingredient-products-head">${escapeHtml(term)} 관련 제품 ${products.length}개</div>
+      ${visibleHtml}
+      ${hiddenHtml}
+      <div class="compare-cta">
+        <a class="compare-cta-btn primary" href="/compare.html?ids=${ids}&profile=${profileId}">상위 비교</a>
+        <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${profileId}">직접 선택</a>
+      </div>
+    </section>`;
 }
 
-function renderResult(data) {
-  // 성분 모드 (#2a): 카드 + 제품 리스트로 분기
-  if (data.ingredientCard) { renderIngredientMode(data); return; }
-
-  const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
-  const fCount = data.flags ? data.flags.faqCount || 0 : 0;
-  document.getElementById('queryMeta').textContent =
-    data.category === 'out_of_scope' ? '지원하지 않는 카테고리' : `관련 정보 ${kCount + fCount}건 검색`;
-
-  renderMedicalAlertFromFlags(data.flags);
-
-  // 답변 — 근거 출처 없음, 마크다운 제거
-  const answerEl = document.getElementById('answerContent');
-  if (data.answer) {
-    answerEl.innerHTML = `
-      <article class="answer-section">
-        <div class="answer-eyebrow"><span class="answer-eyebrow-dot"></span>AI 답변</div>
-        <div class="answer-text">${renderAnswerText(data.answer)}</div>
-      </article>`;
-  } else { answerEl.innerHTML = ''; }
-
+// 카운슬 모드 제품 추천 (Top 3)
+function renderCounselProducts(data) {
   const recEl = document.getElementById('recommendContent');
   if (data.recommendation && data.recommendation.top3 && data.recommendation.top3.length > 0) {
     const rec = data.recommendation;
-    const top3Html = rec.top3.map(productCardHtml).join('');
+    const profileId = rec.profile.id;
+    const top3Html = rec.top3.map(p => productCardHtml(p, profileId)).join('');
     const top3Ids = rec.top3.map(p => p.id).join(',');
     recEl.innerHTML = `
       <section class="recommend-section">
@@ -373,13 +379,39 @@ function renderResult(data) {
         </div>
         ${top3Html}
         <div class="compare-cta">
-          <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${rec.profile.id}">Top 3 비교</a>
-          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${rec.profile.id}">직접 선택</a>
+          <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${profileId}">Top 3 비교</a>
+          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${profileId}">직접 선택</a>
         </div>
       </section>`;
   } else if (data.category !== 'out_of_scope') {
     recEl.innerHTML = `<div class="empty-recommendation">추천할 제품이 없어요. 다른 키워드로 검색해보세요.</div>`;
   } else { recEl.innerHTML = ''; }
+}
+
+function renderResult(data) {
+  const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
+  const fCount = data.flags ? data.flags.faqCount || 0 : 0;
+  document.getElementById('queryMeta').textContent =
+    data.category === 'out_of_scope' ? '지원하지 않는 카테고리' : `관련 정보 ${kCount + fCount}건 검색`;
+
+  renderMedicalAlertFromFlags(data.flags);
+
+  // AI 답변 (성분·카운슬 공용)
+  const answerEl = document.getElementById('answerContent');
+  if (data.answer) {
+    answerEl.innerHTML = `
+      <article class="answer-section">
+        <div class="answer-eyebrow"><span class="answer-eyebrow-dot"></span>AI 답변</div>
+        <div class="answer-text">${renderAnswerText(data.answer)}</div>
+      </article>`;
+  } else { answerEl.innerHTML = ''; }
+
+  // 제품 영역 — 성분 모드면 10+더보기, 아니면 Top 3
+  if (data.mode === 'ingredient') {
+    renderIngredientProducts(data);
+  } else {
+    renderCounselProducts(data);
+  }
 
   document.getElementById('disclaimer').textContent = data.disclaimer || '';
 }
