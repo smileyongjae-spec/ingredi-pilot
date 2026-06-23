@@ -2,6 +2,10 @@
 // File path: functions/counsel-api.js
 // URL: /counsel-api?q=<user_question>
 //
+// v5: Airtable 호출에 KV 캐시 적용 (functions/_lib/airtable.js)
+//   - knowledge / FAQ_오메가3 / product_v2 전체 테이블을 캐시로 로드 후 JS에서 필터
+//   - 기존 filterByFormula(쿼리별 서버필터) 제거 → 캐시 적중률 확보
+//
 // v4 (#2a): 성분명 단독 입력 시 '성분 설명 카드 + 제품 리스트'로 분기
 //   - detectIngredient(): EPA/DHA/오메가3/rTG/TG/EE/ALA/DPA 정확 매칭 (문장형 질문은 길이로 배제)
 //   - 성분 모드에서는 Claude 호출 스킵, knowledge 기반 카드(폴백 포함) 반환
@@ -13,6 +17,8 @@
 //                   "답변(3원칙 적용)" → "답변 (3원칙 적용)" (공백 추가)
 // - 구어체 동의어 확장 추가 (ask.js v3와 동일)
 // - 마크다운/이모지 금지 프롬프트 추가
+
+import { getRecords } from "./_lib/airtable.js";
 
 export async function onRequest(context) {
   const headers = {
@@ -243,37 +249,20 @@ export async function onRequest(context) {
     const allTokens = [...new Set([...originalTokens, ...expandedTokens])];
     const lowerTokens = allTokens.map(t => t.toLowerCase());
 
-    // ─── [3] PARALLEL: knowledge + FAQ + products ────
-    // ── Airtable 서버사이드 필터로 전송량 최소화 ──────────
-    // knowledge: 상위 2개 토큰으로 OR 필터, 20건 제한
-    const topTokens = lowerTokens.slice(0, 3).filter(t => t.length > 1);
-    const kFormulaParts = topTokens.map(t =>
-      `OR(SEARCH("${t}",LOWER({키워드})),SEARCH("${t}",LOWER({한줄정의})),SEARCH("${t}",LOWER({관련성분키워드})))`
-    );
-    const kFormula = kFormulaParts.length > 0
-      ? encodeURIComponent("OR(" + kFormulaParts.join(",") + ")")
-      : encodeURIComponent("1=1");
-    const knowledgeUrl = "https://api.airtable.com/v0/" + BASE_ID + "/knowledge?maxRecords=20&filterByFormula=" + kFormula;
-
-    // FAQ: 상위 2개 토큰으로 OR 필터, 10건 제한
-    const faqTableName = encodeURIComponent("FAQ_\uC624\uBA54\uAC003");
-    const fFormulaParts = topTokens.slice(0, 2).map(t =>
-      `OR(SEARCH("${t}",LOWER({질문 (사용자 표현)})),SEARCH("${t}",LOWER({답변 (3원칙 적용)})))`
-    );
-    const fFormula = fFormulaParts.length > 0
-      ? encodeURIComponent("OR(" + fFormulaParts.join(",") + ")")
-      : encodeURIComponent("1=1");
-    const faqUrl = "https://api.airtable.com/v0/" + BASE_ID + "/" + faqTableName + "?maxRecords=10&filterByFormula=" + fFormula;
-
-    // product: #2a fix — 서버사이드 Pass 필터 제거 (필드명/값 불일치 시 0건 반환되던 문제).
-    //                     Fail 제외는 아래 [7] JS 필터가 처리. maxRecords 100으로 풀 확보.
-    const productUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=100";
-
-    const [kRes, fRes, pRes] = await Promise.all([
-      fetch(knowledgeUrl, { headers: { Authorization: "Bearer " + TOKEN } }).then(r => r.ok ? r.json() : { records: [] }).catch(() => ({ records: [] })),
-      fetch(faqUrl,       { headers: { Authorization: "Bearer " + TOKEN } }).then(r => r.ok ? r.json() : { records: [] }).catch(() => ({ records: [] })),
-      fetch(productUrl,   { headers: { Authorization: "Bearer " + TOKEN } }).then(r => r.ok ? r.json() : { records: [] }).catch(() => ({ records: [] }))
+    // ─── [3] LOAD TABLES (KV 캐시) ───────────────────
+    // 기존 filterByFormula(쿼리별 서버사이드 필터)는 캐시 적중률이 낮아 제거.
+    // 전체 테이블을 KV 캐시로 한 번만 가져오고, 토큰 매칭은 아래 JS에서 처리한다.
+    async function safeGet(table) {
+      try { return await getRecords(env, table); } catch (_) { return []; }
+    }
+    const [kRecords, fRecords, pRecords] = await Promise.all([
+      safeGet("knowledge"),
+      safeGet("FAQ_\uC624\uBA54\uAC003"),
+      safeGet("product_v2")
     ]);
+    const kRes = { records: kRecords };
+    const fRes = { records: fRecords };
+    const pRes = { records: pRecords };
 
     // knowledge 매칭
     const fK_keyword  = "\uD0A4\uC6CC\uB4DC";
