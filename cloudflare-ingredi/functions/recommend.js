@@ -1,6 +1,9 @@
 // Cloudflare Pages Function: Product recommendation with V-Score (v4.1)
 // File path: functions/recommend.js
 // v4.1: vegan, kid 프로필 제거
+// v4.2: Airtable 호출에 KV 캐시 적용 (functions/_lib/airtable.js 의 getRecords 사용)
+
+import { getRecords } from "./_lib/airtable.js";
 
 export async function onRequest(context) {
   const headers = {
@@ -66,14 +69,13 @@ export async function onRequest(context) {
     }), { status: 400, headers });
   }
 
-  const productsUrl = "https://api.airtable.com/v0/" + BASE_ID + "/product_v2?maxRecords=500";
-  const res = await fetch(productsUrl, { headers: { Authorization: "Bearer " + TOKEN } });
-  if (!res.ok) {
-    const text = await res.text();
-    return new Response(JSON.stringify({ error: "airtable_error", status: res.status, message: text }), { status: 500, headers });
+  // ── Airtable 제품 데이터 (KV 캐시 경유) ──
+  let records;
+  try {
+    records = await getRecords(env, "product_v2");
+  } catch (e) {
+    return new Response(JSON.stringify({ error: "airtable_error", message: e.message }), { status: 500, headers });
   }
-  const data = await res.json();
-  const records = data.records || [];
 
   if (records.length === 0) {
     return new Response(JSON.stringify({ profile: profileId, message: "\uC81C\uD488 DB\uAC00 \uBE44\uC5B4\uC788\uC2B5\uB2C8\uB2E4.", products: [] }), { status: 200, headers });
