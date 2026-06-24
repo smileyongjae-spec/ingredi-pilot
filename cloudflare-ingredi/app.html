@@ -278,6 +278,16 @@
     .cat-compare-cta { margin-top: 18px; }
     .cat-compare-cta a { display: block; text-align: center; padding: 13px; border-radius: 10px; background: #fff; border: 1.5px solid var(--green-primary); color: var(--green-primary); font-weight: 700; font-size: 14px; text-decoration: none; transition: 0.15s; }
     .cat-compare-cta a:hover { background: var(--green-light); }
+
+    .cv-purity { cursor: pointer; }
+    .cv-q { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 9px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; vertical-align: middle; margin-left: 3px; padding: 0; }
+    .cv-q:active { background: var(--green-mid); color: #fff; }
+    .cv-tagrow { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
+    .cv-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--green-light); color: var(--green-deep); font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 100px; border: none; font-family: inherit; }
+    .cv-tag.tappable { cursor: pointer; }
+    .cv-tag.tappable:active { background: var(--green-mid); color: #fff; }
+    .cv-tag .qb { width: 14px; height: 14px; border-radius: 50%; background: var(--green-primary); color: #fff; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .cv-tag.tappable:active .qb { background: #fff; color: var(--green-primary); }
   </style>
 </head>
 <body>
@@ -408,8 +418,92 @@ const TERM_INFO = {
     points: ["핵심성분·비용·리뷰 종합", "카테고리 내 상대 평가"] },
   purity: { title: "순도", badge: "성분 비율",
     body: "캡슐 전체 무게 중 핵심성분이 차지하는 비율이에요. 높을수록 부형제가 적고 유효 성분 밀도가 높아요.",
-    points: ["핵심성분 ÷ 캡슐 전체 중량"] }
+    points: ["핵심성분 ÷ 캡슐 전체 중량"] },
+  cost: { title: "1일 비용", badge: "가격 지표",
+    body: "하루 권장량을 섭취하는 데 드는 비용이에요. 제품 가격 ÷ 복용 일수로 계산해요. 낮을수록 가성비가 좋아요.",
+    points: ["전체 중 순위가 앞설수록 저렴해요"] },
+  capsule: { title: "캡슐 크기", badge: "복용 편의",
+    body: "캡슐 1알의 무게예요. 작을수록 삼키기 편해요. 고함량이면서 작은 캡슐이 가장 좋아요.",
+    points: ["분말·스틱은 캡슐이 없어요"] },
+  epadha: { title: "EPA+DHA 함량", badge: "핵심 성분",
+    body: "오메가3의 핵심 성분이에요. EPA는 혈행·염증 개선, DHA는 뇌·눈 건강에 도움을 줘요. 하루 권장량은 보통 500~2,000mg이에요.",
+    points: ["함량이 높을수록 유효 성분이 많아요"] },
+  lutein: { title: "루테인·지아잔틴", badge: "핵심 성분",
+    body: "눈 황반을 구성하는 카로티노이드예요. 빛 자극으로부터 황반을 보호하는 데 도움을 줘요. 하루 10~20mg 수준이 일반적이에요.",
+    points: ["지아잔틴과 함께 들어가면 더 좋아요"] },
+  cfu: { title: "보장 균수", badge: "핵심 성분",
+    body: "유통기한까지 살아있는 것이 보장되는 유산균 수(억 CFU)예요. 많을수록 장까지 도달할 가능성이 높지만, 코팅·균주 종류도 함께 봐야 해요.",
+    points: ["100억 이상이면 충분한 편이에요"] },
+  vitc: { title: "비타민C 함량", badge: "핵심 성분",
+    body: "비타민C는 항산화·면역에 도움을 줘요. 하루 권장량은 100mg, 보충 목적으로는 보통 500~1,000mg을 섭취해요.",
+    points: ["1,000mg을 기준으로 함량을 평가해요"] },
+  rtg: { title: "rTG", badge: "제형",
+    body: "오메가3 형태 중 흡수율이 가장 높은 3세대 형태예요. TG → EE → rTG 순으로 정제 단계를 거쳐요.",
+    points: ["흡수율 가장 높음", "산화 안정성 우수"] },
+  tg: { title: "TG", badge: "제형",
+    body: "자연 어유에 가장 가까운 형태예요. 흡수가 잘 되고 안정적이에요.",
+    points: ["자연 형태", "흡수 양호"] },
+  ee: { title: "EE", badge: "제형",
+    body: "농축 과정에서 만들어지는 형태예요. 가격이 합리적이지만 흡수율은 rTG·TG보다 다소 낮다는 보고가 있어요.",
+    points: [] },
+  tablet: { title: "정제(타블렛)", badge: "제형",
+    body: "성분을 압축한 알약 형태예요. 보관·휴대가 편하지만, 알이 크면 목넘김이 부담될 수 있어요.",
+    points: [] },
+  softcap: { title: "연질캡슐", badge: "제형",
+    body: "기름 성분을 담기 좋은 말랑한 캡슐이에요. 오메가3 같은 지용성 성분에 흔히 쓰여요.",
+    points: [] },
+  powder: { title: "분말 · 스틱", badge: "제형",
+    body: "캡슐이 없는 가루·스틱 형태예요. 목넘김 부담이 없고 물 없이도 간편하게 섭취할 수 있어요.",
+    points: ["목넘김 부담 없음"] },
+  ifos: { title: "IFOS", badge: "인증",
+    body: "캐나다 Nutrasource의 국제 어유 인증이에요. 함량·신선도·중금속·산화를 검사해요. 5-Star는 모든 항목 최고 등급을 의미해요.",
+    points: ["함량·신선도·중금속·산화 검사"] },
+  gmp: { title: "GMP / cGMP", badge: "인증",
+    body: "우수 제조 관리 기준이에요. 제조 시설의 위생과 품질 관리를 인증해요.",
+    points: [] },
+  goed: { title: "GOED", badge: "인증",
+    body: "글로벌 EPA·DHA 협회의 품질 기준이에요. 산업 표준을 충족했다는 의미예요.",
+    points: [] },
+  msc: { title: "MSC", badge: "인증",
+    body: "지속가능한 어업 인증이에요. 환경을 해치지 않고 잡은 원료라는 뜻이에요.",
+    points: ["지속가능 어업"] },
+  nsf: { title: "NSF", badge: "인증",
+    body: "미국 NSF International의 식품 안전 인증이에요.",
+    points: [] },
+  fos: { title: "Friend of the Sea", badge: "인증",
+    body: "지속가능한 어업을 인증하는 국제 기준이에요. 해양 생태계 보호를 의미해요.",
+    points: ["지속가능 어업"] },
+  iffo: { title: "IFFO RS / MarinTrust", badge: "인증",
+    body: "어유 원료의 책임 있는 공급을 인증하는 기준이에요.",
+    points: [] },
+  haccp: { title: "HACCP", badge: "인증",
+    body: "식품 안전 관리 인증이에요. 생산 전 과정의 위해 요소를 관리해요.",
+    points: [] },
+  healthfunc: { title: "건강기능식품 (GMP)", badge: "인증",
+    body: "식약처가 인정한 건강기능식품 제조 기준(GMP)을 충족했다는 의미예요.",
+    points: [] }
 };
+const PRIMARY_TERM = { "오메가3":"epadha", "눈":"lutein", "마이크로바이옴":"cfu", "비타민C":"vitc" };
+
+function termKeyFromTag(text) {
+  const t = String(text).toLowerCase();
+  if (t.indexOf("rtg") !== -1) return "rtg";
+  if (t === "tg" || t.indexOf("triglyceride") !== -1) return "tg";
+  if (t === "ee" || t.indexOf("ethyl") !== -1) return "ee";
+  if (t.indexOf("분말") !== -1 || t.indexOf("스틱") !== -1 || t.indexOf("powder") !== -1) return "powder";
+  if (t.indexOf("연질") !== -1 || t.indexOf("젤라틴") !== -1 || t.indexOf("soft") !== -1) return "softcap";
+  if (t.indexOf("정제") !== -1 || t.indexOf("타블렛") !== -1 || t.indexOf("tablet") !== -1) return "tablet";
+  if (t.indexOf("ifos") !== -1) return "ifos";
+  if (t.indexOf("goed") !== -1) return "goed";
+  if (t.indexOf("msc") !== -1) return "msc";
+  if (t.indexOf("nsf") !== -1) return "nsf";
+  if (t.indexOf("friend of the sea") !== -1 || t.indexOf("fos") !== -1) return "fos";
+  if (t.indexOf("iffo") !== -1 || t.indexOf("marintrust") !== -1) return "iffo";
+  if (t.indexOf("haccp") !== -1) return "haccp";
+  if (t.indexOf("gmp") !== -1) return "gmp";
+  if (t.indexOf("건강기능식품") !== -1 || t.indexOf("식약처") !== -1) return "healthfunc";
+  return null;
+}
 function openTermSheet(key) {
   const info = TERM_INFO[key];
   if (!info) return;
@@ -421,11 +515,16 @@ function openTermSheet(key) {
   document.getElementById("termSheetOverlay").classList.add("active");
   document.getElementById("termSheet").classList.add("active");
 }
+function openTermFromTag(text) {
+  const key = termKeyFromTag(text);
+  if (key) openTermSheet(key);
+}
 function closeTermSheet() {
   document.getElementById("termSheetOverlay").classList.remove("active");
   document.getElementById("termSheet").classList.remove("active");
 }
 window.openTermSheet = openTermSheet;
+window.openTermFromTag = openTermFromTag;
 window.closeTermSheet = closeTermSheet;
 
 function escapeHtml(str) {
@@ -548,7 +647,7 @@ function renderCardV8(p, ctx){
   const costPos = st.cost.max>st.cost.min ? clampPos((cost-st.cost.min)/(st.cost.max-st.cost.min)*100) : 50;
 
   let purityChip = "";
-  if (PURITY.has(cat) && cap>0 && pv>0) purityChip = `<span class="cv-purity">순도 ${Math.round(pv/cap*100)}%</span>`;
+  if (PURITY.has(cat) && cap>0 && pv>0) purityChip = `<button class="cv-purity" style="border:none;font-family:inherit" onclick="openTermSheet('purity')">순도 ${Math.round(pv/cap*100)}%</button>`;
 
   const capY = (6 + 84*(1-fill/100)).toFixed(1);
   const capH = (84*fill/100).toFixed(1);
@@ -564,11 +663,11 @@ function renderCardV8(p, ctx){
     const capPos = st.cap.max>st.cap.min ? clampPos((cap-st.cap.min)/(st.cap.max-st.cap.min)*100) : 50;
     capBlock = `<div>
       <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span class="cv-plabel">캡슐 크기</span><span class="cv-rank">${st.cap.n}개 중 ${capRank}위</span></div>
+        <span class="cv-plabel">캡슐 크기 <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span><span class="cv-rank">${st.cap.n}개 중 ${capRank}위</span></div>
       <div class="cv-track"><div class="cv-dot" style="left:${capPos}%"></div></div>
       <div class="cv-ends"><span>${fmt(st.cap.min)}mg</span><span>${fmt(st.cap.max)}mg</span></div></div>`;
   } else {
-    capBlock = `<div><span class="cv-plabel">캡슐 크기</span><div style="font-size:12px;color:var(--ink-faint);margin-top:6px">캡슐 없음 (분말/스틱)</div></div>`;
+    capBlock = `<div><span class="cv-plabel">캡슐 크기 <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span><div style="font-size:12px;color:var(--ink-faint);margin-top:6px">캡슐 없음 (분말/스틱)</div></div>`;
   }
 
   const voc = (VOC[cat]||[]).map(function(v){
@@ -581,6 +680,17 @@ function renderCardV8(p, ctx){
   const certs = escapeHtml(certsStr.slice(0,30)) + (certsStr.length>30?"…":"");
   const img = p.image ? escapeHtml(p.image) : PLACEHOLDER;
   const buy = p.link ? `<a class="cv-buy" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">제품 보기 →</a>` : `<span class="cv-buy">제품 보기 →</span>`;
+
+  const tagList = [];
+  if (p.form) tagList.push(String(p.form));
+  String(p.certs||"").split(/[,\/·]/).map(s=>s.trim()).filter(Boolean).slice(0,3).forEach(c=>tagList.push(c));
+  const tagsHtml = tagList.map(t=>{
+    const k = termKeyFromTag(t);
+    return k
+      ? `<button class="cv-tag tappable" onclick="openTermFromTag('${escapeHtml(t)}')">${escapeHtml(t)} <span class="qb">?</span></button>`
+      : `<span class="cv-tag">${escapeHtml(t)}</span>`;
+  }).join("");
+  const primKey = PRIMARY_TERM[cat] || "vscore";
 
   return `<div class="cv-card">
     <div class="cv-row">
@@ -598,7 +708,7 @@ function renderCardV8(p, ctx){
       <div class="cv-panel" style="display:flex;align-items:center;gap:13px">
         ${capsule}
         <div style="min-width:0">
-          <div class="cv-plabel">${escapeHtml(m.primary.label)} 함량${purityChip}</div>
+          <div class="cv-plabel">${escapeHtml(m.primary.label)} 함량 <button class="cv-q" onclick="openTermSheet('${primKey}')">?</button>${purityChip}</div>
           <div style="margin-top:3px;white-space:nowrap"><span class="cv-pval">${fmt(pv)}</span><span class="cv-punit"> ${escapeHtml(m.primary.unit)}</span></div>
           <div class="cv-rank">${st.prim.n}개 중 ${prank}위</div>
         </div>
@@ -606,7 +716,7 @@ function renderCardV8(p, ctx){
       <div class="cv-panel" style="display:flex;flex-direction:column;justify-content:center;gap:14px">
         <div>
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span class="cv-plabel">1일 비용</span><span class="cv-rank">${st.cost.n}개 중 ${costRank}위</span></div>
+            <span class="cv-plabel">1일 비용 <button class="cv-q" onclick="openTermSheet('cost')">?</button></span><span class="cv-rank">${st.cost.n}개 중 ${costRank}위</span></div>
           <div class="cv-track"><div class="cv-dot" style="left:${costPos}%"></div></div>
           <div class="cv-ends"><span>${fmt(st.cost.min)}원</span><span>${fmt(st.cost.max)}원</span></div>
         </div>
@@ -617,7 +727,8 @@ function renderCardV8(p, ctx){
       <div class="cv-voc-h"><span style="font-size:12px;color:var(--ink-soft);font-weight:700">리뷰 인사이트</span><span class="cv-voc-tag">예시 · 준비중</span></div>
       <div style="display:flex;flex-wrap:wrap">${voc}</div>
     </div>
-    <div class="cv-specs"><b>제형</b> ${escapeHtml(p.form||"-")}　<b>원료사</b> ${escapeHtml(p.supplier||"-")}<br><b>인증</b> ${certs||"-"}</div>
+    <div class="cv-specs"><b>원료사</b> ${escapeHtml(p.supplier||"-")}</div>
+    <div class="cv-tagrow">${tagsHtml}</div>
     <div class="cv-reasons"><div class="cv-rlabel">추천 이유</div>${rchips||'<span style="font-size:12px;color:var(--ink-faint)">—</span>'}</div>
     <div class="cv-foot"><span class="cv-rev">리뷰 ${fmt(num(p.reviewCount))}개</span>${buy}</div>
   </div>`;
@@ -653,19 +764,21 @@ function renderCategory(data){
   const products = sortByProfile(all, activeProfile);
   document.getElementById('catMeta').textContent = `${cat} · 전체 ${all.length}개 · ${profileOf(activeProfile).label} 정렬`;
   document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
-  document.getElementById('catCompareCta').innerHTML =
-    all.length ? `<a href="/compare.html?category=${encodeURIComponent(cat)}">이 카테고리 제품 직접 비교하기 →</a>` : "";
+  document.getElementById('catCompareCta').innerHTML = "";
   const el = document.getElementById('catCards');
   if (!products.length){ el.innerHTML=""; document.getElementById('catStatus').textContent="표시할 제품이 없습니다."; return; }
   document.getElementById('catStatus').textContent="";
   const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, idx:i})).join("");
+  const cmpCta = all.length
+    ? `<div class="cat-compare-cta" style="margin:6px 2px 20px"><a href="/compare.html?category=${encodeURIComponent(cat)}">이 카테고리 제품 직접 비교하기 →</a></div>`
+    : "";
   const restArr = products.slice(3);
   let rest = "";
   if (restArr.length){
     rest = `<div class="cat-resthead">그 외 ${restArr.length}개 제품</div>` +
       restArr.map((p,i)=>renderRestCardV8(p, {cat, metrics, stats, idx:i+3})).join("");
   }
-  el.innerHTML = top + rest;
+  el.innerHTML = top + cmpCta + rest;
 }
 
 function renderTabs(){
@@ -706,6 +819,14 @@ window.openCategory = openCategory;
 
 renderTabs();
 renderProfileBar();
+
+// 딥링크: /app.html?category=오메가3 등으로 들어오면 해당 카테고리 자동 열기
+(function(){
+  try {
+    const c = new URLSearchParams(location.search).get('category');
+    if (c && CATS.some(x => x.key === c)) openCategory(c);
+  } catch(e){}
+})();
 </script>
 </body>
 </html>
