@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ingredi · 오메가3 추천</title>
+  <title>ingredi · 성분·가격 비교</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <style>
@@ -42,7 +42,7 @@
       padding: 16px 20px;
       border-bottom: 1px solid var(--line-soft);
       background: var(--paper);
-      position: sticky; top: 0; z-index: 10;
+      position: sticky; top: 0; z-index: 20;
     }
     .header-back {
       width: 36px; height: 36px;
@@ -137,42 +137,29 @@
     .divider-text { font-size: 14px; font-weight: 500; color: var(--ink-faint); letter-spacing: 0.02em; }
     .section-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 14px; letter-spacing: -0.01em; }
 
-    /* ── 프로필 카드 (A안: 컬러 아이콘 박스 + 가로 레이아웃) ── */
     .profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .profile-card {
       background: white; border: 1.5px solid var(--line-soft);
-      border-radius: var(--radius-md); padding: 12px 14px;
+      border-radius: var(--radius-md); padding: 14px;
       cursor: pointer; transition: all 0.2s ease;
       display: flex; align-items: center; gap: 12px;
       position: relative; overflow: hidden;
     }
     .profile-card:hover { border-color: var(--green-mid); transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .profile-card:active { transform: translateY(0); }
-    .profile-card[data-profile="balanced"] {
-      grid-column: span 2;
-      background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
-      border-color: var(--green-mid);
-      justify-content: center; gap: 10px;
-    }
     .profile-icon-box {
-      width: 40px; height: 40px; border-radius: 10px;
+      width: 42px; height: 42px; border-radius: 11px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .profile-icon-box i { font-size: 22px; }
     .profile-text { flex: 1; min-width: 0; }
     .profile-label { font-size: 15px; font-weight: 700; color: var(--green-deep); margin-bottom: 1px; }
     .profile-desc { font-size: 13px; color: var(--ink-faint); line-height: 1.3; }
-    .profile-card[data-profile="balanced"] .profile-icon-box { width: 36px; height: 36px; }
-    .profile-card[data-profile="balanced"] .profile-icon-box i { font-size: 20px; }
-    .profile-card[data-profile="balanced"] .profile-label { font-size: 16px; }
 
-    /* 각 프로필 아이콘 컬러 */
-    .icon-premium { background: #EEF2FF; } .icon-premium i { color: #4F46E5; }
-    .icon-budget  { background: #F0FDF4; } .icon-budget  i { color: #16A34A; }
-    .icon-preg    { background: #FFF1F2; } .icon-preg    i { color: #E11D48; }
-    .icon-senior  { background: #EFF6FF; } .icon-senior  i { color: #2563EB; }
-    .icon-balance { background: #EEF2FF; } .icon-balance i { color: #4F46E5; }
+    .icon-omega { background: #E6F1FB; } .icon-omega svg { color: #185FA5; }
+    .icon-eye   { background: #EEF2FF; } .icon-eye svg   { color: #4F46E5; }
+    .icon-prob  { background: #F0FDF4; } .icon-prob svg  { color: #16A34A; }
+    .icon-vitc  { background: #FFF7E6; } .icon-vitc svg  { color: #BA7517; }
 
     .compare-entry-section {
       margin: 24px 0 12px; padding: 18px;
@@ -198,7 +185,7 @@
       background: linear-gradient(135deg, #EAF3DE 0%, white 100%);
       border: 1.5px solid #97C459; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
     }
-    .compare-entry-btn.fit-btn { background: #3B6D11; border-color: #3B6D11; }
+    .compare-entry-btn.fit-btn { background: #3B6D11; border-color: #3B6D11; color:white; }
     .compare-entry-btn.fit-btn:hover { background: #27500A; }
 
     .loading { display: none; text-align: center; padding: 60px 20px; }
@@ -211,114 +198,10 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 15px; color: var(--ink-soft); }
 
-    .result-profile-head {
-      background: linear-gradient(135deg, var(--green-light) 0%, white 100%);
-      border: 1.5px solid var(--green-mid); border-radius: var(--radius-md);
-      padding: 14px; margin-bottom: 16px;
-    }
-    .result-profile-eyebrow { font-size: 13px; color: var(--green-primary); font-weight: 700; text-align: center; margin-bottom: 10px; letter-spacing: -0.01em; }
-    .profile-switch-grid { display: flex; flex-direction: column; gap: 7px; }
-    .psw-row { display: grid; gap: 7px; }
-    .psw-row.top { grid-template-columns: repeat(3, 1fr); }
-    .psw-row.bottom { grid-template-columns: repeat(2, 1fr); }
-    .psw-btn {
-      background: white; border: 1.5px solid var(--line-soft);
-      border-radius: 10px; cursor: pointer; text-align: center;
-      font-family: inherit; transition: all 0.15s ease; padding: 8px 4px;
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-    }
-    .psw-btn:hover { border-color: var(--green-mid); }
-    .psw-btn:active { transform: scale(0.97); }
-    .psw-icon-box {
-      width: 28px; height: 28px; border-radius: 7px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .psw-icon-box i { font-size: 17px; }
-    .psw-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
-    .psw-row.bottom .psw-btn { padding: 6px 3px; }
-    .psw-row.bottom .psw-icon-box { width: 24px; height: 24px; border-radius: 6px; }
-    .psw-row.bottom .psw-icon-box i { font-size: 15px; }
-    .psw-row.bottom .psw-label { font-size: 12px; }
-    .psw-btn.active { background: var(--green-primary); border-color: var(--green-primary); }
-    .psw-btn.active .psw-label { color: white; }
-    .psw-btn.active .psw-icon-box { background: rgba(255,255,255,0.2) !important; }
-    .psw-btn.active .psw-icon-box i { color: white !important; }
-    .result-profile-meta { font-size: 13px; color: var(--ink-faint); text-align: center; margin-top: 10px; }
-
-    /* ── 제품 카드 ── */
-    .product-card {
-      background: white; border: 1px solid var(--line-soft);
-      border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px;
-      position: relative; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s ease;
-    }
-    .product-card:hover { box-shadow: var(--shadow-md); }
-    .product-card.rank-1 { border: 1.5px solid var(--gold); background: linear-gradient(180deg, #FEFAF1 0%, white 60%); }
-    .product-card.rank-2 { border: 1.5px solid var(--silver); }
-    .product-card.rank-3 { border: 1.5px solid var(--bronze); }
-    .product-card-row { display: flex; gap: 12px; align-items: flex-start; }
-    .product-image-wrap { width: 96px; flex-shrink: 0; position: relative; }
-    .product-image { width: 96px; height: 120px; object-fit: cover; border-radius: var(--radius-sm); background: var(--green-bg); display: block; }
-    .product-image-fallback { width: 96px; height: 120px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #FFF8E5 0%, #F5E6B8 100%); display: flex; align-items: center; justify-content: center; }
-    .product-image-fallback i { font-size: 33px; color: var(--ink-faint); }
-    .rank-2 .product-image-fallback { background: linear-gradient(135deg, #E5E8EB 0%, #C4C8CC 100%); }
-    .rank-3 .product-image-fallback { background: linear-gradient(135deg, #F5DDC8 0%, #DAB494 100%); }
-    .product-rank-badge {
-      position: absolute; top: -6px; left: -6px;
-      width: 26px; height: 26px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 800; color: white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2;
-    }
-    .rank-1 .product-rank-badge { background: var(--gold); }
-    .rank-2 .product-rank-badge { background: var(--silver); }
-    .rank-3 .product-rank-badge { background: var(--bronze); }
-    .product-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-    .product-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .product-rank-pill { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.04em; flex-shrink: 0; }
-    .rank-1 .product-rank-pill { background: var(--gold); color: white; }
-    .rank-2 .product-rank-pill { background: var(--silver); color: white; }
-    .rank-3 .product-rank-pill { background: var(--bronze); color: white; }
-    .product-vscore-block { text-align: right; flex-shrink: 0; }
-    .product-vscore-num { font-size: 24px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
-    .product-vscore-cap { font-size: 11px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0.06em; margin-top: 1px; }
-    .product-name { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.35; }
-    .product-spec { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; background: var(--green-bg); border-radius: 6px; }
-    .product-spec-item { font-size: 13px; }
-    .product-spec-label { font-size: 12px; color: var(--ink-faint); letter-spacing: 0.02em; font-weight: 600; text-transform: uppercase; margin-bottom: 1px; }
-    .product-spec-value { font-size: 13px; color: var(--green-deep); font-weight: 700; letter-spacing: -0.01em; }
-    .product-tags { display: flex; flex-wrap: wrap; gap: 3px; }
-
-    /* ── 통계 막대 UI (H안: 인바디 점 + 평균 작은 회색 점 + 인라인 제목) ── */
-    .stat-bar { padding: 12px 0; border-top: 0.5px solid var(--line-soft); }
-    .stat-bar:first-child { border-top: none; padding-top: 6px; }
-    .stat-bar-line { font-size: 15px; color: var(--ink); line-height: 1.4; margin-bottom: 6px; }
-    .stat-bar-line .title { font-weight: 700; }
-    .stat-bar-line .value { font-size: 17px; font-weight: 800; color: var(--green-deep); margin-left: 6px; letter-spacing: -0.02em; }
-    .stat-bar-graph { position: relative; height: 30px; }
-    .stat-bar-track { position: absolute; top: 8px; left: 0; right: 0; height: 4px; background: var(--line); border-radius: 2px; }
-    .stat-bar-fill { position: absolute; top: 8px; left: 0; height: 4px; background: var(--green-primary); border-radius: 2px; }
-    .stat-bar-dot { position: absolute; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--green-primary); border: 3px solid white; outline: 1.5px solid var(--green-primary); transform: translateX(-50%); z-index: 3; }
-    .stat-bar-endpoint { position: absolute; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: white; border: 2px solid var(--ink-faint); transform: translateX(-50%); z-index: 1; }
-    .stat-bar-endpoint.left { left: 0; }
-    .stat-bar-endpoint.right { left: 100%; }
-    .stat-bar-avg-dot { position: absolute; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); transform: translateX(-50%); z-index: 2; }
-    .stat-bar-avg-label { position: absolute; top: 18px; transform: translateX(-50%); font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
-    .stat-bar-ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-faint); margin-top: -2px; }
-
-    /* ── 수수료 고지 문구 ── */
     .disclosure { border-top: 0.5px solid var(--line-soft); margin-top: 20px; padding: 14px 8px 4px; }
     .disclosure-text { font-size: 11px; line-height: 1.6; color: var(--ink-faint); text-align: center; margin: 0; }
     .disclosure-text strong { color: var(--ink-soft); font-weight: 600; }
 
-    /* ── 용어 설명: 물음표 아이콘 + 점선 태그 ── */
-    .q-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; margin-left: 4px; vertical-align: middle; border: none; font-family: inherit; }
-    .q-icon:hover { background: var(--green-mid); color: white; }
-    .product-tag.tag-info { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
-    .product-tag.tag-info:active { background: var(--green-mid); color: white; }
-    .product-tag .tag-q-badge { width: 15px; height: 15px; border-radius: 50%; background: var(--green-primary); color: white; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .product-tag.tag-info:active .tag-q-badge { background: white; color: var(--green-primary); }
-
-    /* ── 하단 시트 ── */
     .term-sheet-overlay { position: fixed; inset: 0; background: rgba(27,58,46,0.35); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
     .term-sheet-overlay.active { opacity: 1; pointer-events: auto; }
     .term-sheet { position: fixed; left: 50%; transform: translateX(-50%) translateY(100%); bottom: 0; width: 100%; max-width: 480px; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,0.15); z-index: 101; transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); padding: 10px 22px max(22px, env(safe-area-inset-bottom)); }
@@ -332,103 +215,42 @@
     .term-sheet-close { width: 100%; margin-top: 18px; padding: 13px; background: var(--green-light); color: var(--green-deep); border: none; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
     .term-sheet-close:hover { background: #DCE9DF; }
 
-
-    .product-tag { font-size: 15px; font-weight: 700; padding: 3px 10px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); letter-spacing: -0.01em; }
-    .product-tag.tag-warn { background: rgba(201, 83, 61, 0.1); color: var(--warn); }
-    .rank-1 .product-tag.tag-tier { background: var(--gold); color: white; }
-    .rank-2 .product-tag.tag-tier { background: var(--silver); color: white; }
-    .rank-3 .product-tag.tag-tier { background: var(--bronze); color: white; }
-    .product-scores { display: none; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 4px; margin-top: 8px; padding: 8px 4px; background: var(--paper); border: 1px solid var(--line-soft); border-radius: 6px; }
-    .product-scores.active { display: grid; }
-    .score-bar { text-align: center; }
-    .score-bar-label { font-size: 12px; color: var(--ink-faint); margin-bottom: 2px; font-weight: 600; }
-    .score-bar-value { font-size: 13px; font-weight: 800; color: var(--green-deep); }
-    .score-bar-track { height: 2px; background: var(--line-soft); border-radius: 2px; margin-top: 2px; overflow: hidden; }
-    .score-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green-mid) 0%, var(--green-primary) 100%); border-radius: 2px; transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
-    .product-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
-    .btn {
-      padding: 9px 10px; border: none; border-radius: 6px;
-      font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
-      letter-spacing: -0.01em; transition: all 0.15s ease;
-      display: flex; align-items: center; justify-content: center; gap: 4px;
-      text-decoration: none;
-    }
-    .btn-secondary { background: var(--green-light); color: var(--green-deep); }
-    .btn-secondary:hover { background: #DCE9DF; }
-    .btn-primary { background: var(--green-primary); color: white; }
-    .btn-primary:hover { background: var(--green-deep); }
-    .btn-fit {
-      display: flex; align-items: center; justify-content: center; gap: 4px;
-      width: 100%; margin-top: 6px; padding: 9px 10px;
-      border: 1px solid #97C459; border-radius: 6px;
-      background: #EAF3DE; color: #27500A;
-      font-family: inherit; font-size: 13px; font-weight: 700;
-      letter-spacing: -0.01em; text-decoration: none; cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .btn-fit:hover { background: #DCEEC8; }
-    .explanation { margin-top: 10px; padding: 12px; background: var(--green-bg); border-left: 3px solid var(--green-primary); border-radius: 6px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); display: none; }
-    .explanation.active { display: block; animation: fadeIn 0.3s ease; }
-    .explanation-loading { display: flex; align-items: center; gap: 8px; color: var(--ink-faint); font-size: 13px; }
-    .explanation-loading::before { content: ''; width: 11px; height: 11px; border: 2px solid var(--line); border-top-color: var(--green-primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
-
-    /* ── 4위 이하 카드 ── */
-    .rest-section { margin-top: 20px; }
-    .rest-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
-    .rest-card { background: white; border: 1px solid var(--line-soft); border-radius: 10px; padding: 10px; margin-bottom: 8px; transition: box-shadow 0.2s ease; }
-    .rest-card:hover { box-shadow: var(--shadow-sm); }
-    .rest-card-row { display: flex; gap: 10px; align-items: center; }
-    .rest-image-wrap { width: 56px; flex-shrink: 0; position: relative; }
-    .rest-image { width: 56px; height: 72px; object-fit: cover; border-radius: 6px; background: var(--green-bg); display: block; }
-    .rest-image-fallback { width: 56px; height: 72px; border-radius: 6px; background: var(--green-bg); display: flex; align-items: center; justify-content: center; }
-    .rest-image-fallback i { font-size: 24px; color: var(--ink-faint); }
-    .rest-info { flex: 1; min-width: 0; position: relative; }
-    .rest-meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-    .rest-rank { font-size: 12px; color: var(--ink-faint); font-weight: 600; }
-    .rest-vscore { font-size: 16px; font-weight: 800; color: var(--green-deep); }
-    .rest-name { font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.3; letter-spacing: -0.01em; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 50px; }
-    .rest-detail { font-size: 12px; color: var(--ink-soft); }
-    .rest-expand-btn { position: absolute; bottom: 0; right: 0; background: transparent; color: #B4B2A9; border: 1px solid var(--line-soft); border-radius: 100px; font-size: 12px; font-weight: 400; padding: 2px 7px; cursor: pointer; font-family: inherit; line-height: 1; display: inline-flex; align-items: center; gap: 1px; white-space: nowrap; height: 14px; transition: all 0.15s ease; }
-    .rest-expand-btn:hover { background: var(--green-bg); color: var(--green-primary); border-color: var(--green-primary); }
-    .rest-card.expanded { background: white; border: 1.5px solid var(--green-primary); border-radius: 14px; padding: 14px; box-shadow: var(--shadow-md); }
-    .rest-card.expanded .rest-card-row { display: none; }
-    .rest-card.expanded .expanded-content { display: block; animation: expandIn 0.3s ease; }
-    .rest-card .expanded-content { display: none; }
-    @keyframes expandIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-    .expanded-card-row { display: flex; gap: 12px; align-items: flex-start; }
-    .expanded-image-wrap { width: 96px; flex-shrink: 0; position: relative; }
-    .expanded-image { width: 96px; height: 120px; object-fit: cover; border-radius: var(--radius-sm); background: var(--green-bg); display: block; }
-    .expanded-image-fallback { width: 96px; height: 120px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #E8F1EA 0%, #D9DDD7 100%); display: flex; align-items: center; justify-content: center; }
-    .expanded-image-fallback i { font-size: 33px; color: var(--ink-faint); }
-    .expanded-rank-badge { position: absolute; top: -6px; left: -6px; width: 26px; height: 26px; border-radius: 50%; background: var(--green-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2; }
-    .expanded-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-    .expanded-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .expanded-rank-pill { font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: var(--green-primary); color: white; letter-spacing: 0.04em; flex-shrink: 0; }
-    .expanded-name { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.35; }
-    .expanded-spec { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; background: var(--green-bg); border-radius: 6px; }
-    .expanded-spec-label { font-size: 12px; color: var(--ink-faint); letter-spacing: 0.02em; font-weight: 600; text-transform: uppercase; margin-bottom: 1px; }
-    .expanded-spec-value { font-size: 13px; color: var(--green-deep); font-weight: 700; }
-    .expanded-tags { display: flex; flex-wrap: wrap; gap: 3px; }
-    .expanded-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
-    .btn-collapse { background: var(--line-soft); color: var(--ink-soft); border: none; border-radius: 6px; padding: 9px 10px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: -0.01em; transition: all 0.15s ease; }
-    .btn-collapse:hover { background: var(--line); }
-    .btn-coupang-expanded { background: var(--green-primary); color: white; text-decoration: none; border-radius: 6px; padding: 9px 10px; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s ease; }
-    .btn-coupang-expanded:hover { background: var(--green-deep); }
-
-    .alert { padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 15px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
-    .alert-warn { background: rgba(201, 83, 61, 0.06); border: 1px solid rgba(201, 83, 61, 0.2); color: var(--warn); }
-    .alert-icon { flex-shrink: 0; font-size: 18px; line-height: 1.3; }
-    .disclaimer { margin-top: 28px; padding: 14px; font-size: 13px; color: var(--ink-faint); text-align: center; line-height: 1.6; border-top: 1px solid var(--line-soft); }
-    .error-box { text-align: center; padding: 40px 20px; color: var(--warn); }
-    .error-box-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-    .error-box-detail { font-size: 14px; color: var(--ink-faint); margin-top: 8px; }
-
-    .profile-icon-box svg, .psw-icon-box svg { display: block; }
-    .btn svg, .btn-fit svg, .btn-coupang-expanded svg { flex-shrink: 0; }
-    .psw-btn.active .psw-icon-box { background: rgba(255,255,255,0.2) !important; }
-    .psw-btn.active .psw-icon-box svg { stroke: white !important; }
-    .btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
-    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .cat-tabbar { position: sticky; top: 0; z-index: 9; background: var(--paper); display: flex; gap: 7px; overflow-x: auto; padding: 12px 20px; scrollbar-width: none; border-bottom: 1px solid var(--line-soft); margin: -24px -20px 0; }
+    .cat-tabbar::-webkit-scrollbar { display: none; }
+    .cat-tab { flex: 0 0 auto; border: 1px solid var(--line); background: #fff; color: var(--ink-soft); font-size: 14px; font-family: inherit; padding: 9px 16px; border-radius: 22px; cursor: pointer; white-space: nowrap; transition: 0.15s; font-weight: 600; }
+    .cat-tab.active { background: var(--green-deep); color: #fff; border-color: var(--green-deep); }
+    .cat-meta { font-size: 12px; color: var(--ink-faint); padding: 14px 2px 4px; }
+    .cat-status { padding: 50px 18px; text-align: center; color: var(--ink-faint); font-size: 14px; }
+    .cv-card { background: #fff; border: 1px solid var(--line-soft); border-radius: 18px; padding: 18px 18px 15px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+    .cv-row { display: flex; align-items: flex-start; gap: 13px; }
+    .cv-thumb { width: 58px; height: 58px; border-radius: 13px; object-fit: cover; flex-shrink: 0; background: var(--green-bg); border: 1px solid var(--line-soft); }
+    .cv-grade { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 12px; border-radius: 8px; border: 1px solid; }
+    .cv-name { font-size: 16px; color: var(--green-deep); font-weight: 700; line-height: 1.4; margin-top: 9px; letter-spacing: -0.02em; }
+    .cv-vlabel { font-size: 11px; color: var(--ink-faint); letter-spacing: 0.03em; white-space: nowrap; }
+    .cv-vq { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 9px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; vertical-align: middle; }
+    .cv-vnum { font-size: 34px; color: var(--green-deep); font-weight: 800; line-height: 1.05; letter-spacing: -0.04em; }
+    .cv-panels { display: flex; gap: 11px; margin-top: 16px; align-items: stretch; }
+    .cv-panel { flex: 1; padding: 13px 14px; background: var(--green-bg); border-radius: 14px; }
+    .cv-plabel { font-size: 12px; color: var(--ink-soft); }
+    .cv-purity { display: inline-block; background: var(--green-light); color: var(--green-primary); font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: 700; }
+    .cv-pval { font-size: 26px; color: var(--green-deep); font-weight: 800; letter-spacing: -0.03em; }
+    .cv-punit { font-size: 13px; color: var(--ink-faint); }
+    .cv-rank { font-size: 12px; color: var(--green-primary); margin-top: 2px; font-weight: 600; }
+    .cv-track { position: relative; height: 6px; background: #E4DFD3; border-radius: 3px; margin-top: 6px; }
+    .cv-dot { position: absolute; top: -4px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--green-deep); border: 2px solid #fff; }
+    .cv-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-faint); margin-top: 2px; }
+    .cv-voc { margin-top: 15px; padding: 12px 14px; background: var(--paper); border: 1px dashed var(--line); border-radius: 12px; }
+    .cv-voc-h { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+    .cv-voc-tag { font-size: 10px; color: #A8997A; background: #F0E9D8; padding: 1px 7px; border-radius: 10px; }
+    .cv-vchip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 11px; border-radius: 20px; margin: 0 7px 7px 0; font-weight: 600; }
+    .cv-specs { margin-top: 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+    .cv-specs b { color: var(--ink-faint); font-weight: 600; }
+    .cv-reasons { margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line-soft); }
+    .cv-rlabel { font-size: 12px; color: var(--ink-faint); margin-bottom: 8px; }
+    .cv-rchip { display: inline-block; background: var(--green-light); color: var(--green-deep); font-size: 12px; padding: 5px 11px; border-radius: 20px; margin: 0 6px 7px 0; }
+    .cv-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+    .cv-rev { font-size: 12px; color: var(--ink-faint); }
+    .cv-buy { font-size: 14px; color: var(--green-primary); font-weight: 700; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -446,8 +268,8 @@
   <main class="screen active" id="screenHome">
     <section class="hero">
       <div class="hero-eyebrow">광고 없는 정직한 비교</div>
-      <h1 class="hero-title">나에게 맞는<br>오메가3 찾기</h1>
-      <p class="hero-subtitle">58개 제품 · 임상 근거 기반 V-Score</p>
+      <h1 class="hero-title">나에게 맞는<br>영양제 찾기</h1>
+      <p class="hero-subtitle">오메가3 · 눈 · 유산균 · 비타민C<br>임상 근거 기반 V-Score</p>
     </section>
 
     <div class="consult-input-wrap">
@@ -458,7 +280,7 @@
       <div class="consult-input-title">ingredi에게 물어보세요</div>
       <div class="consult-input-desc">증상·성분·제품명 무엇이든 입력해보세요<br>AI가 답변과 함께 딱 맞는 제품을 찾아드려요</div>
       <div class="free-input-wrap">
-        <input type="text" class="free-input" id="freeInput" placeholder="예: 혈행 개선 · EPA · 담백하루" autocomplete="off">
+        <input type="text" class="free-input" id="freeInput" placeholder="예: 혈행 개선 · 눈 건강 · 장 건강 · 비타민C" autocomplete="off">
         <button class="free-input-btn" id="freeInputBtn" aria-label="질문하기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14M13 5l7 7-7 7"/>
@@ -467,68 +289,37 @@
       </div>
       <div class="input-examples">
         <span class="input-example-chip" onclick="setInput('혈행 개선에 좋은 오메가3')">혈행 개선</span>
-        <span class="input-example-chip" onclick="setInput('눈 건강에 좋은 오메가3 추천')">눈 건강</span>
-        <span class="input-example-chip" onclick="setInput('EPA와 DHA 차이가 뭐야?')">EPA·DHA</span>
-        <span class="input-example-chip" onclick="setInput('rTG와 EE 차이가 뭐야?')">rTG vs EE</span>
-        <span class="input-example-chip" onclick="setInput('담백하루')">담백하루</span>
+        <span class="input-example-chip" onclick="setInput('눈 건강에 좋은 영양제')">눈 건강</span>
+        <span class="input-example-chip" onclick="setInput('장 건강 유산균 추천')">장 건강</span>
+        <span class="input-example-chip" onclick="setInput('비타민C 고함량 추천')">비타민C</span>
+      </div>
+    </div>
+
+    <h2 class="section-title">카테고리별 비교</h2>
+    <div class="profile-grid" id="categoryGrid">
+      <div class="profile-card" onclick="openCategory('오메가3')">
+        <div class="profile-icon-box icon-omega"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z"/></svg></div>
+        <div class="profile-text"><div class="profile-label">오메가3</div><div class="profile-desc">혈행·뇌·눈 건강</div></div>
+      </div>
+      <div class="profile-card" onclick="openCategory('눈')">
+        <div class="profile-icon-box icon-eye"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div class="profile-text"><div class="profile-label">눈 건강</div><div class="profile-desc">루테인·지아잔틴</div></div>
+      </div>
+      <div class="profile-card" onclick="openCategory('마이크로바이옴')">
+        <div class="profile-icon-box icon-prob"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="10" r="4"/><circle cx="16" cy="15" r="3"/><path d="M9 6v-1M5 10H4M13 13l-1-1"/></svg></div>
+        <div class="profile-text"><div class="profile-label">유산균</div><div class="profile-desc">장 건강·면역</div></div>
+      </div>
+      <div class="profile-card" onclick="openCategory('비타민C')">
+        <div class="profile-icon-box icon-vitc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></div>
+        <div class="profile-text"><div class="profile-label">비타민C</div><div class="profile-desc">항산화·면역</div></div>
       </div>
     </div>
 
     <div class="compare-entry-section">
       <div class="compare-entry-title">성별·나이 맞춤 추천</div>
-      <div class="compare-entry-desc">몇 가지만 고르면 나에게 맞는 오메가3를 추천해드려요</div>
+      <div class="compare-entry-desc">몇 가지만 고르면 나에게 맞는 제품을 추천해드려요</div>
       <div class="compare-entry-buttons">
         <a class="compare-entry-btn primary" href="/for-me.html">맞춤 추천 받기</a>
-      </div>
-    </div>
-
-    <div class="divider"><span class="divider-text">또는 프로필 직접 선택</span></div>
-
-    <h2 class="section-title">프로필별 추천</h2>
-    <div class="profile-grid">
-      <div class="profile-card" data-profile="premium_seeker">
-        <div class="profile-icon-box icon-premium"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M12 15l-3.5 6 3.5-2 3.5 2z"/></svg></div>
-        <div class="profile-text">
-          <div class="profile-label">최고 품질</div>
-          <div class="profile-desc">비싸도 좋은 제품</div>
-        </div>
-      </div>
-      <div class="profile-card" data-profile="budget_seeker">
-        <div class="profile-icon-box icon-budget"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 7v1m0 8v1"/></svg></div>
-        <div class="profile-text">
-          <div class="profile-label">가성비</div>
-          <div class="profile-desc">합리적인 가격</div>
-        </div>
-      </div>
-      <div class="profile-card" data-profile="pregnancy">
-        <div class="profile-icon-box icon-preg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 13.572L12 21l-7.5-7.428A5 5 0 1 1 12 7.006a5 5 0 1 1 7.5 6.572"/></svg></div>
-        <div class="profile-text">
-          <div class="profile-label">임산부·수유부</div>
-          <div class="profile-desc">안전성 우선</div>
-        </div>
-      </div>
-      <div class="profile-card" data-profile="senior">
-        <div class="profile-icon-box icon-senior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
-        <div class="profile-text">
-          <div class="profile-label">시니어 (50+)</div>
-          <div class="profile-desc">고함량·흡수율</div>
-        </div>
-      </div>
-
-
-      <div class="profile-card" data-profile="balanced">
-        <div class="profile-icon-box icon-balance"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7l-3 7a4 4 0 0 0 8 0z"/><path d="M19 7l-3 7a4 4 0 0 0 8 0z"/><path d="M8 21h8"/></svg></div>
-        <div class="profile-text">
-          <div class="profile-label">균형형 추천 (기본)</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="compare-entry-section">
-      <div class="compare-entry-title">제품 직접 비교하기</div>
-      <div class="compare-entry-desc">관심 있는 제품 1~3개를 골라 함량·가격·인증을 한눈에 비교</div>
-      <div class="compare-entry-buttons">
-        <a class="compare-entry-btn primary" href="/compare.html?mode=select&profile=balanced">직접 골라 비교</a>
       </div>
     </div>
 
@@ -550,19 +341,14 @@
     <div class="loading-text" id="loadingText">분석 중입니다…</div>
   </div>
 
-  <main class="screen" id="screenResult">
-    <div class="result-profile-head">
-      <div class="result-profile-eyebrow">ingredi V-Score · 어떤 기준으로 볼까요?</div>
-      <div class="profile-switch-grid" id="profileSwitch"></div>
-      <div class="result-profile-meta" id="resultMeta">총 14개 제품 분석</div>
-    </div>
-    <div id="resultMedicalAlert"></div>
-    <div id="resultProducts"></div>
-    <div id="resultCompareEntry"></div>
-    <div id="resultRest"></div>
-    <div class="disclaimer" id="resultDisclaimer"></div>
+  <main class="screen" id="screenCategory">
+    <div class="cat-tabbar" id="catTabbar"></div>
+    <div class="cat-meta" id="catMeta"></div>
+    <div id="catCards"></div>
+    <div class="cat-status" id="catStatus"></div>
     <div class="disclosure">
-      <p class="disclosure-text"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 모든 추천은 임상 근거와 데이터로만 이루어집니다. 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 제품 추천 결과에 영향을 주지 않습니다.</p>
+      <p class="disclosure-text" id="catDisclaimer"></p>
+      <p class="disclosure-text" style="margin-top:8px"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 추천 결과에 영향을 주지 않습니다.</p>
     </div>
   </main>
 
@@ -578,193 +364,40 @@
 
 <script>
 const API_BASE = window.location.origin;
-let lastProfile = 'balanced';
 
-// ── 용어 설명 데이터 ──
 const TERM_INFO = {
-  // 막대 그래프
-  "epadha": { title: "EPA+DHA 함량", badge: "핵심 지표",
-    body: "오메가3의 핵심 성분이에요. EPA는 혈행·염증 개선, DHA는 뇌·눈 건강에 도움을 줍니다. 하루 권장량은 보통 500~2,000mg이에요.",
-    points: ["막대에서 이 제품의 위치와 평균을 비교해보세요"] },
-  "cost": { title: "1일 복용 비용", badge: "가격 지표",
-    body: "하루에 권장량을 섭취하는 데 드는 비용이에요. 제품 가격 ÷ 복용 일수로 계산해요. 낮을수록 가성비가 좋아요.",
-    points: ["평균보다 왼쪽에 있으면 저렴한 편이에요"] },
-  "capsule": { title: "캡슐 크기 (목넘김)", badge: "복용 편의",
-    body: "캡슐 1알의 무게예요. 작을수록 삼키기 편해요. 고함량이면서 작은 캡슐이 가장 좋아요.",
-    points: ["평균보다 왼쪽이면 비교적 작은 캡슐이에요"] },
-  // 제형
-  "rtg": { title: "rTG", badge: "제형",
-    body: "오메가3 형태 중 흡수율이 가장 높은 3세대 형태예요. TG → EE → rTG 순으로 정제 단계를 거쳐요.",
-    points: ["흡수율 가장 높음", "산화 안정성 우수"] },
-  "tg": { title: "TG", badge: "제형",
-    body: "자연 어유에 가장 가까운 형태예요. 흡수가 잘 되고 안정적이에요.",
-    points: ["자연 형태", "흡수 양호"] },
-  "ee": { title: "EE", badge: "제형",
-    body: "농축 과정에서 만들어지는 형태예요. 가격이 합리적이지만 흡수율은 rTG·TG보다 다소 낮다는 보고가 있어요.",
-    points: [] },
-  // 인증
-  "ifos": { title: "IFOS", badge: "인증",
-    body: "캐나다 Nutrasource의 국제 어유 인증이에요. 함량·신선도·중금속·산화를 검사해요. 5-Star는 모든 항목 최고 등급을 의미해요.",
-    points: ["함량·신선도·중금속·산화 검사"] },
-  "gmp": { title: "GMP / cGMP", badge: "인증",
-    body: "우수 제조 관리 기준이에요. 제조 시설의 위생과 품질 관리를 인증해요.",
-    points: [] },
-  "goed": { title: "GOED", badge: "인증",
-    body: "글로벌 EPA·DHA 협회의 품질 기준이에요. 산업 표준을 충족했다는 의미예요.",
-    points: [] },
-  "msc": { title: "MSC", badge: "인증",
-    body: "지속가능한 어업 인증이에요. 환경을 해치지 않고 잡은 원료라는 뜻이에요.",
-    points: ["지속가능 어업"] },
-  "nsf": { title: "NSF", badge: "인증",
-    body: "미국 NSF International의 식품 안전 인증이에요.",
-    points: [] },
-  "fos": { title: "Friend of the Sea", badge: "인증",
-    body: "지속가능한 어업을 인증하는 국제 기준이에요. 해양 생태계 보호를 의미해요.",
-    points: ["지속가능 어업"] },
-  "iffo": { title: "IFFO RS / MarinTrust", badge: "인증",
-    body: "어유 원료의 책임 있는 공급을 인증하는 기준이에요.",
-    points: [] },
-  // 원료사 (공통 설명)
-  "supplier": { title: "글로벌 프리미엄 원료사", badge: "원료",
-    body: "DSM, KD-Pharma, Epax 등은 글로벌 프리미엄 오메가3 원료 전문 기업이에요. 엄격한 품질 관리와 청정 원료로 신뢰받아요.",
-    points: ["엄격한 품질 관리", "청정 원료 사용"] }
+  vscore: { title: "V-Score", badge: "종합 지표",
+    body: "공개된 제품 데이터(핵심성분·가격·리뷰 등)를 임상 근거 기준으로 종합해 55~98 범위로 환산한 객관적 지표예요. 같은 카테고리 안에서 상대 비교용이며, 개인 건강 상태에 따라 최적 제품은 다를 수 있어요.",
+    points: ["핵심성분·비용·리뷰 종합", "카테고리 내 상대 평가"] },
+  purity: { title: "순도", badge: "성분 비율",
+    body: "캡슐 전체 무게 중 핵심성분이 차지하는 비율이에요. 높을수록 부형제가 적고 유효 성분 밀도가 높아요.",
+    points: ["핵심성분 ÷ 캡슐 전체 중량"] }
 };
-
-// 태그 텍스트 → 용어 키 매핑
-function termKeyFromTag(text) {
-  const t = String(text).toLowerCase();
-  if (t.indexOf("rtg") !== -1) return "rtg";
-  if (t === "tg" || t.indexOf("triglyceride") !== -1) return "tg";
-  if (t === "ee" || t.indexOf("ethyl") !== -1) return "ee";
-  if (t.indexOf("ifos") !== -1) return "ifos";
-  if (t.indexOf("gmp") !== -1) return "gmp";
-  if (t.indexOf("goed") !== -1) return "goed";
-  if (t.indexOf("msc") !== -1) return "msc";
-  if (t.indexOf("nsf") !== -1) return "nsf";
-  if (t.indexOf("friend of the sea") !== -1 || t.indexOf("fos") !== -1) return "fos";
-  if (t.indexOf("iffo") !== -1 || t.indexOf("marintrust") !== -1) return "iffo";
-  return null;
-}
-
 function openTermSheet(key) {
   const info = TERM_INFO[key];
   if (!info) return;
   document.getElementById("termSheetTitle").innerHTML =
     escapeHtml(info.title) + (info.badge ? ` <span class="term-sheet-badge">${escapeHtml(info.badge)}</span>` : "");
   document.getElementById("termSheetBody").textContent = info.body;
-  const pointsEl = document.getElementById("termSheetPoints");
-  pointsEl.innerHTML = (info.points || []).map(p => `<div class="term-sheet-point">✓ ${escapeHtml(p)}</div>`).join("");
+  document.getElementById("termSheetPoints").innerHTML =
+    (info.points || []).map(p => `<div class="term-sheet-point">✓ ${escapeHtml(p)}</div>`).join("");
   document.getElementById("termSheetOverlay").classList.add("active");
   document.getElementById("termSheet").classList.add("active");
 }
-window.openTermSheet = openTermSheet;
-
-function openTermFromTag(text) {
-  const key = termKeyFromTag(text);
-  if (key) openTermSheet(key);
-}
-window.openTermFromTag = openTermFromTag;
-
 function closeTermSheet() {
   document.getElementById("termSheetOverlay").classList.remove("active");
   document.getElementById("termSheet").classList.remove("active");
 }
+window.openTermSheet = openTermSheet;
 window.closeTermSheet = closeTermSheet;
 
 function escapeHtml(str) {
   if (str == null) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-function firstOf(value) {
-  if (value == null) return '';
-  if (Array.isArray(value)) return value[0] || '';
-  if (typeof value === 'string') return value.split(',')[0].trim();
-  return String(value);
-}
-function safeNum(value, fallback = 0) {
-  if (value == null) return fallback;
-  const n = Number(value);
-  return isNaN(n) ? fallback : n;
-}
-
-// ── 캡슐 크기 UI (새 디자인) ──
-let capsuleDist = { min: 0, max: 0, count: 0 };
-let distributions = null;
-function calcPos(value, min, max) {
-  if (!value || max === min) return null;
-  return Math.max(0, Math.min(100, Math.round((value - min) / (max - min) * 100)));
-}
-
-function fmtNumber(v) { return Number(v).toLocaleString(); }
-
-function renderStatBar(opts) {
-  // opts: { title, value, min, max, avg, unit, minLabel, maxLabel }
-  const { title, value, min, max, avg, unit } = opts;
-  if (!value || min === max) return '';
-  const pos = calcPos(value, min, max);
-  if (pos == null) return '';
-  const avgPos = calcPos(avg, min, max);
-  const minLabel = opts.minLabel || '최소';
-  const maxLabel = opts.maxLabel || '최대';
-  const avgHtml = (avg > 0 && avgPos != null)
-    ? `<div class="stat-bar-avg-dot" style="left:${avgPos}%"></div><div class="stat-bar-avg-label" style="left:${avgPos}%">평균 ${fmtNumber(avg)}${unit}</div>`
-    : '';
-  return `
-    <div class="stat-bar">
-      <div class="stat-bar-line">
-        <span class="title">${title}</span><span class="value">${fmtNumber(value)}${unit}</span>${opts.termKey ? `<button class="q-icon" onclick="openTermSheet('${opts.termKey}')">?</button>` : ''}
-      </div>
-      <div class="stat-bar-graph">
-        <div class="stat-bar-track"></div>
-        <div class="stat-bar-fill" style="width:${pos}%"></div>
-        <div class="stat-bar-endpoint left"></div>
-        <div class="stat-bar-endpoint right"></div>
-        ${avgHtml}
-        <div class="stat-bar-dot" style="left:${pos}%"></div>
-      </div>
-      <div class="stat-bar-ends">
-        <span>${minLabel} ${fmtNumber(min)}${unit}</span>
-        <span>${maxLabel} ${fmtNumber(max)}${unit}</span>
-      </div>
-    </div>`;
-}
-
-
-function renderStatBars(item) {
-  const d = distributions || {};
-  let html = '';
-  if (d.dose && safeNum(item.dailyMg) > 0) {
-    html += renderStatBar({
-      title: 'EPA+DHA 함량', termKey: 'epadha',
-      value: safeNum(item.dailyMg),
-      min: d.dose.min, max: d.dose.max, avg: d.dose.avg,
-      unit: 'mg'
-    });
-  }
-  if (d.cost && safeNum(item.dailyCost) > 0) {
-    html += renderStatBar({
-      title: '1일 복용 비용', termKey: 'cost',
-      value: safeNum(item.dailyCost),
-      min: d.cost.min, max: d.cost.max, avg: d.cost.avg,
-      unit: '원',
-      minLabel: '최저', maxLabel: '최고'
-    });
-  }
-  if (d.capsule && safeNum(item.capsuleMg) > 0) {
-    html += renderStatBar({
-      title: '캡슐 크기 (목넘김)', termKey: 'capsule',
-      value: safeNum(item.capsuleMg),
-      min: d.capsule.min, max: d.capsule.max, avg: d.capsule.avg,
-      unit: 'mg'
-    });
-  }
-  return html;
-}
-
-function renderCapsuleBar(keySpec) {
-  // 호환성: 캡슐만 렌더 (옛 호출 처리용)
-  return renderStatBars({ capsuleMg: keySpec.capsuleMg });
-}
+function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function clampPos(x){ return Math.max(3, Math.min(97, x)); }
+function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
 
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -773,9 +406,6 @@ function showScreen(name) {
   window.scrollTo(0, 0);
 }
 document.getElementById('backBtn').addEventListener('click', () => showScreen('home'));
-document.querySelectorAll('.profile-card').forEach(card => {
-  card.addEventListener('click', () => fetchRecommendation(card.dataset.profile));
-});
 
 const freeInput = document.getElementById('freeInput');
 const freeInputBtn = document.getElementById('freeInputBtn');
@@ -789,272 +419,188 @@ freeInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleConsu
 function setInput(text) { freeInput.value = text; freeInput.focus(); }
 window.setInput = setInput;
 
-async function fetchRecommendation(profile) {
-  lastProfile = profile;
-  showScreen('loading');
-  document.getElementById('loadingText').textContent = '맞춤 제품을 찾고 있어요…';
-  try {
-    const res = await fetch(`${API_BASE}/recommend?profile=${profile}`);
-    if (!res.ok) throw new Error('Server error: ' + res.status);
-    const data = await res.json();
-    if (data.capsuleDistribution) capsuleDist = data.capsuleDistribution;
-    if (data.distributions) distributions = data.distributions;
-    renderResult(data);
-    showScreen('result');
-  } catch (err) {
-    document.getElementById('resultMedicalAlert').innerHTML = '';
-    document.getElementById('resultProducts').innerHTML = `
-      <div class="error-box">
-        <div class="error-box-title">데이터를 불러올 수 없어요</div>
-        <div class="error-box-detail">${escapeHtml(err.message)}</div>
-      </div>`;
-    document.getElementById('resultCompareEntry').innerHTML = '';
-    document.getElementById('resultRest').innerHTML = '';
-    document.getElementById('resultDisclaimer').textContent = '';
-    showScreen('result');
-  }
-}
-
-// 프로필 전환 버튼 (아이콘 버전)
-var PSW_ICONS = {
-  premium_seeker: '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M12 15l-3.5 6 3.5-2 3.5 2z"/></svg>',
-  budget_seeker:  '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M14.8 9A2 2 0 0 0 13 8h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1"/><path d="M12 7v1m0 8v1"/></svg>',
-  balanced:       '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7l-3 7a4 4 0 0 0 8 0z"/><path d="M19 7l-3 7a4 4 0 0 0 8 0z"/><path d="M8 21h8"/></svg>',
-  senior:         '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
-  pregnancy:      '<svg width=\"18\" height=\"18\" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 13.572L12 21l-7.5-7.428A5 5 0 1 1 12 7.006a5 5 0 1 1 7.5 6.572"/></svg>',
+const CATS = [
+  { key:"오메가3",       label:"오메가3" },
+  { key:"눈",           label:"눈 건강" },
+  { key:"마이크로바이옴", label:"유산균" },
+  { key:"비타민C",       label:"비타민C" }
+];
+const PURITY = new Set(["오메가3","비타민C"]);
+const GRADE = {
+  S:["#FAF3E0","#B8902F","#EAD9A8"], A:["#F0F0F2","#6E7177","#DADCE0"],
+  B:["#EAF1EA","#2D5F3F","#CADBCD"], C:["#F6ECE3","#B07142","#E6D2C2"], D:["#F0EFEC","#8B8E91","#DEDCD6"]
 };
-var PROFILE_META = {
-  premium_seeker: { color: '#EEF2FF', label: '최고품질' },
-  budget_seeker:  { color: '#F0FDF4', label: '가성비' },
-  balanced:       { color: '#EEF2FF', label: '균형형' },
-  senior:         { color: '#EFF6FF', label: '시니어' },
-  pregnancy:      { color: '#FFF1F2', label: '임산부' },
+const VOCCOL = { good:["#EAF1EA","#2D5F3F"], warn:["#FBF1E3","#B07142"], neu:["#F0F0F2","#6E7177"] };
+const VOC = {
+  "오메가3":      [["비린내·트림","적음 18%","good"],["알약 크기","큰 편","warn"]],
+  "눈":          [["효과 체감","64%","good"],["알약 크기","보통","neu"]],
+  "마이크로바이옴": [["배변 개선","71%","good"],["가스·팽만","12%","warn"]],
+  "비타민C":      [["위장 부담","9%","good"],["알약 크기","보통","neu"]]
 };
-var SWITCH_TOP    = ['premium_seeker','budget_seeker','balanced'];
-var SWITCH_BOTTOM = ['senior','pregnancy'];
+const PLACEHOLDER = "data:image/svg+xml," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="58" height="58" viewBox="0 0 58 58"><rect width="58" height="58" rx="13" fill="#EEF1EC"/><rect x="22" y="12" width="14" height="7" rx="2" fill="#9FB6A4"/><rect x="17" y="18" width="24" height="29" rx="6" fill="#2D5F3F"/><rect x="17" y="29" width="24" height="9" fill="#fff" opacity="0.9"/></svg>'
+);
+const catCache = {};
+let activeCat = null;
 
-function pswBtn(id, current) {
-  var m = PROFILE_META[id] || { color:'#eee', label: id };
-  var svgIcon = PSW_ICONS[id] || '';
-  var active = (id === current) ? ' active' : '';
-  return '<button class="psw-btn' + active + '" onclick="fetchRecommendation(\'' + id + '\')">' +
-    '<div class="psw-icon-box" style="background:' + m.color + '">' + svgIcon + '</div>' +
-    '<span class="psw-label">' + m.label + '</span></button>';
-}
-function renderProfileSwitch(current) {
-  var box = document.getElementById('profileSwitch');
-  if (!box) return;
-  box.innerHTML =
-    '<div class="psw-row top">' + SWITCH_TOP.map(function(id){ return pswBtn(id, current); }).join('') + '</div>' +
-    '<div class="psw-row bottom">' + SWITCH_BOTTOM.map(function(id){ return pswBtn(id, current); }).join('') + '</div>';
-}
-
-function renderResult(data) {
-  document.getElementById('resultMeta').textContent =
-    `총 ${data.totalProducts||0}개 중 ${data.filteredCount||0}개 분석 · ${data.excludedCount||0}개 제외`;
-  renderProfileSwitch((data.profile && data.profile.id) || lastProfile);
-
-  const alertBox = document.getElementById('resultMedicalAlert');
-  if (data.medicalConsult) {
-    alertBox.innerHTML = `
-      <div class="alert alert-warn">
-        <span class="alert-icon">⚠</span>
-        <div><strong>의사·약사 상담을 권장합니다</strong><br>임산부·수유부·어린이는 복용 전 전문가와 상담하세요.</div>
-      </div>`;
-  } else { alertBox.innerHTML = ''; }
-
-  const products = document.getElementById('resultProducts');
-  if (!data.top3 || data.top3.length === 0) {
-    products.innerHTML = '<div class="alert"><span class="alert-icon">—</span>해당 조건에 맞는 제품을 찾을 수 없어요.</div>';
-    document.getElementById('resultCompareEntry').innerHTML = '';
-    document.getElementById('resultRest').innerHTML = '';
-  } else {
-    products.innerHTML = data.top3.map(renderProductCard).join('');
-    const compareEntry = document.getElementById('resultCompareEntry');
-    if (data.top3.length >= 2) {
-      const top3Ids = data.top3.map(p => p.id).join(',');
-      const profileId = (data.profile && data.profile.id) || 'balanced';
-      compareEntry.innerHTML = `
-        <div class="compare-entry-section">
-          <div class="compare-entry-title">한눈에 비교하기</div>
-          <div class="compare-entry-desc">Top ${data.top3.length} 자동 비교 또는 직접 골라서 비교할 수 있어요</div>
-          <div class="compare-entry-buttons" style="grid-template-columns: 1fr 1fr;">
-            <a class="compare-entry-btn primary" href="/compare.html?ids=${top3Ids}&profile=${profileId}">Top ${data.top3.length} 비교</a>
-            <a class="compare-entry-btn" href="/compare.html?mode=select&profile=${profileId}">직접 선택</a>
-          </div>
-        </div>`;
-    } else { compareEntry.innerHTML = ''; }
-  }
-
-  const restEl = document.getElementById('resultRest');
-  if (data.rest && data.rest.length > 0) {
-    restEl.innerHTML = `
-      <section class="rest-section">
-        <h3 class="rest-title">그 외 ${data.rest.length}개 제품</h3>
-        ${data.rest.map(r => renderRestCard(r)).join('')}
-      </section>`;
-  } else { restEl.innerHTML = ''; }
-  document.getElementById('resultDisclaimer').textContent = data.disclaimer || '';
-}
-
-function renderProductCard(p) {
-  const keySpec = p.keySpec || {};
-  const formTag = keySpec.form ? `<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(keySpec.form)}')">${escapeHtml(keySpec.form)}<span class="tag-q-badge">?</span></span>` : '';
-  // 인증 최대 3개까지 표시 (배열 또는 콤마 구분 문자열 처리)
-  const certsList = (function() {
-    const c = keySpec.certs;
-    if (!c) return [];
-    if (Array.isArray(c)) return c.slice(0, 3);
-    return String(c).split(/[,\/·]/).map(s => s.trim()).filter(Boolean).slice(0, 3);
-  })();
-  const certsTag = certsList.map(c => `<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(c)}')">${escapeHtml(c)}<span class="tag-q-badge">?</span></span>`).join('');
-  const highDoseTag = p.highDoseFlag ? '<span class="product-tag tag-warn">고함량 주의</span>' : '';
-  const scores = p.detailScores || {};
-  const scoreBars = [
-    { label: '함량', value: safeNum(scores.dose) },
-    { label: '제형', value: safeNum(scores.form) },
-    { label: '원료', value: safeNum(scores.source) },
-    { label: '인증', value: safeNum(scores.cert) },
-    { label: '가격', value: safeNum(scores.price) }
-  ].map(s => `
-    <div class="score-bar">
-      <div class="score-bar-label">${s.label}</div>
-      <div class="score-bar-value">${s.value}</div>
-      <div class="score-bar-track"><div class="score-bar-fill" style="width:${s.value}%"></div></div>
-    </div>`).join('');
-  const link = p.coupangLink || '';
-  const productId = p.id || '';
-  const rankLabel = ['1위','2위','3위'][p.rank-1] || p.rank + '위';
-  const imageHtml = p.image
-    ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'">`
-    : `<div class="product-image-fallback"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg></div>`;
-  return `
-    <article class="product-card rank-${p.rank}">
-      <div class="product-info-top">
-        <span class="product-rank-pill">${rankLabel}</span>
-        <div class="product-vscore-block">
-          <div class="product-vscore-num">${p.vScore||0}</div>
-          <div class="product-vscore-cap">V-SCORE</div>
-        </div>
-      </div>
-      <div class="product-card-row">
-        <div class="product-image-wrap">
-          ${imageHtml}
-          <span class="product-rank-badge">${p.rank}</span>
-        </div>
-        <div class="product-info">
-          <div class="product-name">${escapeHtml(p.name||'제품명 미상')}</div>
-          <div class="product-tags">${formTag}${certsTag}${highDoseTag}</div>
-        </div>
-      </div>
-      ${renderStatBars({ dailyMg: keySpec.dailyMg, dailyCost: keySpec.dailyCost, capsuleMg: keySpec.capsuleMg })}
-      <div class="product-scores" id="scores-${productId}">${scoreBars}</div>
-      <div class="explanation" id="exp-${productId}"></div>
-      <div class="product-actions">
-        <button class="btn btn-secondary" onclick="explainProduct('${productId}')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18M5 20V12m4 8V8m4 12V4m4 16v-6"/></svg> 왜 이 점수?
-        </button>
-        ${link
-          ? `<a class="btn btn-primary" href="${escapeHtml(link)}" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0m9 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M3 3h1.5l1.5 9h11l1.5-6H7"/></svg> 쿠팡에서 보기</a>`
-          : `<button class="btn btn-primary" disabled>링크 없음</button>`}
-      </div>
-      <a class="btn btn-fit" href="/fit.html?add=${encodeURIComponent('오메가3')}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4l5 5M3 21l6-6M10.5 10.5l3 3M4 20l10-10M17 7l-6 6M14 4l6 6"/></svg> 지금 먹는 영양제와 같이 먹어도 될까?
-      </a>
-    </article>`;
-}
-
-function renderRestCard(r) {
-  const link = r.coupangLink || '';
-  const imageHtml = r.image
-    ? `<img class="rest-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name||'')}" onerror="this.style.display='none'">`
-    : `<div class="rest-image-fallback"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg></div>`;
-  const expandedImageHtml = r.image
-    ? `<img class="expanded-image" src="${escapeHtml(r.image)}" alt="${escapeHtml(r.name||'')}" onerror="this.style.display='none'">`
-    : `<div class="expanded-image-fallback"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l8-8a4.95 4.95 0 0 1 7 7l-8 8a4.95 4.95 0 0 1-7-7z"/><path d="M8.5 8.5l7 7"/></svg></div>`;
-  const tier = '';
-  const productId = r.id || `rest-${r.rank}`;
-  const tags = [];
-  if (r.form) tags.push(`<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(r.form)}')">${escapeHtml(r.form)}<span class="tag-q-badge">?</span></span>`);
-  // 인증 최대 3개까지 표시
-  const restCertsList = (function() {
-    const c = r.certs;
-    if (!c) return [];
-    if (Array.isArray(c)) return c.slice(0, 3);
-    return String(c).split(/[,\/·]/).map(s => s.trim()).filter(Boolean).slice(0, 3);
-  })();
-  restCertsList.forEach(c => tags.push(`<span class="product-tag tag-info" onclick="openTermFromTag('${escapeHtml(c)}')">${escapeHtml(c)}<span class="tag-q-badge">?</span></span>`));
-  return `
-    <article class="rest-card" id="rest-${productId}">
-      <div class="rest-card-row">
-        <div class="rest-image-wrap">${imageHtml}</div>
-        <div class="rest-info">
-          <div class="rest-meta-row">
-            <span class="rest-rank">${r.rank}위</span>
-            <span class="rest-vscore">${r.vScore||0}</span>
-          </div>
-          <div class="rest-name">${escapeHtml(r.name||'제품명 미상')}</div>
-          <div class="rest-detail">V-Score${tier}</div>
-          <button class="rest-expand-btn" onclick="toggleExpand('${productId}')">자세히 ▼</button>
-        </div>
-      </div>
-      <div class="expanded-content">
-        <div class="expanded-info-top">
-          <span class="expanded-rank-pill">${r.rank}위</span>
-          <div class="product-vscore-block">
-            <div class="product-vscore-num">${r.vScore||0}</div>
-            <div class="product-vscore-cap">V-SCORE</div>
-          </div>
-        </div>
-        <div class="expanded-card-row">
-          <div class="expanded-image-wrap">
-            ${expandedImageHtml}
-            <span class="expanded-rank-badge">${r.rank}</span>
-          </div>
-          <div class="expanded-info">
-            <div class="expanded-name">${escapeHtml(r.name||'제품명 미상')}</div>
-            <div class="expanded-tags">${tags.join('')}</div>
-          </div>
-        </div>
-        ${renderStatBars({ dailyMg: r.dailyMg, dailyCost: r.dailyCost, capsuleMg: r.capsuleMg })}
-        <div class="expanded-actions">
-          <button class="btn-collapse" onclick="toggleExpand('${productId}')">접기</button>
-          ${link
-            ? `<a class="btn-coupang-expanded" href="${escapeHtml(link)}" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0m9 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M3 3h1.5l1.5 9h11l1.5-6H7"/></svg> 쿠팡에서 보기</a>`
-            : `<button class="btn-coupang-expanded" disabled style="background:var(--line);color:var(--ink-faint);">링크 없음</button>`}
-        </div>
-      </div>
-    </article>`;
-}
-
-function toggleExpand(productId) {
-  const card = document.getElementById('rest-' + productId);
-  if (!card) return;
-  card.classList.toggle('expanded');
-}
-window.toggleExpand = toggleExpand;
-
-async function explainProduct(productId) {
-  const expEl = document.getElementById('exp-' + productId);
-  if (!expEl) return;
-  if (expEl.classList.contains('active')) { expEl.classList.remove('active'); return; }
-  expEl.classList.add('active');
-  expEl.innerHTML = '<div class="explanation-loading">AI가 분석하고 있어요…</div>';
-  try {
-    const res = await fetch(`${API_BASE}/explain-recommendation?profile=${lastProfile}&id=${productId}`);
-    const data = await res.json();
-    if (data.error) {
-      expEl.innerHTML = String(data.error).indexOf('claude') !== -1
-        ? '⏳ <strong>AI 설명 기능 준비 중</strong><br><small>곧 더 자세한 설명을 제공해드릴게요.</small>'
-        : '설명을 불러올 수 없어요.';
-      return;
+function reasonChips(reason) {
+  reason = String(reason || "");
+  for (const sep of [" · "," / ",", "]) {
+    if (reason.indexOf(sep) !== -1) {
+      const parts = reason.split(sep).map(s => s.trim()).filter(Boolean);
+      if (parts.length > 1) return parts.slice(0, 4);
     }
-    expEl.innerHTML = escapeHtml(data.explanation||'').replace(/\n/g,'<br>');
-  } catch (err) {
-    expEl.innerHTML = '일시적인 오류가 발생했어요.';
+  }
+  return reason ? [reason] : [];
+}
+function statOf(arr){ return arr.length ? {min:Math.min(...arr), max:Math.max(...arr), n:arr.length} : {min:0,max:0,n:0}; }
+function rankHi(arr,v){ return arr.filter(x=>x>v).length+1; }
+function rankLo(arr,v){ return arr.filter(x=>x<v).length+1; }
+function pctile(arr,v){ return arr.length ? Math.round(arr.filter(x=>x<v).length/arr.length*100) : 0; }
+
+function buildStats(products){
+  const prim = products.map(p=>num(p.primaryValue)).filter(v=>v>0);
+  const cost = products.map(p=>num(p.dailyCost)).filter(v=>v>0);
+  const cap  = products.map(p=>num(p.capsuleMg)).filter(v=>v>0);
+  return { prim:statOf(prim), cost:statOf(cost), cap:statOf(cap), primArr:prim, costArr:cost, capArr:cap };
+}
+
+function renderCardV8(p, ctx){
+  const cat = ctx.cat, m = ctx.metrics, st = ctx.stats, uid = ctx.idx;
+  const grade = (p.grade||"").charAt(0).toUpperCase();
+  const colors = GRADE[grade] || GRADE.B;
+  const gb = colors[0], gt = colors[1], gbd = colors[2];
+  const pv = num(p.primaryValue);
+  const fill = pctile(st.primArr, pv);
+  const prank = rankHi(st.primArr, pv);
+  const cost = num(p.dailyCost), cap = num(p.capsuleMg);
+  const costRank = rankLo(st.costArr, cost);
+  const costPos = st.cost.max>st.cost.min ? clampPos((cost-st.cost.min)/(st.cost.max-st.cost.min)*100) : 50;
+
+  let purityChip = "";
+  if (PURITY.has(cat) && cap>0 && pv>0) purityChip = `<span class="cv-purity">순도 ${Math.round(pv/cap*100)}%</span>`;
+
+  const capY = (6 + 84*(1-fill/100)).toFixed(1);
+  const capH = (84*fill/100).toFixed(1);
+  const capsule = `<svg width="50" height="70" viewBox="0 0 72 96" style="flex-shrink:0">
+    <defs><clipPath id="cc${uid}"><rect x="20" y="6" width="32" height="84" rx="16"/></clipPath></defs>
+    <rect x="20" y="6" width="32" height="84" rx="16" fill="#F0ECE2" stroke="#C9C3B5" stroke-width="1.5"/>
+    <rect x="20" y="${capY}" width="32" height="${capH}" fill="#2D5F3F" clip-path="url(#cc${uid})"/>
+    <line x1="20" y1="48" x2="52" y2="48" stroke="#fff" stroke-width="1.5" opacity="0.5"/></svg>`;
+
+  let capBlock;
+  if (cap>0){
+    const capRank = rankLo(st.capArr, cap);
+    const capPos = st.cap.max>st.cap.min ? clampPos((cap-st.cap.min)/(st.cap.max-st.cap.min)*100) : 50;
+    capBlock = `<div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span class="cv-plabel">캡슐 크기</span><span class="cv-rank">${st.cap.n}개 중 ${capRank}위</span></div>
+      <div class="cv-track"><div class="cv-dot" style="left:${capPos}%"></div></div>
+      <div class="cv-ends"><span>${fmt(st.cap.min)}mg</span><span>${fmt(st.cap.max)}mg</span></div></div>`;
+  } else {
+    capBlock = `<div><span class="cv-plabel">캡슐 크기</span><div style="font-size:12px;color:var(--ink-faint);margin-top:6px">캡슐 없음 (분말/스틱)</div></div>`;
+  }
+
+  const voc = (VOC[cat]||[]).map(function(v){
+    const lab=v[0], val=v[1], t=v[2];
+    const c = VOCCOL[t] || VOCCOL.neu;
+    return `<span class="cv-vchip" style="background:${c[0]};color:${c[1]}"><b style="font-weight:700">${escapeHtml(lab)}</b> ${escapeHtml(val)}</span>`;
+  }).join("");
+  const rchips = reasonChips(p.reason).map(r=>`<span class="cv-rchip">${escapeHtml(r)}</span>`).join("");
+  const certsStr = String(p.certs||"");
+  const certs = escapeHtml(certsStr.slice(0,30)) + (certsStr.length>30?"…":"");
+  const img = p.image ? escapeHtml(p.image) : PLACEHOLDER;
+  const buy = p.link ? `<a class="cv-buy" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">제품 보기 →</a>` : `<span class="cv-buy">제품 보기 →</span>`;
+
+  return `<div class="cv-card">
+    <div class="cv-row">
+      <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
+      <div style="flex:1;min-width:0">
+        <span class="cv-grade" style="background:${gb};color:${gt};border-color:${gbd}">${escapeHtml(p.grade||"-")}등급</span>
+        <div class="cv-name">${escapeHtml(p.name)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="cv-vlabel">V-SCORE <button class="cv-vq" onclick="openTermSheet('vscore')">?</button></div>
+        <div class="cv-vnum">${Math.round(num(p.vScore))}</div>
+      </div>
+    </div>
+    <div class="cv-panels">
+      <div class="cv-panel" style="display:flex;align-items:center;gap:13px">
+        ${capsule}
+        <div style="min-width:0">
+          <div class="cv-plabel">${escapeHtml(m.primary.label)} 함량${purityChip}</div>
+          <div style="margin-top:3px;white-space:nowrap"><span class="cv-pval">${fmt(pv)}</span><span class="cv-punit"> ${escapeHtml(m.primary.unit)}</span></div>
+          <div class="cv-rank">${st.prim.n}개 중 ${prank}위</div>
+        </div>
+      </div>
+      <div class="cv-panel" style="display:flex;flex-direction:column;justify-content:center;gap:14px">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span class="cv-plabel">1일 비용</span><span class="cv-rank">${st.cost.n}개 중 ${costRank}위</span></div>
+          <div class="cv-track"><div class="cv-dot" style="left:${costPos}%"></div></div>
+          <div class="cv-ends"><span>${fmt(st.cost.min)}원</span><span>${fmt(st.cost.max)}원</span></div>
+        </div>
+        ${capBlock}
+      </div>
+    </div>
+    <div class="cv-voc">
+      <div class="cv-voc-h"><span style="font-size:12px;color:var(--ink-soft);font-weight:700">리뷰 인사이트</span><span class="cv-voc-tag">예시 · 준비중</span></div>
+      <div style="display:flex;flex-wrap:wrap">${voc}</div>
+    </div>
+    <div class="cv-specs"><b>제형</b> ${escapeHtml(p.form||"-")}　<b>원료사</b> ${escapeHtml(p.supplier||"-")}<br><b>인증</b> ${certs||"-"}</div>
+    <div class="cv-reasons"><div class="cv-rlabel">추천 이유</div>${rchips||'<span style="font-size:12px;color:var(--ink-faint)">—</span>'}</div>
+    <div class="cv-foot"><span class="cv-rev">리뷰 ${fmt(num(p.reviewCount))}개</span>${buy}</div>
+  </div>`;
+}
+
+function renderCategory(data){
+  const cat = data.category;
+  const products = data.products || [];
+  const stats = buildStats(products);
+  document.getElementById('catMeta').textContent = `${cat} · 전체 ${products.length}개 · V-Score 순`;
+  document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
+  const el = document.getElementById('catCards');
+  if (!products.length){ el.innerHTML=""; document.getElementById('catStatus').textContent="표시할 제품이 없습니다."; return; }
+  document.getElementById('catStatus').textContent="";
+  el.innerHTML = products.map((p,i)=>renderCardV8(p, {cat, metrics:data.metrics, stats, idx:i})).join("");
+}
+
+function renderTabs(){
+  const el = document.getElementById('catTabbar');
+  el.innerHTML = CATS.map(c=>`<button class="cat-tab" data-key="${c.key}" onclick="loadCategory('${c.key}')">${c.label}</button>`).join("");
+}
+function markActiveTab(cat){
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.toggle('active', t.dataset.key===cat));
+}
+
+async function loadCategory(cat){
+  activeCat = cat;
+  markActiveTab(cat);
+  if (catCache[cat]){ renderCategory(catCache[cat]); window.scrollTo(0,0); return; }
+  document.getElementById('catCards').innerHTML="";
+  document.getElementById('catMeta').textContent="";
+  document.getElementById('catStatus').textContent="불러오는 중…";
+  try{
+    const res = await fetch(`${API_BASE}/recommend2?category=${encodeURIComponent(cat)}`);
+    if (!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.message||data.error);
+    catCache[cat]=data;
+    renderCategory(data);
+  }catch(e){
+    document.getElementById('catStatus').textContent = "불러오기에 실패했습니다. ("+e.message+")";
   }
 }
-window.explainProduct = explainProduct;
+window.loadCategory = loadCategory;
+
+function openCategory(cat){
+  if (!document.getElementById('catTabbar').children.length) renderTabs();
+  showScreen('category');
+  loadCategory(cat);
+}
+window.openCategory = openCategory;
+
+renderTabs();
 </script>
 </body>
 </html>
