@@ -18,18 +18,9 @@
       --radius-sm: 8px; --radius-md: 14px; --radius-lg: 20px;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body {
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--paper); color: var(--ink);
-      font-size: 17px; line-height: 1.5; letter-spacing: -0.01em;
-      -webkit-font-smoothing: antialiased;
-    }
+    html, body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--paper); color: var(--ink); font-size: 17px; line-height: 1.5; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
     .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--paper); box-shadow: 0 0 40px rgba(27, 58, 46, 0.05); }
-    .header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px; border-bottom: 1px solid var(--line-soft);
-      background: var(--paper); position: sticky; top: 0; z-index: 10;
-    }
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line-soft); background: var(--paper); position: sticky; top: 0; z-index: 10; }
     .header-back { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); border-radius: var(--radius-sm); text-decoration: none; background: none; border: none; }
     .header-back:hover { background: var(--green-light); }
     .header-back svg { width: 22px; height: 22px; }
@@ -39,14 +30,12 @@
     .screen.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
     .hero { text-align: center; padding: 20px 0 22px; }
     .hero-eyebrow { font-size: 14px; font-weight: 600; letter-spacing: 0.08em; color: var(--green-mid); text-transform: uppercase; margin-bottom: 10px; }
     .hero-title { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.3; color: var(--green-deep); margin-bottom: 8px; }
     .hero-subtitle { font-size: 15px; color: var(--ink-soft); line-height: 1.5; }
 
-    /* ── 입력 폼 ── */
     .form-section { margin-bottom: 22px; }
     .form-label { font-size: 15px; font-weight: 700; color: var(--green-deep); margin-bottom: 10px; }
     .form-label .opt { font-size: 13px; font-weight: 500; color: var(--ink-faint); margin-left: 6px; }
@@ -65,12 +54,10 @@
     .submit-btn:hover:not(:disabled) { background: var(--green-deep); }
     .submit-btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
 
-    /* ── 로딩 ── */
     .loading-screen { text-align: center; padding: 60px 20px; }
     .loading-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--green-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
     .loading-text { font-size: 15px; color: var(--ink-soft); }
 
-    /* ── 결과 요약 ── */
     .result-summary { background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-primary) 100%); color: white; padding: 18px 20px; border-radius: var(--radius-md); margin-bottom: 18px; position: relative; overflow: hidden; }
     .result-summary::before { content: ''; position: absolute; top: -40%; right: -10%; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); }
     .result-summary-label { font-size: 13px; opacity: 0.8; margin-bottom: 4px; }
@@ -83,36 +70,31 @@
     .alert-warn { background: rgba(201, 83, 61, 0.06); border: 1px solid rgba(201, 83, 61, 0.2); color: var(--warn); }
     .alert-icon { flex-shrink: 0; font-size: 18px; line-height: 1.3; }
 
-    /* ── 제품 카드 ── */
     .recommend-head { font-size: 16px; font-weight: 700; color: var(--green-deep); margin-bottom: 12px; padding: 0 4px; }
-    .product-card { background: white; border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s ease; }
-    .product-card:hover { box-shadow: var(--shadow-md); }
+    .product-card { background: white; border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
     .product-card.rank-1 { border: 1.5px solid var(--gold); background: linear-gradient(180deg, #FEFAF1 0%, white 60%); }
     .product-card.rank-2 { border: 1.5px solid var(--silver); }
     .product-card.rank-3 { border: 1.5px solid var(--bronze); }
     .product-card-row { display: flex; gap: 10px; align-items: flex-start; }
     .product-image-wrap { width: 76px; flex-shrink: 0; position: relative; }
-    .product-image { width: 76px; height: 96px; object-fit: cover; border-radius: 6px; background: var(--green-bg); display: block; }
-    .product-image-fallback { width: 76px; height: 96px; border-radius: 6px; background: linear-gradient(135deg, #FFF8E5 0%, #F5E6B8 100%); }
-    .rank-2 .product-image-fallback { background: linear-gradient(135deg, #E5E8EB 0%, #C4C8CC 100%); }
-    .rank-3 .product-image-fallback { background: linear-gradient(135deg, #F5DDC8 0%, #DAB494 100%); }
+    .product-image { width: 76px; height: 96px; object-fit: cover; border-radius: 6px; background: var(--green-bg); display: block; border: 1px solid var(--line-soft); }
     .product-rank-badge { position: absolute; top: -6px; left: -6px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; background: var(--green-mid); box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2; }
     .rank-1 .product-rank-badge { background: var(--gold); }
     .rank-2 .product-rank-badge { background: var(--silver); }
     .rank-3 .product-rank-badge { background: var(--bronze); }
     .product-info { flex: 1; min-width: 0; }
     .product-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 5px; }
-    .product-rank-pill { font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.04em; flex-shrink: 0; background: var(--green-mid); color: white; }
-    .rank-1 .product-rank-pill { background: var(--gold); color: white; }
-    .rank-2 .product-rank-pill { background: var(--silver); color: white; }
-    .rank-3 .product-rank-pill { background: var(--bronze); color: white; }
+    .product-grade { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid; flex-shrink: 0; }
     .product-vscore-block { text-align: right; flex-shrink: 0; }
     .product-vscore-num { font-size: 21px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
     .product-vscore-cap { font-size: 11px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0.06em; margin-top: 1px; }
     .product-name { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.3; margin-bottom: 6px; }
     .product-meta { font-size: 13px; color: var(--ink-soft); margin-bottom: 6px; }
-    .product-tags { display: flex; flex-wrap: wrap; gap: 3px; }
-    .product-tag { font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); }
+    .product-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .product-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); border: none; font-family: inherit; }
+    .product-tag.tappable { cursor: pointer; }
+    .product-tag.tappable:active { background: var(--green-mid); color: white; }
+    .product-tag .qb { width: 13px; height: 13px; border-radius: 50%; background: var(--green-primary); color: #fff; font-size: 8px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
     .product-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
     .btn-mini { padding: 7px 8px; border: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; letter-spacing: -0.01em; text-decoration: none; text-align: center; display: flex; align-items: center; justify-content: center; }
     .btn-mini.secondary { background: var(--green-light); color: var(--green-deep); }
@@ -120,7 +102,6 @@
     .btn-mini.primary:hover { background: var(--green-deep); }
     .btn-mini:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
 
-    /* ── 자세히 보기: 통계 막대 ── */
     .detail-panel { display: none; margin-top: 8px; padding-top: 2px; }
     .detail-panel.active { display: block; animation: fadeIn 0.3s ease; }
     .stat-bar { padding: 12px 0; border-top: 0.5px solid var(--line-soft); }
@@ -141,7 +122,6 @@
     .q-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; margin-left: 4px; vertical-align: middle; border: none; font-family: inherit; }
     .q-icon:hover { background: var(--green-mid); color: white; }
 
-    /* ── 용어 하단 시트 ── */
     .term-sheet-overlay { position: fixed; inset: 0; background: rgba(27,58,46,0.35); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
     .term-sheet-overlay.active { opacity: 1; pointer-events: auto; }
     .term-sheet { position: fixed; left: 50%; transform: translateX(-50%) translateY(100%); bottom: 0; width: 100%; max-width: 480px; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,0.15); z-index: 101; transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); padding: 10px 22px max(22px, env(safe-area-inset-bottom)); }
@@ -155,13 +135,11 @@
     .term-sheet-close { width: 100%; margin-top: 18px; padding: 13px; background: var(--green-light); color: var(--green-deep); border: none; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
     .term-sheet-close:hover { background: #DCE9DF; }
 
-    .compare-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
+    .compare-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0 4px; }
     .compare-cta-btn { padding: 11px; border: 1.5px solid var(--green-primary); border-radius: var(--radius-sm); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: -0.01em; text-decoration: none; text-align: center; background: white; color: var(--green-primary); }
     .compare-cta-btn:hover { background: var(--green-light); }
     .compare-cta-btn.primary { background: var(--green-primary); color: white; }
     .compare-cta-btn.primary:hover { background: var(--green-deep); }
-    .more-link { display: block; text-align: center; margin: 4px 0 0; padding: 11px; font-size: 14px; font-weight: 600; color: var(--green-primary); text-decoration: none; }
-    .more-link:hover { text-decoration: underline; }
 
     .disclosure { border-top: 0.5px solid var(--line-soft); margin-top: 20px; padding: 14px 8px 4px; }
     .disclosure-text { font-size: 11px; line-height: 1.6; color: var(--ink-faint); text-align: center; margin: 0; }
@@ -180,13 +158,22 @@
     <div class="header-spacer"></div>
   </header>
 
-  <!-- 입력 폼 -->
   <main class="screen active" id="screenForm">
     <section class="hero">
       <div class="hero-eyebrow">성별·나이 맞춤</div>
-      <h1 class="hero-title">나에게 맞는<br>오메가3 찾기</h1>
+      <h1 class="hero-title">나에게 맞는<br>영양제 찾기</h1>
       <p class="hero-subtitle">몇 가지만 고르면 맞춤 추천을 드려요</p>
     </section>
+
+    <div class="form-section">
+      <div class="form-label">어떤 영양제를 찾으세요?</div>
+      <div class="seg-group cols-2" data-field="category">
+        <button class="seg-btn" data-value="오메가3">오메가3<span class="sub">혈행·뇌·눈</span></button>
+        <button class="seg-btn" data-value="눈">눈 건강<span class="sub">루테인</span></button>
+        <button class="seg-btn" data-value="마이크로바이옴">유산균<span class="sub">장·면역</span></button>
+        <button class="seg-btn" data-value="비타민C">비타민C<span class="sub">항산화·면역</span></button>
+      </div>
+    </div>
 
     <div class="form-section">
       <div class="form-label">성별</div>
@@ -231,13 +218,11 @@
     </div>
   </main>
 
-  <!-- 로딩 -->
   <div class="screen loading-screen" id="screenLoading">
     <div class="loading-spinner"></div>
     <div class="loading-text">맞춤 제품을 찾고 있어요…</div>
   </div>
 
-  <!-- 결과 -->
   <main class="screen" id="screenResult">
     <div id="resultSummary"></div>
     <div id="resultAlert"></div>
@@ -259,109 +244,57 @@
 
 <script>
 const API_BASE = window.location.origin;
-let distributions = null;
-const state = { gender: null, age: null, pregStatus: 'no', priority: null };
+const state = { category: null, gender: null, age: null, pregStatus: 'no', priority: null };
 
-function escapeHtml(str) {
-  if (str == null) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-function safeNum(v, fb = 0) { const n = Number(v); return isNaN(n) ? fb : n; }
-function firstOf(v) {
-  if (v == null) return '';
-  if (Array.isArray(v)) return v[0] || '';
-  if (typeof v === 'string') return v.split(',')[0].trim();
-  return String(v);
-}
-
-// ── 폼 컨트롤 ──
-document.querySelectorAll('.seg-group').forEach(group => {
-  const field = group.dataset.field;
-  group.querySelectorAll('.seg-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      group.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state[field] = btn.dataset.value;
-      if (field === 'gender') {
-        const preg = document.getElementById('pregSection');
-        if (btn.dataset.value === 'female') {
-          preg.classList.add('show');
-        } else {
-          preg.classList.remove('show');
-          state.pregStatus = 'no';
-          document.querySelectorAll('[data-field="pregStatus"] .seg-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-        }
-      }
-      updateSubmit();
-    });
-  });
-});
-
-function updateSubmit() {
-  const ok = state.gender && state.age && state.priority;
-  document.getElementById('submitBtn').disabled = !ok;
-}
-
-document.getElementById('submitBtn').addEventListener('click', getRecommendation);
-
-function isPregnant() { return state.gender === 'female' && state.pregStatus === 'yes'; }
-
-function deriveProfile() {
-  if (isPregnant()) return 'pregnancy';
-  if (state.age === '50' || state.age === '60') return 'senior';
-  if (state.priority === 'premium') return 'premium_seeker';
-  if (state.priority === 'budget') return 'budget_seeker';
-  return 'balanced';
-}
-
-function buildSummary(profile) {
-  const ageMap = { '20': '20대', '30': '30대', '40': '40대', '50': '50대', '60': '60대 이상' };
-  const g = state.gender === 'female' ? '여성' : '남성';
-  let title = `${ageMap[state.age]} ${g}`;
-  if (isPregnant()) title += ' · 임신·수유';
-  const profLabel = { pregnancy: '안전성 우선', senior: '고함량·흡수율', premium_seeker: '최고 품질', budget_seeker: '가성비', balanced: '균형형' }[profile];
-  title += ` · ${profLabel}`;
-  const rationale = {
-    pregnancy: '임신·수유 중에는 안전성과 인증을 최우선으로, 고용량은 피해서 골랐어요. 복용 전 의사·약사 상담을 권장해요.',
-    senior: '50세 이상에는 고함량·고흡수(rTG) 제품을 우선했어요.',
-    premium_seeker: '품질 우선으로, 함량·제형·원료·인증이 뛰어난 제품을 골랐어요.',
-    budget_seeker: '가성비 우선으로, 1일 복용 비용이 합리적인 제품을 골랐어요.',
-    balanced: '함량·제형·원료·인증·가격을 고루 반영한 균형 추천이에요.'
-  }[profile];
-  return { title, rationale };
-}
-
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
-  window.scrollTo(0, 0);
-}
-
-async function getRecommendation() {
-  const profile = deriveProfile();
-  const summary = buildSummary(profile);
-  showScreen('loading');
-  try {
-    const res = await fetch(`${API_BASE}/recommend?profile=${profile}`);
-    if (!res.ok) throw new Error('Server error: ' + res.status);
-    const data = await res.json();
-    if (data.distributions) distributions = data.distributions;
-    renderResults(data, summary, profile);
-    showScreen('result');
-  } catch (err) {
-    document.getElementById('resultSummary').innerHTML = '';
-    document.getElementById('resultAlert').innerHTML = '';
-    document.getElementById('resultProducts').innerHTML = `<div class="error-box">추천을 불러올 수 없어요.<br><small>${escapeHtml(err.message)}</small></div>`;
-    showScreen('result');
-  }
-}
-
-// ── 용어 시트 ──
-const TERM_INFO = {
-  "epadha": { title: "EPA+DHA 함량", badge: "핵심 지표", body: "오메가3의 핵심 성분이에요. EPA는 혈행·염증 개선, DHA는 뇌·눈 건강에 도움을 줍니다. 하루 권장량은 보통 500~2,000mg이에요.", points: ["막대에서 이 제품의 위치와 평균을 비교해보세요"] },
-  "cost": { title: "1일 복용 비용", badge: "가격 지표", body: "하루에 권장량을 섭취하는 데 드는 비용이에요. 제품 가격 ÷ 복용 일수로 계산해요. 낮을수록 가성비가 좋아요.", points: ["평균보다 왼쪽에 있으면 저렴한 편이에요"] },
-  "capsule": { title: "캡슐 크기 (목넘김)", badge: "복용 편의", body: "캡슐 1알의 무게예요. 작을수록 삼키기 편해요. 고함량이면서 작은 캡슐이 가장 좋아요.", points: ["평균보다 왼쪽이면 비교적 작은 캡슐이에요"] }
+const GRADE = {
+  S:["#FAF3E0","#B8902F","#EAD9A8"], A:["#F0F0F2","#6E7177","#DADCE0"],
+  B:["#EAF1EA","#2D5F3F","#CADBCD"], C:["#F6ECE3","#B07142","#E6D2C2"], D:["#F0EFEC","#8B8E91","#DEDCD6"]
 };
+const PRIMARY_TERM = { "오메가3":"epadha", "눈":"lutein", "마이크로바이옴":"cfu", "비타민C":"vitc" };
+const PROFILE_WEIGHT = {
+  balanced:       { core:0.50, cost:0.35, review:0.15 },
+  premium_seeker: { core:0.70, cost:0.10, review:0.20 },
+  budget_seeker:  { core:0.25, cost:0.65, review:0.10 },
+  senior:         { core:0.70, cost:0.10, review:0.20 },
+  pregnancy:      { core:0.70, cost:0.10, review:0.20 }
+};
+
+const TERM_INFO = {
+  epadha: { title: "EPA+DHA 함량", badge: "핵심 성분", body: "오메가3의 핵심 성분이에요. EPA는 혈행·염증 개선, DHA는 뇌·눈 건강에 도움을 줘요. 하루 권장량은 보통 500~2,000mg이에요.", points: ["막대에서 이 제품의 위치와 평균을 비교해보세요"] },
+  lutein: { title: "루테인·지아잔틴", badge: "핵심 성분", body: "눈 황반을 구성하는 카로티노이드예요. 빛 자극으로부터 황반을 보호하는 데 도움을 줘요. 하루 10~20mg 수준이 일반적이에요.", points: ["지아잔틴과 함께 들어가면 더 좋아요"] },
+  cfu: { title: "보장 균수", badge: "핵심 성분", body: "유통기한까지 살아있는 것이 보장되는 유산균 수(억 CFU)예요. 많을수록 장까지 도달할 가능성이 높지만, 코팅·균주도 함께 봐야 해요.", points: ["100억 이상이면 충분한 편이에요"] },
+  vitc: { title: "비타민C 함량", badge: "핵심 성분", body: "비타민C는 항산화·면역에 도움을 줘요. 하루 권장량은 100mg, 보충 목적으로는 보통 500~1,000mg을 섭취해요.", points: ["1,000mg을 기준으로 함량을 평가해요"] },
+  cost: { title: "1일 복용 비용", badge: "가격 지표", body: "하루에 권장량을 섭취하는 데 드는 비용이에요. 제품 가격 ÷ 복용 일수로 계산해요. 낮을수록 가성비가 좋아요.", points: ["평균보다 왼쪽에 있으면 저렴한 편이에요"] },
+  capsule: { title: "캡슐 크기 (목넘김)", badge: "복용 편의", body: "캡슐 1알의 무게예요. 작을수록 삼키기 편해요. 분말·스틱은 캡슐이 없어요.", points: ["평균보다 왼쪽이면 비교적 작은 캡슐이에요"] },
+  rtg: { title: "rTG", badge: "제형", body: "오메가3 형태 중 흡수율이 가장 높은 3세대 형태예요. TG → EE → rTG 순으로 정제 단계를 거쳐요.", points: ["흡수율 가장 높음", "산화 안정성 우수"] },
+  tg: { title: "TG", badge: "제형", body: "자연 어유에 가장 가까운 형태예요. 흡수가 잘 되고 안정적이에요.", points: ["자연 형태", "흡수 양호"] },
+  ee: { title: "EE", badge: "제형", body: "농축 과정에서 만들어지는 형태예요. 가격이 합리적이지만 흡수율은 rTG·TG보다 다소 낮다는 보고가 있어요.", points: [] },
+  tablet: { title: "정제(타블렛)", badge: "제형", body: "성분을 압축한 알약 형태예요. 보관·휴대가 편하지만, 알이 크면 목넘김이 부담될 수 있어요.", points: [] },
+  softcap: { title: "연질캡슐", badge: "제형", body: "기름 성분을 담기 좋은 말랑한 캡슐이에요. 오메가3 같은 지용성 성분에 흔히 쓰여요.", points: [] },
+  powder: { title: "분말 · 스틱", badge: "제형", body: "캡슐이 없는 가루·스틱 형태예요. 목넘김 부담이 없고 물 없이도 간편하게 섭취할 수 있어요.", points: ["목넘김 부담 없음"] },
+  ifos: { title: "IFOS", badge: "인증", body: "캐나다 Nutrasource의 국제 어유 인증이에요. 함량·신선도·중금속·산화를 검사해요. 5-Star는 모든 항목 최고 등급을 의미해요.", points: ["함량·신선도·중금속·산화 검사"] },
+  gmp: { title: "GMP / cGMP", badge: "인증", body: "우수 제조 관리 기준이에요. 제조 시설의 위생과 품질 관리를 인증해요.", points: [] },
+  goed: { title: "GOED", badge: "인증", body: "글로벌 EPA·DHA 협회의 품질 기준이에요. 산업 표준을 충족했다는 의미예요.", points: [] },
+  msc: { title: "MSC", badge: "인증", body: "지속가능한 어업 인증이에요. 환경을 해치지 않고 잡은 원료라는 뜻이에요.", points: ["지속가능 어업"] },
+  haccp: { title: "HACCP", badge: "인증", body: "식품 안전 관리 인증이에요. 생산 전 과정의 위해 요소를 관리해요.", points: [] },
+  healthfunc: { title: "건강기능식품 (GMP)", badge: "인증", body: "식약처가 인정한 건강기능식품 제조 기준(GMP)을 충족했다는 의미예요.", points: [] }
+};
+function termKeyFromTag(text) {
+  const t = String(text).toLowerCase();
+  if (t.indexOf("rtg") !== -1) return "rtg";
+  if (t === "tg" || t.indexOf("triglyceride") !== -1) return "tg";
+  if (t === "ee" || t.indexOf("ethyl") !== -1) return "ee";
+  if (t.indexOf("분말") !== -1 || t.indexOf("스틱") !== -1) return "powder";
+  if (t.indexOf("연질") !== -1 || t.indexOf("젤라틴") !== -1) return "softcap";
+  if (t.indexOf("정제") !== -1 || t.indexOf("타블렛") !== -1) return "tablet";
+  if (t.indexOf("ifos") !== -1) return "ifos";
+  if (t.indexOf("goed") !== -1) return "goed";
+  if (t.indexOf("msc") !== -1) return "msc";
+  if (t.indexOf("haccp") !== -1) return "haccp";
+  if (t.indexOf("gmp") !== -1) return "gmp";
+  if (t.indexOf("건강기능식품") !== -1) return "healthfunc";
+  return null;
+}
 function openTermSheet(key) {
   const info = TERM_INFO[key];
   if (!info) return;
@@ -371,35 +304,110 @@ function openTermSheet(key) {
   document.getElementById("termSheetOverlay").classList.add("active");
   document.getElementById("termSheet").classList.add("active");
 }
-window.openTermSheet = openTermSheet;
-function closeTermSheet() {
-  document.getElementById("termSheetOverlay").classList.remove("active");
-  document.getElementById("termSheet").classList.remove("active");
-}
-window.closeTermSheet = closeTermSheet;
+function openTermFromTag(text) { const k = termKeyFromTag(text); if (k) openTermSheet(k); }
+function closeTermSheet() { document.getElementById("termSheetOverlay").classList.remove("active"); document.getElementById("termSheet").classList.remove("active"); }
+window.openTermSheet = openTermSheet; window.openTermFromTag = openTermFromTag; window.closeTermSheet = closeTermSheet;
 
-// ── 통계 막대 ──
-function calcPos(value, min, max) {
-  if (!value || max === min) return null;
-  return Math.max(0, Math.min(100, Math.round((value - min) / (max - min) * 100)));
+function escapeHtml(str) { if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
+
+document.querySelectorAll('.seg-group').forEach(group => {
+  const field = group.dataset.field;
+  group.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state[field] = btn.dataset.value;
+      if (field === 'gender') {
+        const preg = document.getElementById('pregSection');
+        if (btn.dataset.value === 'female') { preg.classList.add('show'); }
+        else {
+          preg.classList.remove('show'); state.pregStatus = 'no';
+          document.querySelectorAll('[data-field="pregStatus"] .seg-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+        }
+      }
+      updateSubmit();
+    });
+  });
+});
+function updateSubmit() {
+  document.getElementById('submitBtn').disabled = !(state.category && state.gender && state.age && state.priority);
 }
-function fmtNumber(v) { return Number(v).toLocaleString(); }
-function renderStatBar(opts) {
-  const { title, value, min, max, avg, unit } = opts;
-  if (!value || min === max) return '';
-  const pos = calcPos(value, min, max);
+document.getElementById('submitBtn').addEventListener('click', getRecommendation);
+
+function isPregnant() { return state.gender === 'female' && state.pregStatus === 'yes'; }
+function deriveProfile() {
+  if (isPregnant()) return 'pregnancy';
+  if (state.age === '50' || state.age === '60') return 'senior';
+  if (state.priority === 'premium') return 'premium_seeker';
+  if (state.priority === 'budget') return 'budget_seeker';
+  return 'balanced';
+}
+function buildSummary(profile) {
+  const ageMap = { '20':'20대','30':'30대','40':'40대','50':'50대','60':'60대 이상' };
+  const catLabel = { "오메가3":"오메가3","눈":"눈 건강","마이크로바이옴":"유산균","비타민C":"비타민C" }[state.category];
+  const g = state.gender === 'female' ? '여성' : '남성';
+  let title = `${catLabel} · ${ageMap[state.age]} ${g}`;
+  if (isPregnant()) title += ' · 임신·수유';
+  const profLabel = { pregnancy:'안전성 우선', senior:'고함량·흡수율', premium_seeker:'최고 품질', budget_seeker:'가성비', balanced:'균형형' }[profile];
+  title += ` · ${profLabel}`;
+  const rationale = {
+    pregnancy: '임신·수유 중에는 안전성과 인증을 우선해, 품질이 검증된 제품 위주로 골랐어요. 복용 전 의사·약사 상담을 권장해요.',
+    senior: '50세 이상에 맞춰 핵심 성분 함량이 높은 제품을 우선했어요.',
+    premium_seeker: '품질 우선으로, 핵심 성분·등급이 뛰어난 제품을 골랐어요.',
+    budget_seeker: '가성비 우선으로, 1일 비용이 합리적인 제품을 골랐어요.',
+    balanced: '핵심 성분·가격·신뢰도를 고루 반영한 균형 추천이에요.'
+  }[profile];
+  return { title, rationale };
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  window.scrollTo(0, 0);
+}
+window.showScreen = showScreen;
+
+function scoreFor(p, w){ const s = p.scores || {}; return w.core*num(s.core) + w.cost*num(s.cost) + w.review*num(s.review); }
+
+async function getRecommendation() {
+  const profile = deriveProfile();
+  const summary = buildSummary(profile);
+  const cat = state.category;
+  showScreen('loading');
+  try {
+    const res = await fetch(`${API_BASE}/recommend2?category=${encodeURIComponent(cat)}`);
+    if (!res.ok) throw new Error('Server error: ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.message || data.error);
+    const w = PROFILE_WEIGHT[profile] || PROFILE_WEIGHT.balanced;
+    const ranked = (data.products || []).slice().map((p,i)=>({p,i}))
+      .sort((a,b)=>{ const d = scoreFor(b.p,w)-scoreFor(a.p,w); if (Math.abs(d)>1e-9) return d; const dv=num(b.p.vScore)-num(a.p.vScore); return dv!==0?dv:a.i-b.i; })
+      .map(o=>o.p);
+    renderResults(ranked, data.metrics, cat, summary, profile);
+    showScreen('result');
+  } catch (err) {
+    document.getElementById('resultSummary').innerHTML = '';
+    document.getElementById('resultAlert').innerHTML = '';
+    document.getElementById('resultProducts').innerHTML = `<div class="error-box">추천을 불러올 수 없어요.<br><small>${escapeHtml(err.message)}</small></div>`;
+    showScreen('result');
+  }
+}
+
+function calcPos(value, min, max) { if (!value || max === min) return null; return Math.max(0, Math.min(100, Math.round((value - min) / (max - min) * 100))); }
+function statBar(opts) {
+  const { title, value, dist, unit, termKey } = opts;
+  if (!dist || !value || dist.max === dist.min) return '';
+  const pos = calcPos(value, dist.min, dist.max);
   if (pos == null) return '';
-  const avgPos = calcPos(avg, min, max);
-  const minLabel = opts.minLabel || '최소';
-  const maxLabel = opts.maxLabel || '최대';
-  const avgHtml = (avg > 0 && avgPos != null)
-    ? `<div class="stat-bar-avg-dot" style="left:${avgPos}%"></div><div class="stat-bar-avg-label" style="left:${avgPos}%">평균 ${fmtNumber(avg)}${unit}</div>`
-    : '';
+  const avgPos = calcPos(dist.avg, dist.min, dist.max);
+  const minLabel = opts.minLabel || '최소', maxLabel = opts.maxLabel || '최대';
+  const avgHtml = (dist.avg > 0 && avgPos != null)
+    ? `<div class="stat-bar-avg-dot" style="left:${avgPos}%"></div><div class="stat-bar-avg-label" style="left:${avgPos}%">평균 ${fmt(Math.round(dist.avg))}${unit}</div>` : '';
   return `
     <div class="stat-bar">
-      <div class="stat-bar-line">
-        <span class="title">${title}</span><span class="value">${fmtNumber(value)}${unit}</span>${opts.termKey ? `<button class="q-icon" onclick="openTermSheet('${opts.termKey}')">?</button>` : ''}
-      </div>
+      <div class="stat-bar-line"><span class="title">${escapeHtml(title)}</span><span class="value">${fmt(value)}${unit}</span>${termKey ? `<button class="q-icon" onclick="openTermSheet('${termKey}')">?</button>` : ''}</div>
       <div class="stat-bar-graph">
         <div class="stat-bar-track"></div>
         <div class="stat-bar-fill" style="width:${pos}%"></div>
@@ -408,66 +416,57 @@ function renderStatBar(opts) {
         ${avgHtml}
         <div class="stat-bar-dot" style="left:${pos}%"></div>
       </div>
-      <div class="stat-bar-ends">
-        <span>${minLabel} ${fmtNumber(min)}${unit}</span>
-        <span>${maxLabel} ${fmtNumber(max)}${unit}</span>
-      </div>
+      <div class="stat-bar-ends"><span>${minLabel} ${fmt(dist.min)}${unit}</span><span>${maxLabel} ${fmt(dist.max)}${unit}</span></div>
     </div>`;
 }
-function renderStatBars(ks) {
-  const d = distributions || {};
+function renderStatBars(p, m, cat) {
   let html = '';
-  if (d.dose && safeNum(ks.dailyMg) > 0) html += renderStatBar({ title: 'EPA+DHA 함량', termKey: 'epadha', value: safeNum(ks.dailyMg), min: d.dose.min, max: d.dose.max, avg: d.dose.avg, unit: 'mg' });
-  if (d.cost && safeNum(ks.dailyCost) > 0) html += renderStatBar({ title: '1일 복용 비용', termKey: 'cost', value: safeNum(ks.dailyCost), min: d.cost.min, max: d.cost.max, avg: d.cost.avg, unit: '원', minLabel: '최저', maxLabel: '최고' });
-  if (d.capsule && safeNum(ks.capsuleMg) > 0) html += renderStatBar({ title: '캡슐 크기 (목넘김)', termKey: 'capsule', value: safeNum(ks.capsuleMg), min: d.capsule.min, max: d.capsule.max, avg: d.capsule.avg, unit: 'mg' });
+  if (m.primary && m.primary.dist) html += statBar({ title: m.primary.label + ' 함량', termKey: PRIMARY_TERM[cat], value: num(p.primaryValue), dist: m.primary.dist, unit: m.primary.unit });
+  if (m.cost && m.cost.dist && num(p.dailyCost) > 0) html += statBar({ title: '1일 비용', termKey: 'cost', value: num(p.dailyCost), dist: m.cost.dist, unit: '원', minLabel: '최저', maxLabel: '최고' });
+  if (m.capsule && m.capsule.dist && num(p.capsuleMg) > 0) html += statBar({ title: '캡슐 크기', termKey: 'capsule', value: num(p.capsuleMg), dist: m.capsule.dist, unit: 'mg' });
   return html || '<div style="font-size:13px;color:var(--ink-faint);padding:8px 0;">표시할 상세 지표가 없어요.</div>';
 }
 
-function productCardHtml(p) {
-  const ks = p.keySpec || {};
-  const tags = [
-    ks.tier ? `<span class="product-tag">${escapeHtml(ks.tier)}</span>` : '',
-    ks.form ? `<span class="product-tag">${escapeHtml(ks.form)}</span>` : '',
-    firstOf(ks.certs) ? `<span class="product-tag">${escapeHtml(firstOf(ks.certs))}</span>` : ''
-  ].join('');
-  const imageHtml = p.image
-    ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name||'')}" onerror="this.outerHTML='<div class=\\'product-image-fallback\\'></div>'">`
-    : `<div class="product-image-fallback"></div>`;
-  const pid = escapeHtml(p.id || ('r' + p.rank));
+function productCardHtml(p, rank, m, cat) {
+  const g = GRADE[(p.grade||"").charAt(0).toUpperCase()] || GRADE.B;
+  const pid = escapeHtml(String(p.id || ('r' + rank)));
+  const tagList = [];
+  if (p.form) tagList.push(String(p.form));
+  String(p.certs||"").split(/[,\/·]/).map(s=>s.trim()).filter(Boolean).slice(0,2).forEach(c=>tagList.push(c));
+  const tags = tagList.map(t=>{
+    const k = termKeyFromTag(t);
+    return k ? `<button class="product-tag tappable" onclick="openTermFromTag('${escapeHtml(t)}')">${escapeHtml(t)} <span class="qb">?</span></button>`
+             : `<span class="product-tag">${escapeHtml(t)}</span>`;
+  }).join('');
+  const img = p.image
+    ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="" onerror="this.style.display='none'">`
+    : `<div class="product-image" style="background:var(--green-bg)"></div>`;
+  const cost = num(p.dailyCost) > 0 ? ` · 1일 ${fmt(num(p.dailyCost))}원` : '';
   return `
-    <article class="product-card rank-${p.rank}">
+    <article class="product-card rank-${rank}">
       <div class="product-card-row">
-        <div class="product-image-wrap">${imageHtml}<span class="product-rank-badge">${p.rank}</span></div>
+        <div class="product-image-wrap">${img}<span class="product-rank-badge">${rank}</span></div>
         <div class="product-info">
           <div class="product-info-top">
-            <span class="product-rank-pill">${p.rank}위</span>
-            <div class="product-vscore-block">
-              <div class="product-vscore-num">${p.vScore || 0}</div>
-              <div class="product-vscore-cap">V-SCORE</div>
-            </div>
+            <span class="product-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${escapeHtml(p.grade||'-')}등급</span>
+            <div class="product-vscore-block"><div class="product-vscore-num">${Math.round(num(p.vScore))}</div><div class="product-vscore-cap">V-SCORE</div></div>
           </div>
           <div class="product-name">${escapeHtml(p.name || '')}</div>
-          <div class="product-meta">1일 ${safeNum(ks.dailyMg).toLocaleString()}mg · ${safeNum(ks.dailyCost).toLocaleString()}원</div>
+          <div class="product-meta">${escapeHtml(m.primary.label)} ${fmt(num(p.primaryValue))}${escapeHtml(m.primary.unit)}${cost}</div>
           <div class="product-tags">${tags}</div>
         </div>
       </div>
       <div class="product-card-actions">
         <button class="btn-mini secondary" onclick="toggleDetail('${pid}')">자세히 보기</button>
-        ${p.coupangLink
-          ? `<a class="btn-mini primary" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">쿠팡에서 보기</a>`
-          : `<button class="btn-mini primary" disabled>링크 없음</button>`}
+        ${p.link ? `<a class="btn-mini primary" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">제품 보기</a>` : `<button class="btn-mini primary" disabled>링크 없음</button>`}
       </div>
-      <div class="detail-panel" id="detail-${pid}">${renderStatBars(ks)}</div>
+      <div class="detail-panel" id="detail-${pid}">${renderStatBars(p, m, cat)}</div>
     </article>`;
 }
-function toggleDetail(id) {
-  const el = document.getElementById('detail-' + id);
-  if (el) el.classList.toggle('active');
-}
+function toggleDetail(id) { const el = document.getElementById('detail-' + id); if (el) el.classList.toggle('active'); }
 window.toggleDetail = toggleDetail;
 
-function renderResults(data, summary, profile) {
-  // 요약
+function renderResults(products, m, cat, summary, profile) {
   document.getElementById('resultSummary').innerHTML = `
     <div class="result-summary">
       <div class="result-summary-label">INGREDI 맞춤 추천</div>
@@ -476,32 +475,21 @@ function renderResults(data, summary, profile) {
       <button class="reselect-btn" onclick="showScreen('form')">↺ 조건 다시 선택</button>
     </div>`;
 
-  // 의료 주의 (임산부 등)
   const alertBox = document.getElementById('resultAlert');
-  if (data.medicalConsult) {
-    alertBox.innerHTML = `
-      <div class="alert alert-warn">
-        <span class="alert-icon">⚠</span>
-        <div><strong>의사·약사 상담을 권장합니다</strong><br>임산부·수유부는 복용 전 전문가와 상담하세요.</div>
-      </div>`;
-  } else { alertBox.innerHTML = ''; }
+  alertBox.innerHTML = isPregnant()
+    ? `<div class="alert alert-warn"><span class="alert-icon">⚠</span><div><strong>의사·약사 상담을 권장합니다</strong><br>임신·수유 중에는 복용 전 전문가와 상담하세요.</div></div>`
+    : '';
 
-  // 제품
-  const top3 = (data.top3 || []).map((p, i) => Object.assign({ rank: i + 1 }, p));
+  const top = products.slice(0, 3);
   const el = document.getElementById('resultProducts');
-  if (top3.length === 0) {
-    el.innerHTML = `<div class="empty-box">조건에 맞는 제품을 찾지 못했어요.<br>조건을 바꿔 다시 시도해보세요.</div>`;
-    return;
-  }
-  const ids = top3.map(p => p.id).join(',');
+  if (!top.length) { el.innerHTML = `<div class="empty-box">조건에 맞는 제품을 찾지 못했어요.<br>조건을 바꿔 다시 시도해보세요.</div>`; return; }
   el.innerHTML = `
-    <div class="recommend-head">맞춤 Top ${top3.length}</div>
-    ${top3.map(productCardHtml).join('')}
+    <div class="recommend-head">맞춤 Top ${top.length}</div>
+    ${top.map((p, i) => productCardHtml(p, i + 1, m, cat)).join('')}
     <div class="compare-cta">
-      <a class="compare-cta-btn primary" href="/compare.html?ids=${ids}&profile=${profile}">Top ${top3.length} 비교</a>
-      <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${profile}">직접 선택</a>
-    </div>
-    <a class="more-link" href="/app.html">전체 제품 더 보기 →</a>`;
+      <a class="compare-cta-btn primary" href="/compare.html?category=${encodeURIComponent(cat)}">제품 직접 비교</a>
+      <a class="compare-cta-btn" href="/app.html?category=${encodeURIComponent(cat)}">전체 보기</a>
+    </div>`;
 }
 </script>
 </body>
