@@ -5,8 +5,8 @@
 // 새 통합 스키마용. 미리 계산된 V_Score·등급·추천사유를 읽어 V_Score 순으로 정렬한다.
 // 기존 recommend.js(omega3 product_v2)는 유지 — 프론트 전환 완료 후 교체 예정.
 //
-// [딥링크] link 는 coupang_deeplink(제휴 추적 링크) 우선, 없으면 원본 제품링크로 폴백.
-//          제휴 링크를 통과한 클릭만 쿠팡 수수료가 인정되므로 이 매핑이 정산의 핵심.
+// [딥링크] link 는 쿠팡링크(쿠팡 파트너스에서 생성한 제휴 딥링크) 우선, 없으면 원본 제품링크(네이버)로 폴백.
+//          쿠팡링크 칸이 비어 있으면 자동으로 네이버 링크로 연결됨. 별도 변환 과정 불필요.
 
 import { getRecords } from "./_lib/airtable.js";
 
@@ -83,8 +83,8 @@ export async function onRequest(context) {
     const extra = {};
     for (const k of cfg.extra) extra[k] = f[k] !== undefined ? f[k] : null;
 
-    // 딥링크 우선, 없으면 원본 제품링크로 폴백
-    const deeplink = str(f.coupang_deeplink);
+    // 쿠팡링크(이미 생성된 제휴 딥링크) 우선, 없으면 원본 제품링크(네이버)로 폴백
+    const deeplink = str(f.쿠팡링크);
     const rawLink = str(f.제품링크);
     const outLink = deeplink || rawLink;
 
