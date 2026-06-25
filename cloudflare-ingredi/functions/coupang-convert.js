@@ -14,7 +14,7 @@ import { purge } from "./_lib/airtable.js";
 
 // ─── 확인 필요: Airtable 컬럼명 ──────────────────────────────────
 const CONFIG = {
-  SOURCE_URL_FIELD: "coupang_url",     // ★ 원본 쿠팡 상품 URL 컬럼명 — 실제 컬럼명으로 맞춰줘
+  SOURCE_URL_FIELD: "쿠팡링크",     // ★ 원본 쿠팡 상품 URL 컬럼명 — 실제 컬럼명으로 맞춰줘
   DEEPLINK_FIELD: "coupang_deeplink",  // 변환된 shortenUrl 저장 컬럼명
   SUB_ID: "ingredi",                    // 채널 추적용 subId ('' 로 두면 미사용)
   BATCH_SIZE: 20,                       // deeplink 1회 호출당 URL 개수
