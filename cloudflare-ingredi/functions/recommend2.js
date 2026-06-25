@@ -4,6 +4,9 @@
 //
 // 새 통합 스키마용. 미리 계산된 V_Score·등급·추천사유를 읽어 V_Score 순으로 정렬한다.
 // 기존 recommend.js(omega3 product_v2)는 유지 — 프론트 전환 완료 후 교체 예정.
+//
+// [딥링크] link 는 coupang_deeplink(제휴 추적 링크) 우선, 없으면 원본 제품링크로 폴백.
+//          제휴 링크를 통과한 클릭만 쿠팡 수수료가 인정되므로 이 매핑이 정산의 핵심.
 
 import { getRecords } from "./_lib/airtable.js";
 
@@ -79,11 +82,18 @@ export async function onRequest(context) {
     const f = r.fields || {};
     const extra = {};
     for (const k of cfg.extra) extra[k] = f[k] !== undefined ? f[k] : null;
+
+    // 딥링크 우선, 없으면 원본 제품링크로 폴백
+    const deeplink = str(f.coupang_deeplink);
+    const rawLink = str(f.제품링크);
+    const outLink = deeplink || rawLink;
+
     return {
       id: str(f.product_id) || r.id,
       name: str(f.제품명),
       image: cleanImage(f.이미지URL),
-      link: str(f.제품링크),
+      link: outLink,
+      isAffiliate: !!deeplink,   // 딥링크(수수료 인정 링크) 적용 여부
       form: str(f.제형),
       supplier: str(f.원료사),
       certs: str(f.인증),
