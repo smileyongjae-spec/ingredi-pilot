@@ -210,6 +210,10 @@ const params = new URLSearchParams(window.location.search);
 const query = params.get('q') || '';
 let distributions = null;
 
+// 비오메가3 카테고리 → 추천/비교 딥링크용 (app.html / compare.html 은 한글 카테고리 키 사용)
+const CATEGORY_PARAM = { omega3: '오메가3', vitaminC: '비타민C', eye: '눈', probiotics: '마이크로바이옴' };
+const CATEGORY_LABEL = { omega3: '오메가3', vitaminC: '비타민C', eye: '눈 건강', probiotics: '유산균' };
+
 if (!query) { window.location.href = '/app.html'; }
 else { loadConsultation(query); }
 
@@ -369,7 +373,7 @@ async function loadConsultation(q) {
 function renderMedicalAlertFromFlags(flags) {
   const alertBox = document.getElementById('medicalAlert');
   if (flags && flags.requiresMedicalConsult) {
-    const riskMap = { pregnancy: '임산부·수유부', surgery: '수술 관련', bleeding: '출혈 위험', highDose: '고함량', chronicDisease: '만성질환' };
+    const riskMap = { pregnancy: '임산부·수유부', surgery: '수술 관련', bleeding: '출혈 위험', highDose: '고함량', chronicDisease: '만성질환', smoking: '흡연·베타카로틴', immunocompromised: '면역저하·중증질환', vitcRisk: '신장결석·철 과부하', antibiotics: '항생제 병용' };
     const risks = (flags.detectedRisks || []).map(r => riskMap[r] || r).join(', ');
     alertBox.innerHTML = `
       <div class="alert alert-warn">
@@ -468,11 +472,11 @@ function renderProductListMode(data) {
     </section>`;
 }
 
-// 카운슬 모드 제품 추천 (Top 3)
+// 카운슬 모드 제품 추천 (Top 3) — 없으면 카테고리 추천/비교 CTA
 function renderCounselProducts(data) {
   const recEl = document.getElementById('recommendContent');
-  if (data.recommendation && data.recommendation.top3 && data.recommendation.top3.length > 0) {
-    const rec = data.recommendation;
+  const rec = data.recommendation;
+  if (rec && rec.top3 && rec.top3.length > 0) {
     const top3Html = rec.top3.map(productCardHtml).join('');
     const top3Ids = rec.top3.map(p => p.id).join(',');
     recEl.innerHTML = `
@@ -490,9 +494,28 @@ function renderCounselProducts(data) {
           <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${rec.profile.id}">직접 선택</a>
         </div>
       </section>`;
-  } else if (data.category !== 'out_of_scope') {
-    recEl.innerHTML = `<div class="empty-recommendation">추천할 제품이 없어요. 다른 키워드로 검색해보세요.</div>`;
-  } else { recEl.innerHTML = ''; }
+    return;
+  }
+  // top3 없음 → 카테고리 전체 보기/비교 CTA (눈·비타민C·유산균 등)
+  const catParam = CATEGORY_PARAM[data.category];
+  if (catParam) {
+    const label = CATEGORY_LABEL[data.category] || catParam;
+    recEl.innerHTML = `
+      <section class="recommend-section">
+        <div class="recommend-header">
+          <div>
+            <div class="recommend-title">${escapeHtml(label)} 제품 보기</div>
+            <div class="recommend-subtitle">ingredi가 임상 근거로 비교해드려요</div>
+          </div>
+        </div>
+        <div class="compare-cta">
+          <a class="compare-cta-btn primary" href="/app.html?category=${encodeURIComponent(catParam)}">추천 제품 보기</a>
+          <a class="compare-cta-btn" href="/compare.html?category=${encodeURIComponent(catParam)}">제품 비교하기</a>
+        </div>
+      </section>`;
+  } else {
+    recEl.innerHTML = '';
+  }
 }
 
 function renderResult(data) {
