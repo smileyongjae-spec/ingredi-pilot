@@ -100,7 +100,20 @@ export async function onRequest(context) {
     const originalTokens = query.split(/\s+/).filter(t => t.length > 0);
     const expandedTokens = expandedQuery.split(/\s+/).filter(t => t.length > 0);
     const allTokens = [...new Set([...originalTokens, ...expandedTokens])];
-    const lowerTokens = allTokens.map(t => t.toLowerCase());
+
+    // 검색 토큰 정제: 한글 조사·문장부호 제거 + 불용어 제거 (조사로 인한 0건 매칭 방지)
+    const JOSA = ["으로","로서","로써","에서","에게","한테","이라는","라는","이라고","라고","이란","란","이나","이며","이고","은","는","이","가","을","를","와","과","의","에","도","만","요"];
+    const STOPWORDS = new Set(["뭐야","뭔지","뭐냐","뭐","무엇","뭔가","알려줘","설명","설명해줘","해줘","어때","인가요","일까요","되나요","건가요","좋아요","괜찮아요","대해","관해","그리고","근데"]);
+    function cleanTok(t) { return t.replace(/[?!.,~"'`()\[\]·…:;]/g, "").trim(); }
+    function stripJosa(t) { for (const j of JOSA) { if (t.length > j.length + 1 && t.endsWith(j)) return t.slice(0, t.length - j.length); } return t; }
+    const tokenSet = new Set();
+    for (const t of allTokens) {
+      const c = cleanTok(t);
+      if (c && !STOPWORDS.has(c)) tokenSet.add(c.toLowerCase());
+      const s = stripJosa(c);
+      if (s && s.length > 1 && !STOPWORDS.has(s)) tokenSet.add(s.toLowerCase());
+    }
+    const lowerTokens = [...tokenSet];
 
     // ─── Airtable 페이지네이션 헬퍼 ──────────────────
     async function fetchAll(table) {
@@ -138,7 +151,7 @@ export async function onRequest(context) {
     });
     if (scopedKnowledge.length === 0) scopedKnowledge = knowledgeRecords;
 
-    const knowledgeMatched = scopedKnowledge
+    let knowledgeMatched = scopedKnowledge
       .map(record => {
         const f = record.fields || {};
         const hay = rowHaystack(f);
@@ -201,11 +214,16 @@ export async function onRequest(context) {
       faqError = (e && e.message) ? ("FAQ(" + cfg.table + ") " + e.message) : ("FAQ status");
     }
 
+    // 개요 폴백: 토큰이 빗나갔지만 카테고리는 유효한 경우, 핵심 지식(효능/개념)으로 답변
+    if (knowledgeMatched.length === 0 && faqMatched.length === 0 && scopedKnowledge.length > 0) {
+      const ORDER = { "효능": 0, "개념": 1, "성분": 2, "섭취량": 3, "구성": 4, "균수": 5 };
+      knowledgeMatched = scopedKnowledge.slice()
+        .sort((a, b) => ((ORDER[(a.fields || {})[fK_category]] ?? 9) - (ORDER[(b.fields || {})[fK_category]] ?? 9)))
+        .slice(0, 4)
+        .map(rec => { const f = rec.fields || {}; return { id: f[fK_id] || rec.id, category: f[fK_category] || "", oneline: f[fK_oneline] || "", answer: f[fK_answer] || "", evidence: f[fK_evidence] || "", related: f[fK_related] || "", score: 0 }; });
+    }
+
     if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
-      return new Response(JSON.stringify({
-        query: query,
-        category: matchedCategory,
-        answer: "그 부분은 ingredi가 근거 데이터로 확인해 드리기 어려운 내용입니다. 대신 " + CATEGORY_LABEL[matchedCategory] + "의 함량·제형·복용법 같은 일반 정보는 안내해 드릴 수 있습니다.",
         sources: [],
         flags: { noResults: true, tokens: allTokens, expandedQuery: expandedQuery, faqError: faqError }
       }), { status: 200, headers });
