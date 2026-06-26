@@ -179,7 +179,20 @@ export async function onRequest(context) {
     const originalTokens = query.split(/\s+/).filter(t => t.length > 0);
     const expandedTokens = expandedQuery.split(/\s+/).filter(t => t.length > 0);
     const allTokens = [...new Set([...originalTokens, ...expandedTokens])];
-    const lowerTokens = allTokens.map(t => t.toLowerCase());
+
+    // 검색 토큰 정제: 한글 조사·문장부호 제거 + 불용어 제거 (조사로 인한 0건 매칭 방지)
+    const JOSA = ["으로","로서","로써","에서","에게","한테","이라는","라는","이라고","라고","이란","란","이나","이며","이고","은","는","이","가","을","를","와","과","의","에","도","만","요"];
+    const STOPWORDS = new Set(["뭐야","뭔지","뭐냐","뭐","무엇","뭔가","알려줘","설명","설명해줘","해줘","어때","인가요","일까요","되나요","건가요","좋아요","괜찮아요","대해","관해","그리고","근데"]);
+    function cleanTok(t) { return t.replace(/[?!.,~"'`()\[\]·…:;]/g, "").trim(); }
+    function stripJosa(t) { for (const j of JOSA) { if (t.length > j.length + 1 && t.endsWith(j)) return t.slice(0, t.length - j.length); } return t; }
+    const tokenSet = new Set();
+    for (const t of allTokens) {
+      const c = cleanTok(t);
+      if (c && !STOPWORDS.has(c)) tokenSet.add(c.toLowerCase());
+      const s = stripJosa(c);
+      if (s && s.length > 1 && !STOPWORDS.has(s)) tokenSet.add(s.toLowerCase());
+    }
+    const lowerTokens = [...tokenSet];
 
     // ─── [3] LOAD TABLES (KV 캐시) ───────────────────
     const cfg = FAQ_CONFIG[matchedCategory];
@@ -198,7 +211,7 @@ export async function onRequest(context) {
     let scopedK = (kRecords || []).filter(r => { const hay = rowHaystack(r.fields || {}); return catTokens.some(t => hay.indexOf(t.toLowerCase()) !== -1); });
     if (scopedK.length === 0) scopedK = kRecords || [];
 
-    const knowledgeMatched = scopedK
+    let knowledgeMatched = scopedK
       .map(r => {
         const f = r.fields || {};
         const hay = rowHaystack(f);
@@ -269,6 +282,15 @@ export async function onRequest(context) {
     }
     const isProductMode = !!productMatchRecord;
     const ingredient = isOmega3 ? detectIngredient(query) : null;
+
+    // ─── 개요 폴백: 토큰이 빗나갔지만 카테고리는 유효 → 핵심 지식(효능/개념)으로 답변 ──
+    if (knowledgeMatched.length === 0 && faqMatched.length === 0 && scopedK.length > 0) {
+      const ORDER = { "효능": 0, "개념": 1, "성분": 2, "섭취량": 3, "구성": 4, "균수": 5 };
+      knowledgeMatched = scopedK.slice()
+        .sort((a, b) => ((ORDER[(a.fields || {})[fK_category]] ?? 9) - (ORDER[(b.fields || {})[fK_category]] ?? 9)))
+        .slice(0, 4)
+        .map(rec => { const f = rec.fields || {}; return { id: f[fK_id] || rec.id, category: f[fK_category] || "", oneline: f[fK_oneline] || "", answer: f[fK_answer] || "", evidence: f[fK_evidence] || "", score: 0 }; });
+    }
 
     // ─── [6] CALL CLAUDE (RAG) ───────────────────────
     let answer = "", claudeError = null;
