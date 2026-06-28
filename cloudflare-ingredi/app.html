@@ -602,6 +602,15 @@ function scoreFor(p, w){
   return w.core*num(s.core) + w.cost*num(s.cost) + w.review*num(s.review);
 }
 function sortByProfile(products, profileKey){
+  // 균형(balanced)은 V-Score(종합점수) 순 = 카운슬링과 동일한 단일 진실
+  if (profileKey === "balanced") {
+    return products.map((p,i)=>({p,i})).sort((a,b)=>{
+      const dv = num(b.p.vScore) - num(a.p.vScore);
+      if (dv !== 0) return dv;
+      return a.i - b.i;
+    }).map(o=>o.p);
+  }
+  // 고품질·가성비는 특정 축(성분/가격)을 강조하는 정렬 유지
   const w = profileOf(profileKey).w;
   return products.map((p,i)=>({p,i})).sort((a,b)=>{
     const d = scoreFor(b.p,w) - scoreFor(a.p,w);
