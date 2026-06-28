@@ -410,11 +410,11 @@ export async function onRequest(context) {
         listMode = "ingredient"; listTerm = ingredient.label;
         let pool = filtered;
         if (ingredient.form) { const ff = ingredient.form; const formed = filtered.filter(it => String(it.form || "").toLowerCase().indexOf(ff) !== -1); if (formed.length > 0) pool = formed; }
-        ingredientProducts = pool.slice(0, 60).map(toCard);
+        ingredientProducts = pool.map(toCard);
       } else if (isProductMode) {
         listMode = "product"; listTerm = query;
         const qn = normEntity(query);
-        ingredientProducts = filtered.filter(it => { const nn = normEntity(it.name); return nn && (nn.indexOf(qn) !== -1 || qn.indexOf(nn) !== -1); }).slice(0, 60).map(toCard);
+        ingredientProducts = filtered.filter(it => { const nn = normEntity(it.name); return nn && (nn.indexOf(qn) !== -1 || qn.indexOf(nn) !== -1); }).map(toCard);
       }
 
       const top3 = filtered.slice(0, 3).map((item, idx) => ({
