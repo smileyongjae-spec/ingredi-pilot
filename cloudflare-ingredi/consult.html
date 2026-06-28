@@ -421,7 +421,7 @@ function productCardHtml(p) {
           <div class="product-info-top">
             <span class="product-rank-pill">${p.rank}위</span>
             <div class="product-vscore-block">
-              <div class="product-vscore-num">${p.vScore || 0}</div>
+              <div class="product-vscore-num">${Math.round(p.vScore || 0)}</div>
               <div class="product-vscore-cap">V-SCORE</div>
             </div>
           </div>
