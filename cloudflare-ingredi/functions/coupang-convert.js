@@ -19,7 +19,7 @@ const DEEPLINK_PATH = "/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink
 const DEFAULT_TABLES = ["오메가3_쿠팡업데이트", "눈_쿠팡업데이트", "마이크로바이옴_쿠팡업데이트", "비타민C_쿠팡업데이트"];
 const RAW_FIELDS = ["쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크"]; // raw 쿠팡 링크 컬럼 후보(공백 표기 차이 흡수)
 const F_DEEP = "coupang_deeplink";
-const CHUNK = 50;            // Deeplink API 1회 요청당 URL 수
+const CHUNK = 20;           // Deeplink API 1회 요청당 URL 수 (API 상한: 20)
 const AIRTABLE_BATCH = 10;   // Airtable PATCH 1회당 레코드 수(최대 10)
 
 export async function onRequest(context) {
