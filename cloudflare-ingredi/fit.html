@@ -314,6 +314,19 @@
 <script>
 const API_BASE = window.location.origin;
 
+// 백버튼 표준: 같은 사이트에서 왔으면 진짜 직전 화면, 직접 진입이면 폴백
+function smartBack(fallback) {
+  try {
+    const ref = document.referrer;
+    if (history.length > 1 && ref && new URL(ref).origin === location.origin) {
+      history.back();
+      return;
+    }
+  } catch (e) {}
+  location.href = fallback || '/app.html';
+}
+window.smartBack = smartBack;
+
 const PRESET_ITEMS = [
   '오메가3', '종합비타민', '비타민D', '비타민C',
   '마그네슘', '칼슘', '철분', '아연',
