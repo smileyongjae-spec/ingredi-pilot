@@ -87,7 +87,7 @@
 <body>
 <div class="app">
   <header class="header">
-    <a class="hb" id="backLink" href="/" aria-label="뒤로">
+    <a class="hb" id="backLink" href="/app.html" aria-label="뒤로" onclick="smartBack('/app.html');return false;">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
     <div class="htitle" id="hTitle">제품 비교</div>
@@ -122,6 +122,19 @@
 
 <script>
 const API = window.location.origin + "/recommend2";
+
+// 백버튼 표준: 같은 사이트에서 왔으면 진짜 직전 화면, 직접 진입이면 폴백
+function smartBack(fallback) {
+  try {
+    const ref = document.referrer;
+    if (history.length > 1 && ref && new URL(ref).origin === location.origin) {
+      history.back();
+      return;
+    }
+  } catch (e) {}
+  location.href = fallback || '/app.html';
+}
+window.smartBack = smartBack;
 const CATS = [
   { key:"오메가3", label:"오메가3" }, { key:"눈", label:"눈 건강" },
   { key:"마이크로바이옴", label:"유산균" }, { key:"비타민C", label:"비타민C" }
