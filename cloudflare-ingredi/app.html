@@ -222,6 +222,8 @@
     .cat-meta { font-size: 12px; color: var(--ink-faint); padding: 14px 2px 4px; }
     .cat-status { padding: 50px 18px; text-align: center; color: var(--ink-faint); font-size: 14px; }
     .cv-card { background: #fff; border: 1px solid var(--line-soft); border-radius: 18px; padding: 18px 18px 15px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+    .cv-card.cv-focus { animation: cvFocusPulse 2.2s ease; }
+    @keyframes cvFocusPulse { 0%,100% { box-shadow: var(--shadow-sm); } 12%,40% { box-shadow: 0 0 0 3px var(--green-primary), 0 8px 24px rgba(45,95,63,0.22); } }
     .cv-row { display: flex; align-items: flex-start; gap: 13px; }
     .cv-thumb { width: 58px; height: 58px; border-radius: 13px; object-fit: cover; flex-shrink: 0; background: var(--green-bg); border: 1px solid var(--line-soft); }
     .cv-grade { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 12px; border-radius: 8px; border: 1px solid; }
@@ -535,13 +537,22 @@ function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function clampPos(x){ return Math.max(3, Math.min(97, x)); }
 function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
 
+let enteredViaDeepLink = false; // consult 등 외부/딥링크로 카테고리에 바로 진입했는지
+
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
   document.getElementById('backBtn').style.visibility = name === 'home' ? 'hidden' : 'visible';
   window.scrollTo(0, 0);
 }
-document.getElementById('backBtn').addEventListener('click', () => showScreen('home'));
+document.getElementById('backBtn').addEventListener('click', () => {
+  // 외부/딥링크로 바로 카테고리에 들어온 경우엔 진짜 직전 화면(외부)으로
+  if (enteredViaDeepLink && history.length > 1) {
+    history.back();
+  } else {
+    showScreen('home');
+  }
+});
 
 const freeInput = document.getElementById('freeInput');
 const freeInputBtn = document.getElementById('freeInputBtn');
@@ -679,7 +690,7 @@ function renderCardV8(p, ctx){
   const certsStr = String(p.certs||"");
   const certs = escapeHtml(certsStr.slice(0,30)) + (certsStr.length>30?"…":"");
   const img = p.image ? escapeHtml(p.image) : PLACEHOLDER;
-  const buy = p.link ? `<a class="cv-buy" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">제품 보기 →</a>` : `<span class="cv-buy">제품 보기 →</span>`;
+  const buy = p.link ? `<a class="cv-buy" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">구매하러 가기</a>` : `<span class="cv-buy">구매하러 가기</span>`;
 
   const tagList = [];
   if (p.form) tagList.push(String(p.form));
@@ -692,7 +703,7 @@ function renderCardV8(p, ctx){
   }).join("");
   const primKey = PRIMARY_TERM[cat] || "vscore";
 
-  return `<div class="cv-card">
+  return `<div class="cv-card" id="prod-${escapeHtml(String(p.id||''))}">
     <div class="cv-row">
       <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div style="flex:1;min-width:0">
@@ -817,14 +828,38 @@ function openCategory(cat){
 }
 window.openCategory = openCategory;
 
+// 딥링크 focus: 카드가 그려질 때까지 기다렸다 해당 제품으로 스크롤 + 하이라이트
+function focusProduct(id, tries){
+  tries = tries || 0;
+  const el = document.getElementById('prod-' + id);
+  if (!el) {
+    if (tries < 40) setTimeout(() => focusProduct(id, tries + 1), 100); // 최대 약 4초 대기
+    return;
+  }
+  const cr = el.closest('.cr-card');           // 4위 이하 접힌 카드 안이면
+  if (cr && !cr.classList.contains('open')) cr.classList.add('open'); // 펼치기
+  setTimeout(() => {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('cv-focus');
+    setTimeout(() => el.classList.remove('cv-focus'), 2400);
+  }, 150);
+}
+window.focusProduct = focusProduct;
+
 renderTabs();
 renderProfileBar();
 
-// 딥링크: /app.html?category=오메가3 등으로 들어오면 해당 카테고리 자동 열기
+// 딥링크: /app.html?category=오메가3&focus=om_005 등으로 들어오면 자동 열기 + 제품 포커스
 (function(){
   try {
-    const c = new URLSearchParams(location.search).get('category');
-    if (c && CATS.some(x => x.key === c)) openCategory(c);
+    const sp = new URLSearchParams(location.search);
+    const c = sp.get('category');
+    const focusId = sp.get('focus');
+    if (c && CATS.some(x => x.key === c)) {
+      enteredViaDeepLink = true;
+      openCategory(c);
+      if (focusId) focusProduct(focusId);
+    }
   } catch(e){}
 })();
 </script>
