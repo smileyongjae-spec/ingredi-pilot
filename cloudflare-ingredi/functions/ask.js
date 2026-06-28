@@ -224,6 +224,10 @@ export async function onRequest(context) {
     }
 
     if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
+      return new Response(JSON.stringify({
+        query: query,
+        category: matchedCategory,
+        answer: "그 부분은 ingredi가 근거 데이터로 확인해 드리기 어려운 내용입니다. 대신 " + CATEGORY_LABEL[matchedCategory] + "의 함량·제형·복용법 같은 일반 정보는 안내해 드릴 수 있습니다.",
         sources: [],
         flags: { noResults: true, tokens: allTokens, expandedQuery: expandedQuery, faqError: faqError }
       }), { status: 200, headers });
