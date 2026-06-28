@@ -162,7 +162,7 @@
 <body>
 <div class="app">
   <header class="header">
-    <a class="header-back" href="/app.html" aria-label="홈으로">
+    <a class="header-back" href="/app.html" aria-label="뒤로" onclick="smartBack('/app.html');return false;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M15 18l-6-6 6-6"/>
       </svg>
@@ -209,6 +209,23 @@ const API_BASE = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const query = params.get('q') || '';
 let distributions = null;
+
+// 카운슬링 카테고리(영문 키) → app.html 딥링크용 한글 카테고리
+const CAT_KO = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈", probiotics: "마이크로바이옴" };
+let CURRENT_CAT_KO = "오메가3";
+
+// 백버튼 표준: 같은 사이트에서 왔으면 진짜 직전 화면, 직접 진입이면 폴백
+function smartBack(fallback) {
+  try {
+    const ref = document.referrer;
+    if (history.length > 1 && ref && new URL(ref).origin === location.origin) {
+      history.back();
+      return;
+    }
+  } catch (e) {}
+  location.href = fallback || '/app.html';
+}
+window.smartBack = smartBack;
 
 // 비오메가3 카테고리 → 추천/비교 딥링크용 (app.html / compare.html 은 한글 카테고리 키 사용)
 const CATEGORY_PARAM = { omega3: '오메가3', vitaminC: '비타민C', eye: '눈', probiotics: '마이크로바이옴' };
@@ -362,6 +379,7 @@ async function loadConsultation(q) {
     const res = await fetch(`${API_BASE}/counsel-api?q=${encodeURIComponent(q)}`);
     const data = await res.json();
     if (data.error) { showError(data.message || '답변을 불러올 수 없습니다.'); return; }
+    CURRENT_CAT_KO = CAT_KO[data.category] || "오메가3";
     renderResult(data);
     document.getElementById('screenLoading').classList.remove('active');
     document.getElementById('screenResult').classList.add('active');
@@ -413,12 +431,11 @@ function productCardHtml(p) {
         </div>
       </div>
       <div class="product-card-actions">
-        <button class="btn-mini secondary" onclick="toggleDetail('${pid}')">자세히 보기</button>
+        <a class="btn-mini secondary" href="/app.html?category=${encodeURIComponent(CURRENT_CAT_KO)}&focus=${encodeURIComponent(p.id || '')}">자세히 보기</a>
         ${p.coupangLink
-          ? `<a class="btn-mini primary" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">쿠팡에서 보기</a>`
+          ? `<a class="btn-mini primary" href="${escapeHtml(p.coupangLink)}" target="_blank" rel="noopener">구매하러 가기</a>`
           : `<button class="btn-mini primary" disabled>링크 없음</button>`}
       </div>
-      <div class="detail-panel" id="detail-${pid}">${renderStatBars(ks)}</div>
     </article>`;
 }
 
