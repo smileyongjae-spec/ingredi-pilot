@@ -90,7 +90,7 @@ export async function onRequest(context) {
   const PROFILES = {
     "premium_seeker": { label: "최고 품질 선호", weights: { dose: 30, form: 20, source: 20, cert: 20, price: 10 }, medicalConsult: false },
     "budget_seeker":  { label: "가성비 선호", weights: { dose: 20, form: 15, source: 15, cert: 10, price: 40 }, medicalConsult: false },
-    "balanced":       { label: "교형형 (기본값)", weights: { dose: 30, form: 20, source: 20, cert: 20, price: 10 }, medicalConsult: false },
+    "balanced":       { label: "균형형 (기본값)", weights: { dose: 30, form: 20, source: 20, cert: 20, price: 10 }, medicalConsult: false },
     "pregnancy":      { label: "임산부·수유부", weights: { dose: 15, form: 15, source: 30, cert: 35, price: 5 }, medicalConsult: true },
     "senior":         { label: "시니어 (50+)", weights: { dose: 35, form: 25, source: 15, cert: 15, price: 10 }, medicalConsult: false, filters: { minDailyDose: 1000 } }
   };
