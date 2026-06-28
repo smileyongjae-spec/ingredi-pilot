@@ -151,7 +151,7 @@
 <body>
 <div class="app">
   <header class="header">
-    <a class="header-back" href="/app.html" aria-label="홈으로">
+    <a class="header-back" href="/app.html" aria-label="뒤로" onclick="smartBack('/app.html');return false;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
     <div class="header-title">맞춤 추천</div>
@@ -244,6 +244,19 @@
 
 <script>
 const API_BASE = window.location.origin;
+
+// 백버튼 표준: 같은 사이트에서 왔으면 진짜 직전 화면, 직접 진입이면 폴백
+function smartBack(fallback) {
+  try {
+    const ref = document.referrer;
+    if (history.length > 1 && ref && new URL(ref).origin === location.origin) {
+      history.back();
+      return;
+    }
+  } catch (e) {}
+  location.href = fallback || '/app.html';
+}
+window.smartBack = smartBack;
 const state = { category: null, gender: null, age: null, pregStatus: 'no', priority: null };
 
 const GRADE = {
@@ -458,7 +471,7 @@ function productCardHtml(p, rank, m, cat) {
       </div>
       <div class="product-card-actions">
         <button class="btn-mini secondary" onclick="toggleDetail('${pid}')">자세히 보기</button>
-        ${p.link ? `<a class="btn-mini primary" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">제품 보기</a>` : `<button class="btn-mini primary" disabled>링크 없음</button>`}
+        ${p.link ? `<a class="btn-mini primary" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">구매하러 가기</a>` : `<button class="btn-mini primary" disabled>링크 없음</button>`}
       </div>
       <div class="detail-panel" id="detail-${pid}">${renderStatBars(p, m, cat)}</div>
     </article>`;
