@@ -200,7 +200,7 @@ export async function onRequest(context) {
     const [kRecords, fRecords, pRecords] = await Promise.all([
       safeGet("knowledge"),
       safeGet(cfg.table),
-      isOmega3 ? safeGet("product_v2") : Promise.resolve([])
+      isOmega3 ? safeGet("오메가3_쿠팡업데이트") : Promise.resolve([])
     ]);
 
     // knowledge 매칭 (카테고리 필터 + 답변예시 포함)
@@ -362,28 +362,32 @@ export async function onRequest(context) {
         const f = r.fields || {};
         const productId   = getField(f, "product_id", "productId");
         const productName = getField(f, "제품명", "name") || "";
-        const dailyMg     = parseFloat(getField(f, "EPA_DHA_합계_mg")) || 0;
+        // 신 테이블(오메가3_쿠팡업데이트)은 EPA_DHA_mg, 구 테이블 호환 위해 합계_mg도 폴백
+        const dailyMg     = parseFloat(getField(f, "EPA_DHA_mg", "EPA_DHA_합계_mg")) || 0;
         const form        = getField(f, "제형") || "";
         const supplier    = getField(f, "원료사") || "";
         const certsRaw    = getField(f, "인증");
         const certs       = Array.isArray(certsRaw) ? certsRaw.join(", ") : String(certsRaw || "");
         const dailyCost   = parseFloat(getField(f, "1일비용_원")) || 0;
         const capsuleMg   = parseFloat(getField(f, "캡슐용량_mg", "capsuleMg", "캡슐 용량 (mg)")) || 0;
-        const tier        = getField(f, "Tier등급") || "";
+        const grade       = getField(f, "등급") || "";
+        const tier        = grade || getField(f, "Tier등급") || "";   // 신 테이블 등급(S/A/B) 우선
+        const reason      = getField(f, "추천사유") || "";
         const passFail    = getField(f, "함량_Pass_Fail") || "";
-        const coupangLink = getField(f, "coupang_url", "coupangUrl", "coupangLink", "쿠팡_파트너스_링크") || "";
+        // 링크 우선순위: 파트너스 딥링크 → raw 쿠팡 URL → 네이버(제품링크)
+        const coupangLink = getField(f, "coupang_deeplink")
+                         || getField(f, "쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크", "coupang_url")
+                         || getField(f, "제품링크") || "";
         let imageUrl = getField(f, "이미지URL", "imageUrl", "image", "이미지", "photo") || "";
         if (Array.isArray(imageUrl) && imageUrl.length > 0) {
           const att = imageUrl[0];
           imageUrl = (att.thumbnails && att.thumbnails.large) ? att.thumbnails.large.url : (att.url || "");
         } else if (typeof imageUrl === 'object' && imageUrl !== null) { imageUrl = imageUrl.url || ""; }
 
-        const w = profile.weights;
-        const dose=scoreDose(dailyMg), formScore=scoreForm(form), srcScore=scoreSource(supplier), certScore=scoreCert(certs), priceScore=scorePrice(dailyCost);
-        let total = Math.round(dose*w.dose/100 + formScore*w.form/100 + srcScore*w.source/100 + certScore*w.cert/100 + priceScore*w.price/100);
-        let highDoseFlag = false;
-        if (dailyMg > 2000) { total = Math.min(80, total); highDoseFlag = true; }
-        return { id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost), capsuleMg, form, supplier, certs, tier, passFail, coupangLink, scores: { dose, form: formScore, source: srcScore, cert: certScore, price: priceScore, total }, highDoseFlag };
+        // V-Score: 신 테이블에 사전 계산·저장된 V_Score를 단일 진실로 사용 (런타임 재계산 폐지)
+        const vScore = parseFloat(getField(f, "V_Score", "vScore", "V_SCORE")) || 0;
+        const highDoseFlag = dailyMg > 2000;
+        return { id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost), capsuleMg, form, supplier, certs, grade, tier, reason, passFail, coupangLink, vScore, highDoseFlag };
       });
 
       let filtered = scored.filter(item => {
@@ -391,14 +395,14 @@ export async function onRequest(context) {
         if (profile.filters && profile.filters.minDailyDose && item.dailyMg < profile.filters.minDailyDose) return false;
         return true;
       });
-      filtered.sort((a, b) => b.scores.total - a.scores.total);
+      filtered.sort((a, b) => b.vScore - a.vScore);
 
       function computeDist(vals) { const v = vals.filter(x => x > 0); if (v.length === 0) return null; const sum = v.reduce((a, b) => a + b, 0); return { min: Math.min(...v), max: Math.max(...v), avg: Math.round(sum / v.length) }; }
       distributions = { dose: computeDist(scored.map(s => s.dailyMg)), cost: computeDist(scored.map(s => s.dailyCost)), capsule: computeDist(scored.map(s => s.capsuleMg)) };
 
       function toCard(item, idx) {
-        return { rank: idx + 1, id: item.id, name: item.name, image: item.image || "", vScore: item.scores.total,
-          keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, capsuleMg: item.capsuleMg, form: item.form, certs: item.certs, tier: item.tier },
+        return { rank: idx + 1, id: item.id, name: item.name, image: item.image || "", vScore: item.vScore,
+          keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, capsuleMg: item.capsuleMg, form: item.form, certs: item.certs, tier: item.tier, grade: item.grade },
           coupangLink: item.coupangLink, highDoseFlag: item.highDoseFlag };
       }
 
@@ -414,8 +418,8 @@ export async function onRequest(context) {
       }
 
       const top3 = filtered.slice(0, 3).map((item, idx) => ({
-        rank: idx + 1, id: item.id, name: item.name, image: item.image || "", vScore: item.scores.total, detailScores: item.scores,
-        keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, capsuleMg: item.capsuleMg, form: item.form, supplier: item.supplier, certs: item.certs, tier: item.tier },
+        rank: idx + 1, id: item.id, name: item.name, image: item.image || "", vScore: item.vScore, detailScores: null,
+        keySpec: { dailyMg: item.dailyMg, dailyCost: item.dailyCost, capsuleMg: item.capsuleMg, form: item.form, supplier: item.supplier, certs: item.certs, tier: item.tier, grade: item.grade },
         coupangLink: item.coupangLink, highDoseFlag: item.highDoseFlag
       }));
       recommendation = { profile: { id: matchedProfileId, label: profile.label, weights: profile.weights }, top3, filteredCount: filtered.length, totalCount: records.length };
