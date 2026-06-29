@@ -157,6 +157,59 @@
 
     /* ── 성분/제품 리스트 헤더 ── */
     .ingredient-products-head { font-size: 16px; font-weight: 700; color: var(--green-deep); margin-bottom: 12px; padding: 0 4px; letter-spacing: -0.01em; }
+
+    /* ── 고객 피드백 ── */
+    .feedback { margin-top: 16px; padding: 0 8px; text-align: center; }
+    .feedback-trigger {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      color: var(--green-primary); padding: 7px 12px; border-radius: 8px;
+      transition: background 0.15s ease;
+    }
+    .feedback-trigger:hover { background: var(--green-light); }
+    .feedback-trigger:active { transform: scale(0.97); }
+    .feedback-trigger svg { width: 16px; height: 16px; }
+    .feedback-form {
+      display: none; text-align: left;
+      margin-top: 10px; padding: 16px;
+      background: var(--paper);
+      border: 1.5px solid var(--green-mid);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+    }
+    .feedback-form.active { display: block; animation: fadeIn 0.25s ease; }
+    .feedback-desc { font-size: 14px; color: var(--ink-soft); margin-bottom: 10px; line-height: 1.5; }
+    .feedback-textarea {
+      width: 100%; min-height: 84px; resize: vertical;
+      padding: 12px 14px; background: white;
+      border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 15px; color: var(--ink); line-height: 1.6;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .feedback-textarea::placeholder { color: var(--ink-faint); }
+    .feedback-textarea:focus { outline: none; border-color: var(--green-primary); box-shadow: 0 0 0 3px rgba(45,95,63,0.08); }
+    .feedback-err { font-size: 13px; color: var(--warn); margin-top: 8px; }
+    .feedback-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .feedback-btn {
+      flex: 1; padding: 11px; border: none; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .feedback-btn.cancel { background: var(--green-light); color: var(--green-deep); }
+    .feedback-btn.cancel:hover { background: #DCE9DF; }
+    .feedback-btn.send { background: var(--green-primary); color: white; }
+    .feedback-btn.send:hover { background: var(--green-deep); }
+    .feedback-btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
+    .feedback-done {
+      display: none; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 10px; padding: 16px;
+      background: var(--green-light); border-radius: var(--radius-md);
+      font-size: 14px; font-weight: 600; color: var(--green-deep);
+      line-height: 1.5; text-align: center;
+    }
+    .feedback-done.active { display: flex; animation: fadeIn 0.25s ease; }
+    .feedback-done svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--green-primary); }
   </style>
 </head>
 <body>
@@ -187,6 +240,27 @@
     <div id="answerContent"></div>
     <div id="recommendContent"></div>
     <div class="disclaimer" id="disclaimer"></div>
+
+    <div class="feedback" data-fb="consult">
+      <button class="feedback-trigger" type="button" onclick="fbOpen('consult')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        ingredi 서비스 의견 보내기
+      </button>
+      <div class="feedback-form" id="fbForm-consult">
+        <div class="feedback-desc">서비스 개선사항이나 버그, 바라는 점을 들려주세요</div>
+        <textarea class="feedback-textarea" id="fbText-consult" placeholder="자유롭게 적어주세요"></textarea>
+        <div class="feedback-err" id="fbErr-consult"></div>
+        <div class="feedback-actions">
+          <button class="feedback-btn cancel" type="button" onclick="fbCancel('consult')">취소</button>
+          <button class="feedback-btn send" type="button" id="fbSend-consult" onclick="fbSubmit('consult')">보내기</button>
+        </div>
+      </div>
+      <div class="feedback-done" id="fbDone-consult">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <span>소중한 의견 감사합니다. 서비스 개선에 바로 반영할게요.</span>
+      </div>
+    </div>
+
     <div class="fit-cta">
       <div class="fit-cta-title">여러 영양제를 같이 드시나요?</div>
       <div class="fit-cta-sub">지금 드시는 조합에 겹침·과잉·상호작용이 없는지<br>ingredi가 무료로 점검해드려요</div>
@@ -572,6 +646,58 @@ function showError(msg) {
   document.getElementById('screenLoading').classList.remove('active');
   document.getElementById('screenResult').classList.add('active');
 }
+
+/* ── 고객 피드백 ── */
+const FB_SCREEN = { home: "home", category: "category", consult: "consult" };
+function fbOpen(id){
+  const form = document.getElementById("fbForm-" + id);
+  const trig = document.querySelector('[data-fb="' + id + '"] .feedback-trigger');
+  const ta = document.getElementById("fbText-" + id);
+  if (form) form.classList.add("active");
+  if (trig) trig.style.display = "none";
+  if (ta) ta.focus();
+}
+function fbCancel(id){
+  const form = document.getElementById("fbForm-" + id);
+  const trig = document.querySelector('[data-fb="' + id + '"] .feedback-trigger');
+  const ta = document.getElementById("fbText-" + id);
+  const err = document.getElementById("fbErr-" + id);
+  if (form) form.classList.remove("active");
+  if (trig) trig.style.display = "";
+  if (ta) ta.value = "";
+  if (err) err.textContent = "";
+}
+async function fbSubmit(id){
+  const ta = document.getElementById("fbText-" + id);
+  const err = document.getElementById("fbErr-" + id);
+  const btn = document.getElementById("fbSend-" + id);
+  const content = ((ta && ta.value) || "").trim();
+  if (err) err.textContent = "";
+  if (!content){ if (ta) ta.focus(); return; }
+  if (btn){ btn.disabled = true; btn.textContent = "보내는 중…"; }
+  const payload = { 내용: content, 화면: FB_SCREEN[id] || id };
+  if (id === "category" && typeof activeCat === "string" && activeCat) payload.카테고리 = activeCat;
+  try {
+    const res = await fetch("/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_e) {}
+    if (!res.ok || !data.ok) throw new Error((data && data.error) || "전송 실패");
+    const form = document.getElementById("fbForm-" + id);
+    const done = document.getElementById("fbDone-" + id);
+    if (form) form.classList.remove("active");
+    if (done) done.classList.add("active");
+  } catch (e) {
+    if (err) err.textContent = "전송에 실패했어요. 잠시 후 다시 시도해주세요.";
+    if (btn){ btn.disabled = false; btn.textContent = "보내기"; }
+  }
+}
+window.fbOpen = fbOpen;
+window.fbCancel = fbCancel;
+window.fbSubmit = fbSubmit;
 </script>
 </body>
 </html>
