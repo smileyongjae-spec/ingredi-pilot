@@ -318,34 +318,37 @@ export async function onRequest(context) {
         userPrompt += `\n\n[내부 플래그] 의료 주의가 필요한 키워드 감지됨 (${detectedRisks.join(", ")}). 답변 끝에 "복용 전 의사·약사와 상담하세요"를 포함하세요.`;
       }
 
-      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, stream: true, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] })
-      });
+      const claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
+      async function callClaude() {
+        return fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+          body: claudeReqBody
+        });
+      }
 
-      if (claudeResponse.ok && claudeResponse.body) {
-        const reader = claudeResponse.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") break;
-            try {
-              const evt = JSON.parse(data);
-              if (evt.type === "content_block_delta" && evt.delta && evt.delta.type === "text_delta") answer += evt.delta.text;
-            } catch (_) {}
+      let claudeResponse = await callClaude();
+      // 일시적 오류(레이트리밋/과부하/5xx)면 짧게 쉬고 한 번 재시도
+      if (!claudeResponse.ok && [429, 500, 502, 503, 504, 529].indexOf(claudeResponse.status) !== -1) {
+        await new Promise((r) => setTimeout(r, 800));
+        claudeResponse = await callClaude();
+      }
+
+      if (claudeResponse.ok) {
+        try {
+          const data = await claudeResponse.json();
+          const parts = Array.isArray(data.content) ? data.content : [];
+          answer = parts.filter((b) => b && b.type === "text").map((b) => b.text).join("").trim();
+          if (!answer) {
+            claudeError = "empty_answer: " + JSON.stringify(data).slice(0, 300);
+            answer = "기술적 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
           }
+        } catch (e) {
+          claudeError = "parse_error: " + ((e && e.message) || e);
+          answer = "기술적 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
         }
       } else {
-        claudeError = await claudeResponse.text();
+        claudeError = "http " + claudeResponse.status + ": " + (await claudeResponse.text());
         answer = "기술적 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
       }
     }
