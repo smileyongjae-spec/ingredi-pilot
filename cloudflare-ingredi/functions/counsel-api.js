@@ -327,10 +327,12 @@ export async function onRequest(context) {
         });
       }
 
+      // 간헐 오류(레이트리밋·과부하·5xx, 그리고 egress 경로 탓의 간헐적 403 "Request not allowed")면
+      // 짧게 쉬고 최대 2회 재시도 — 다음 시도에서 다른 egress 경로로 나가 성공할 확률을 높임.
+      const RETRY_STATUS = [403, 429, 500, 502, 503, 504, 529];
       let claudeResponse = await callClaude();
-      // 일시적 오류(레이트리밋/과부하/5xx)면 짧게 쉬고 한 번 재시도
-      if (!claudeResponse.ok && [429, 500, 502, 503, 504, 529].indexOf(claudeResponse.status) !== -1) {
-        await new Promise((r) => setTimeout(r, 800));
+      for (let attempt = 0; attempt < 2 && !claudeResponse.ok && RETRY_STATUS.indexOf(claudeResponse.status) !== -1; attempt++) {
+        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
         claudeResponse = await callClaude();
       }
 
