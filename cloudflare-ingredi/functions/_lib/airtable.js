@@ -73,3 +73,33 @@ export async function purge(env, table) {
     try { await env.CACHE.delete(`at:${table}`); } catch (_) {}
   }
 }
+
+/**
+ * 단일 레코드 생성(쓰기). 피드백 등 사용자 입력 저장용.
+ * 읽기 캐시(getRecords)와 무관 — 쓰기는 항상 Airtable로 직접 POST.
+ * @param {object} env  Pages Functions env
+ * @param {string} table  Airtable 테이블명 (예: '피드백')
+ * @param {object} fields  { 필드명: 값 }
+ * @returns {Promise<{id: string, fields: object}>}
+ */
+export async function createRecord(env, table, fields) {
+  const base = getBaseId(env);
+  const token = getToken(env);
+  if (!base || !token) throw new Error('airtable env 미설정: BASE_ID 또는 TOKEN 없음');
+
+  const url = `https://api.airtable.com/v0/${base}/${encodeURIComponent(table)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ fields, typecast: true })
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`airtable ${res.status}: ${body}`);
+  }
+  const data = await res.json();
+  return { id: data.id, fields: data.fields };
+}
