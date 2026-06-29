@@ -319,8 +319,14 @@ export async function onRequest(context) {
       }
 
       const claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
+      // 직접 호출 시 Cloudflare egress 경로/리전 탓에 403 "Request not allowed"가 날 수 있어,
+      // CF_ACCOUNT_ID + CF_AI_GATEWAY 환경변수가 있으면 Cloudflare AI Gateway(안정적 경로) 경유로 호출.
+      // 두 변수가 없으면 기존처럼 api.anthropic.com 직접 호출(폴백).
+      const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
+        ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
+        : "https://api.anthropic.com";
       async function callClaude() {
-        return fetch("https://api.anthropic.com/v1/messages", {
+        return fetch(`${ANTHROPIC_BASE}/v1/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
           body: claudeReqBody
