@@ -830,9 +830,11 @@ function renderCardV8(p, ctx){
   let capCol;
   if (cap>0){
     const capRank = rankLo(st.capArr, cap);
-    capCol = `<span class="cv-plabel" style="white-space:nowrap">캡슐 크기 <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span>
-      <div style="margin-top:3px;line-height:1"><span class="cv-pval" style="font-size:18px">${fmt(cap)}</span><span class="cv-punit">mg</span></div>
-      <div class="cv-rank" style="margin-top:2px">${st.cap.n}개 중 ${capRank}위 <span style="color:var(--ink-faint);font-weight:400">· 작은순</span></div>`;
+    capCol = `<div style="display:flex;align-items:center;gap:6px;line-height:1.1">
+        <span class="cv-plabel" style="white-space:nowrap">캡슐 크기 <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span>
+        <span style="font-size:10.5px;color:var(--ink-faint)">작은순</span>
+      </div>
+      <div style="margin-top:5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:22px">${fmt(cap)}<span class="cv-punit">mg</span></span><span class="cv-rank" style="margin-top:0">${st.cap.n}개 중 ${capRank}위</span></div>`;
   } else {
     capCol = `<span class="cv-plabel" style="white-space:nowrap">캡슐 크기 <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span><div style="font-size:12px;color:var(--ink-faint);margin-top:6px">캡슐 없음 (분말/스틱)</div>`;
   }
@@ -884,15 +886,19 @@ function renderCardV8(p, ctx){
         ${capsule}
         <div style="flex:1;min-width:0">
           <span class="cv-plabel" style="white-space:nowrap">${escapeHtml(m.primary.label)} 함량 <button class="cv-q" onclick="openTermSheet('${primKey}')">?</button></span>
-          <div style="margin-top:3px;line-height:1.1"><span class="cv-pval" style="font-size:22px">${fmt(pv)}</span><span class="cv-punit">${escapeHtml(m.primary.unit)}</span> <span class="cv-rank" style="margin-top:0">· ${st.prim.n}개 중 ${prank}위</span></div>
-          ${purityChip ? `<div style="margin-top:7px">${purityChip}</div>` : ""}
+          <div style="margin-top:4px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <span style="line-height:1"><span class="cv-pval" style="font-size:22px">${fmt(pv)}</span><span class="cv-punit">${escapeHtml(m.primary.unit)}</span> <span class="cv-rank" style="margin-top:0">· ${st.prim.n}개 중 ${prank}위</span></span>
+            ${purityChip ? `<span style="flex-shrink:0">${purityChip}</span>` : ""}
+          </div>
         </div>
       </div>
       <div style="display:flex;gap:8px">
         <div class="cv-panel" style="flex:1">
-          <span class="cv-plabel" style="white-space:nowrap">1일 비용 <button class="cv-q" onclick="openTermSheet('cost')">?</button></span>
-          <div style="margin-top:3px;line-height:1"><span class="cv-pval" style="font-size:18px">${fmt(cost)}</span><span class="cv-punit">원</span></div>
-          <div class="cv-rank" style="margin-top:2px">${st.cost.n}개 중 ${costRank}위 <span style="color:var(--ink-faint);font-weight:400">· 저렴한순</span></div>
+          <div style="display:flex;align-items:center;gap:6px;line-height:1.1">
+            <span class="cv-plabel" style="white-space:nowrap">1일 비용 <button class="cv-q" onclick="openTermSheet('cost')">?</button></span>
+            <span style="font-size:10.5px;color:var(--ink-faint)">저렴한순</span>
+          </div>
+          <div style="margin-top:5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:22px">${fmt(cost)}<span class="cv-punit">원</span></span><span class="cv-rank" style="margin-top:0">${st.cost.n}개 중 ${costRank}위</span></div>
         </div>
         <div class="cv-panel" style="flex:1">
           ${capCol}
