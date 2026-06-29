@@ -61,17 +61,22 @@
       to { opacity: 1; transform: translateY(0); }
     }
     .hero { text-align: center; padding: 24px 0 20px; }
-    .hero-eyebrow {
-      font-size: 14px; font-weight: 600;
-      letter-spacing: 0.08em; color: var(--green-mid);
-      text-transform: uppercase; margin-bottom: 12px;
+    .hero-headline {
+      font-size: min(28px, 7.4vw); font-weight: 800;
+      letter-spacing: -0.03em; line-height: 1.25; white-space: nowrap;
+      color: var(--green-deep); margin-bottom: 10px;
     }
-    .hero-title {
-      font-size: 28px; font-weight: 800;
-      letter-spacing: -0.03em; line-height: 1.3;
-      color: var(--green-deep); margin-bottom: 8px;
+    .hero-sub {
+      font-size: 17px; font-weight: 600; color: var(--green-mid);
+      letter-spacing: -0.02em; margin-bottom: 12px;
     }
-    .hero-subtitle { font-size: 16px; color: var(--ink-soft); line-height: 1.5; }
+    .hero-subtitle { font-size: 15px; color: var(--ink-soft); line-height: 1.5; }
+    .hero-note {
+      margin-top: 14px; font-size: 13px; color: var(--ink-soft);
+      background: var(--green-bg); border: 1px solid #E1EAE2;
+      border-radius: 12px; padding: 11px 14px; line-height: 1.55;
+    }
+    .hero-note strong { color: var(--green-primary); font-weight: 700; }
 
     .consult-input-wrap {
       margin: 24px 0 28px;
@@ -376,9 +381,10 @@
 
   <main class="screen active" id="screenHome">
     <section class="hero">
-      <div class="hero-eyebrow">광고 없는 정직한 비교</div>
-      <h1 class="hero-title">나에게 맞는<br>영양제 찾기</h1>
-      <p class="hero-subtitle">오메가3 · 눈 · 유산균 · 비타민C<br>임상 근거 기반 V-Score</p>
+      <h1 class="hero-headline">광고 없는 정직한 비교</h1>
+      <div class="hero-sub">나에게 맞는 건강기능식품 찾기</div>
+      <p class="hero-subtitle">임상 근거 기반 V-Score</p>
+      <div class="hero-note">현재 <strong>오메가3 · 유산균 · 비타민C · 눈</strong> 4개 카테고리만 서비스가 가능해요. 계속 상품을 넓혀가고 있어요.</div>
     </section>
 
     <div class="consult-input-wrap">
@@ -446,10 +452,6 @@
       <div class="compare-entry-buttons">
         <a class="compare-entry-btn primary fit-btn" href="/fit.html">내 조합 점검하기</a>
       </div>
-    </div>
-
-    <div class="disclosure">
-      <p class="disclosure-text"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 모든 추천은 임상 근거와 데이터로만 이루어집니다. 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 제품 추천 결과에 영향을 주지 않습니다.</p>
     </div>
 
     <div class="feedback" data-fb="home">
