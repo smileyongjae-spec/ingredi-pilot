@@ -249,6 +249,8 @@
     .cl-date.old { background: var(--ink-faint); }
     .cl-itemtitle { font-size: 13px; font-weight: 700; color: var(--ink); }
     .cl-content { font-size: 12px; color: var(--ink-soft); line-height: 1.55; margin-top: 6px; white-space: pre-line; }
+    .cl-morebtn { display: block; width: 100%; margin-top: 11px; padding: 9px; background: var(--green-bg); border: 1px solid var(--line-soft); border-radius: 9px; font-size: 12.5px; font-weight: 600; color: var(--green-primary); cursor: pointer; font-family: inherit; }
+    .cl-morebtn:hover { background: var(--green-light); }
     .cv-vq { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 9px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; vertical-align: middle; }
     .cv-vnum { font-size: 34px; color: var(--green-deep); font-weight: 800; line-height: 1.05; letter-spacing: -0.04em; }
     .cv-panels { display: flex; gap: 11px; margin-top: 11px; align-items: stretch; }
@@ -1072,13 +1074,30 @@ async function loadChangelog(){
     const items = (data && data.items) || [];
     if (!items.length){ box.innerHTML = ""; return; }
     const fmtDate = s => String(s||"").slice(0,10).replace(/-/g,".");
-    const rows = items.map((it,i)=>`<div class="cl-item">
+    const rowHtml = (it,i)=>`<div class="cl-item">
       <div class="cl-head"><span class="cl-date${i>0?' old':''}">${escapeHtml(fmtDate(it.date))}</span><span class="cl-itemtitle">${escapeHtml(it.title||"")}</span></div>
       ${it.content ? `<div class="cl-content">${escapeHtml(it.content)}</div>` : ""}
-    </div>`).join("");
-    box.innerHTML = `<div class="cl-title"><b>📋 개선 소식</b><small>여러분 의견이 이렇게 반영되고 있어요</small></div>${rows}`;
+    </div>`;
+    const SHOWN = 3;
+    const head = items.slice(0, SHOWN).map(rowHtml).join("");
+    const restArr = items.slice(SHOWN);
+    let rest = "";
+    if (restArr.length){
+      rest = `<div class="cl-more" id="clMore" style="display:none">${restArr.map((it,i)=>rowHtml(it,i+SHOWN)).join("")}</div>` +
+        `<button type="button" class="cl-morebtn" id="clMoreBtn" onclick="toggleChangelog()">더 보기 (${restArr.length})</button>`;
+    }
+    box.innerHTML = `<div class="cl-title"><b>📋 개선 소식</b><small>여러분 의견이 이렇게 반영되고 있어요</small></div>${head}${rest}`;
   } catch(_e){ /* 조용히 무시 */ }
 }
+function toggleChangelog(){
+  const more = document.getElementById('clMore');
+  const btn = document.getElementById('clMoreBtn');
+  if (!more || !btn) return;
+  const isOpen = more.style.display !== 'none';
+  more.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? `더 보기 (${more.children.length})` : '접기 ▲';
+}
+window.toggleChangelog = toggleChangelog;
 
 const FB_SCREEN = { home: "home", category: "category", consult: "consult" };
 function fbLock(on){ document.body.style.overflow = on ? "hidden" : ""; }
