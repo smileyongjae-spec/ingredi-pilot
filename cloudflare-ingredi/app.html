@@ -236,6 +236,19 @@
     .cv-vlabel { font-size: 11px; color: var(--ink-faint); letter-spacing: 0.03em; white-space: nowrap; }
     .cv-vbadge { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; border: 1.4px solid var(--green-primary); color: var(--green-primary); font-size: 9px; font-weight: 800; vertical-align: middle; }
     #termSheetBody { white-space: pre-line; }
+    /* ── 개선 소식 ── */
+    .changelog { margin: 18px 8px 4px; }
+    .changelog:empty { display: none; }
+    .cl-title { display: flex; align-items: center; gap: 7px; margin-bottom: 11px; flex-wrap: wrap; }
+    .cl-title b { font-size: 14px; font-weight: 800; color: var(--green-deep); }
+    .cl-title small { font-size: 11px; color: var(--ink-faint); }
+    .cl-item { padding: 11px 0; border-bottom: 1px solid var(--line-soft); }
+    .cl-item:last-child { border-bottom: none; }
+    .cl-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cl-date { font-size: 11px; font-weight: 700; color: #fff; background: var(--green-primary); padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+    .cl-date.old { background: var(--ink-faint); }
+    .cl-itemtitle { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .cl-content { font-size: 12px; color: var(--ink-soft); line-height: 1.55; margin-top: 6px; white-space: pre-line; }
     .cv-vq { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 9px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; vertical-align: middle; }
     .cv-vnum { font-size: 34px; color: var(--green-deep); font-weight: 800; line-height: 1.05; letter-spacing: -0.04em; }
     .cv-panels { display: flex; gap: 11px; margin-top: 11px; align-items: stretch; }
@@ -498,6 +511,7 @@
         <div class="feedback-done-text">소중한 의견 감사합니다.<br>서비스 개선에 바로 반영할게요.</div>
       </div>
     </div>
+    <div class="changelog" id="changelogHome"></div>
   </main>
 
   <div class="loading screen" id="screenLoading">
@@ -832,7 +846,7 @@ function renderCardV8(p, ctx){
 
   const capY = (6 + 84*(1-fill/100)).toFixed(1);
   const capH = (84*fill/100).toFixed(1);
-  const capsule = `<svg width="42" height="56" viewBox="0 0 72 96" style="flex-shrink:0">
+  const capsule = `<svg width="34" height="48" viewBox="0 0 72 96" style="flex-shrink:0">
     <defs><clipPath id="cc${uid}"><rect x="20" y="6" width="32" height="84" rx="16"/></clipPath></defs>
     <rect x="20" y="6" width="32" height="84" rx="16" fill="#F0ECE2" stroke="#C9C3B5" stroke-width="1.5"/>
     <rect x="20" y="${capY}" width="32" height="${capH}" fill="#2D5F3F" clip-path="url(#cc${uid})"/>
@@ -845,7 +859,7 @@ function renderCardV8(p, ctx){
         <span class="cv-plabel" style="white-space:nowrap">캡슐 크기(목넘김) <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span>
         <span style="font-size:10.5px;color:var(--ink-faint)">작은순</span>
       </div>
-      <div style="margin-top:5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:22px">${fmt(cap)}<span class="cv-punit">mg</span></span><span class="cv-rank" style="margin-top:0">${st.cap.n}개 중 ${capRank}위</span></div>`;
+      <div style="margin-top:4px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:20px">${fmt(cap)}<span class="cv-punit">mg</span></span><span class="cv-rank" style="margin-top:0">${st.cap.n}개 중 ${capRank}위</span></div>`;
   } else {
     capCol = `<span class="cv-plabel" style="white-space:nowrap">캡슐 크기(목넘김) <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span><div style="font-size:12px;color:var(--ink-faint);margin-top:6px">캡슐 없음 (분말/스틱)</div>`;
   }
@@ -892,24 +906,25 @@ function renderCardV8(p, ctx){
         ${priceBox}
       </div>
     </div>
-    <div class="cv-panels" style="flex-direction:column;gap:8px">
-      <div class="cv-panel" style="display:flex;align-items:center;gap:12px">
+    <div class="cv-panels" style="gap:8px;align-items:stretch">
+      <div class="cv-panel" style="flex:1.05;display:flex;align-items:center;gap:10px">
         ${capsule}
-        <div style="flex:1;min-width:0">
+        <div style="min-width:0">
           <span class="cv-plabel" style="white-space:nowrap">${escapeHtml(m.primary.label)} 함량 <button class="cv-q" onclick="openTermSheet('${primKey}')">?</button></span>
           <div style="margin-top:4px;line-height:1.1"><span class="cv-pval" style="font-size:22px">${fmt(pv)}</span><span class="cv-punit">${escapeHtml(m.primary.unit)}</span> <span class="cv-rank" style="margin-top:0">· ${st.prim.n}개 중 ${prank}위</span></div>
           ${purityChip ? `<div style="margin-top:7px">${purityChip}</div>` : ""}
         </div>
       </div>
-      <div style="display:flex;gap:8px">
-        <div class="cv-panel" style="flex:1">
+      <div class="cv-panel" style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+        <div>
           <div style="display:flex;align-items:center;gap:6px;line-height:1.1">
             <span class="cv-plabel" style="white-space:nowrap">1일 복용 비용 <button class="cv-q" onclick="openTermSheet('cost')">?</button></span>
             <span style="font-size:10.5px;color:var(--ink-faint)">저렴한순</span>
           </div>
-          <div style="margin-top:5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:22px">${fmt(cost)}<span class="cv-punit">원</span></span><span class="cv-rank" style="margin-top:0">${st.cost.n}개 중 ${costRank}위</span></div>
+          <div style="margin-top:4px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:20px">${fmt(cost)}<span class="cv-punit">원</span></span><span class="cv-rank" style="margin-top:0">${st.cost.n}개 중 ${costRank}위</span></div>
         </div>
-        <div class="cv-panel" style="flex:1">
+        <div style="height:1px;background:#E6ECE6;margin:9px 0"></div>
+        <div>
           ${capCol}
         </div>
       </div>
@@ -1030,6 +1045,7 @@ window.focusProduct = focusProduct;
 
 renderTabs();
 renderProfileBar();
+loadChangelog();
 
 // 딥링크: /app.html?category=오메가3&focus=om_005 등으로 들어오면 자동 열기 + 제품 포커스
 (function(){
@@ -1046,6 +1062,24 @@ renderProfileBar();
 })();
 
 /* ── 고객 피드백 ── */
+async function loadChangelog(){
+  const box = document.getElementById('changelogHome');
+  if (!box) return;
+  try {
+    const res = await fetch(`${API_BASE}/changelog`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const items = (data && data.items) || [];
+    if (!items.length){ box.innerHTML = ""; return; }
+    const fmtDate = s => String(s||"").slice(0,10).replace(/-/g,".");
+    const rows = items.map((it,i)=>`<div class="cl-item">
+      <div class="cl-head"><span class="cl-date${i>0?' old':''}">${escapeHtml(fmtDate(it.date))}</span><span class="cl-itemtitle">${escapeHtml(it.title||"")}</span></div>
+      ${it.content ? `<div class="cl-content">${escapeHtml(it.content)}</div>` : ""}
+    </div>`).join("");
+    box.innerHTML = `<div class="cl-title"><b>📋 개선 소식</b><small>여러분 의견이 이렇게 반영되고 있어요</small></div>${rows}`;
+  } catch(_e){ /* 조용히 무시 */ }
+}
+
 const FB_SCREEN = { home: "home", category: "category", consult: "consult" };
 function fbLock(on){ document.body.style.overflow = on ? "hidden" : ""; }
 function fbOpen(id){
