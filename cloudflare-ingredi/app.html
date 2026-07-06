@@ -242,13 +242,14 @@
     .cl-title { display: flex; align-items: center; gap: 7px; margin-bottom: 11px; flex-wrap: wrap; }
     .cl-title b { font-size: 14px; font-weight: 800; color: var(--green-deep); }
     .cl-title small { font-size: 11px; color: var(--ink-faint); }
-    .cl-item { padding: 11px 0; border-bottom: 1px solid var(--line-soft); }
+    .cl-item { padding: 0; border-bottom: 1px solid var(--line-soft); }
     .cl-item:last-child { border-bottom: none; }
-    .cl-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cl-itemhead { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px 0; background: none; border: none; cursor: pointer; font-family: inherit; text-align: left; }
     .cl-date { font-size: 11px; font-weight: 700; color: #fff; background: var(--green-primary); padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
     .cl-date.old { background: var(--ink-faint); }
     .cl-itemtitle { font-size: 13px; font-weight: 700; color: var(--ink); }
-    .cl-content { font-size: 12px; color: var(--ink-soft); line-height: 1.55; margin-top: 6px; white-space: pre-line; }
+    .cl-chev { margin-left: auto; font-size: 11px; color: var(--ink-faint); transition: transform 0.18s ease; }
+    .cl-body { font-size: 12px; color: var(--ink-soft); line-height: 1.6; padding: 0 0 12px; white-space: pre-line; }
     .cl-morebtn { display: block; width: 100%; margin-top: 11px; padding: 9px; background: var(--green-bg); border: 1px solid var(--line-soft); border-radius: 9px; font-size: 12.5px; font-weight: 600; color: var(--green-primary); cursor: pointer; font-family: inherit; }
     .cl-morebtn:hover { background: var(--green-light); }
     .cv-vq { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 9px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; vertical-align: middle; }
@@ -1188,8 +1189,12 @@ async function loadChangelog(){
     if (!items.length){ box.innerHTML = ""; return; }
     const fmtDate = s => String(s||"").slice(0,10).replace(/-/g,".");
     const rowHtml = (it,i)=>`<div class="cl-item">
-      <div class="cl-head"><span class="cl-date${i>0?' old':''}">${escapeHtml(fmtDate(it.date))}</span><span class="cl-itemtitle">${escapeHtml(it.title||"")}</span></div>
-      ${it.content ? `<div class="cl-content">${escapeHtml(it.content)}</div>` : ""}
+      <button type="button" class="cl-itemhead" onclick="toggleClItem(this)">
+        <span class="cl-date${i>0?' old':''}">${escapeHtml(fmtDate(it.date))}</span>
+        <span class="cl-itemtitle">${escapeHtml(it.title||"")}</span>
+        ${it.content ? `<span class="cl-chev">▾</span>` : ""}
+      </button>
+      ${it.content ? `<div class="cl-body" style="display:none">${escapeHtml(it.content)}</div>` : ""}
     </div>`;
     const SHOWN = 3;
     const head = items.slice(0, SHOWN).map(rowHtml).join("");
@@ -1211,6 +1216,15 @@ function toggleChangelog(){
   btn.textContent = isOpen ? `더 보기 (${more.children.length})` : '접기 ▲';
 }
 window.toggleChangelog = toggleChangelog;
+function toggleClItem(btn){
+  const body = btn.nextElementSibling;
+  const chev = btn.querySelector('.cl-chev');
+  if (!body || !body.classList.contains('cl-body')) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chev) chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+window.toggleClItem = toggleClItem;
 
 const FB_SCREEN = { home: "home", category: "category", consult: "consult" };
 function fbLock(on){ document.body.style.overflow = on ? "hidden" : ""; }
