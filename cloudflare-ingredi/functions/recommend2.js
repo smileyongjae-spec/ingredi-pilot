@@ -129,6 +129,31 @@ export async function onRequest(context) {
   items.sort((a, b) => b.vScore - a.vScore);
   items.forEach((it, i) => { it.rank = i + 1; });
 
+  // ── 리뷰 인사이트 조인 (오메가3/눈/비타민C만; 마이크로바이옴은 예시 유지) ──
+  const REVIEW_TABLE = { "오메가3": "오메가_리뷰인사이트", "눈": "눈_리뷰인사이트", "비타민C": "비타민C_리뷰인사이트" };
+  const reviewsReady = !!REVIEW_TABLE[catKey];
+  if (reviewsReady) {
+    try {
+      const rv = await getRecords(env, REVIEW_TABLE[catKey]);
+      const rmap = {};
+      for (const r of rv) {
+        const f = r.fields || {};
+        const pid = str(f.product_id).trim();
+        if (!pid) continue;
+        const good = [], caution = [];
+        if (str(f.good_label_1).trim()) good.push({ label: str(f.good_label_1).trim(), score: num(f.good_score_1) });
+        if (str(f.good_label_2).trim()) good.push({ label: str(f.good_label_2).trim(), score: num(f.good_score_2) });
+        if (str(f.caution_label_1).trim()) caution.push({ label: str(f.caution_label_1).trim(), score: num(f.caution_score_1) });
+        if (str(f.caution_label_2).trim()) caution.push({ label: str(f.caution_label_2).trim(), score: num(f.caution_score_2) });
+        rmap[pid] = { good, caution };
+      }
+      for (const it of items) {
+        const rvd = rmap[String(it.id).trim()];
+        if (rvd && (rvd.good.length || rvd.caution.length)) it.reviews = rvd;
+      }
+    } catch (e) { /* 리뷰 테이블 조회 실패 시 해당 카테고리는 예시로 폴백 */ }
+  }
+
   function dist(vals) {
     const v = vals.filter(x => x > 0);
     if (v.length === 0) return null;
@@ -143,6 +168,7 @@ export async function onRequest(context) {
 
   return new Response(JSON.stringify({
     category: catKey,
+    reviewsReady: reviewsReady,
     metrics: {
       primary: { field: cfg.primary.field, label: cfg.primary.label, unit: cfg.primary.unit, higherBetter: true,  dist: distributions.primary },
       cost:    { label: "1일 비용", unit: "원", higherBetter: false, dist: distributions.cost },
