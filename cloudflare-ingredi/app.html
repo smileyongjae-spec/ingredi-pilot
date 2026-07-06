@@ -747,7 +747,7 @@ const CATS = [
   { key:"마이크로바이옴", label:"유산균" },
   { key:"비타민C",       label:"비타민C" }
 ];
-const PURITY = new Set(["오메가3","비타민C"]);
+const PURITY = new Set(["오메가3"]);
 const GRADE = {
   A:["#FBF3DD","#B8902F","#EBD9A8"], B:["#F0F0F2","#6E7177","#DADCE0"],
   C:["#EAF1EA","#2D5F3F","#CADBCD"], D:["#F6ECE3","#B07142","#E6D2C2"], E:["#F0EFEC","#8B8E91","#DEDCD6"]
@@ -915,7 +915,20 @@ function renderCardV8(p, ctx){
   const primPos = st.prim.max>st.prim.min ? clampPos((pv-st.prim.min)/(st.prim.max-st.prim.min)*100) : 50;
 
   let purityChip = "";
-  if (PURITY.has(cat) && cap>0 && pv>0) purityChip = `<button class="cv-purity" style="border:none;font-family:inherit" onclick="openTermSheet('purity')">순도 ${Math.round(pv/cap*100)}%</button>`;
+  if (PURITY.has(cat)) {
+    let pur = null;
+    const stored = p.extra ? p.extra["캡슐당순도"] : null;
+    if (stored != null && stored !== "" && num(stored) > 0) {
+      pur = num(stored) * 100;                 // Airtable 저장값(캡슐당, 0~1)
+    } else if (cap > 0 && pv > 0) {
+      const nCap = num(p.dailyCapsules) > 0 ? num(p.dailyCapsules) : 1;
+      pur = pv / (cap * nCap) * 100;           // 폴백: 1회 캡슐수로 캡슐당 환산
+    }
+    if (pur != null && pur > 0) {
+      if (pur > 100) pur = 100;                // 안전 상한(데이터 이상 대비)
+      purityChip = `<button class="cv-purity" style="border:none;font-family:inherit" onclick="openTermSheet('purity')">순도 ${Math.round(pur)}%</button>`;
+    }
+  }
 
   const capY = (6 + 84*(1-fill/100)).toFixed(1);
   const capH = (84*fill/100).toFixed(1);
