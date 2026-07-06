@@ -34,9 +34,16 @@
   .selchip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .selchip b{cursor:pointer;color:var(--green-primary);font-weight:700;font-size:15px;line-height:1}
   .selempty{font-size:13px;color:var(--ink-faint);padding:8px 2px}
-  .cmpbtn{width:100%;margin-top:10px;padding:13px;background:var(--green-primary);color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
+  .cmpbtn{width:100%;margin-top:10px;padding:14px;background:var(--green-primary);color:#fff;border:none;border-radius:11px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
   .cmpbtn:hover{background:var(--green-deep)}
-  .cmpbtn:disabled{background:var(--line);color:var(--ink-faint);cursor:not-allowed}
+  .cmpbtn.need{animation:cmpPulse 2.4s ease-in-out infinite}
+  .cmpbtn.ready{box-shadow:0 3px 10px rgba(45,95,63,.28)}
+  .cmpbtn.shake{animation:cmpShake .4s}
+  .cmp-finger{animation:fingerBlink 1.6s ease-in-out infinite}
+  @keyframes cmpPulse{0%,100%{box-shadow:0 0 0 0 rgba(45,95,63,.42)}50%{box-shadow:0 0 0 7px rgba(45,95,63,0)}}
+  @keyframes fingerBlink{0%,100%{opacity:1}50%{opacity:.25}}
+  @keyframes cmpShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  .cmp-hint{font-size:11px;color:var(--warn);margin-top:6px;min-height:0}
 
   .search{width:100%;margin:14px 0 10px;padding:11px 14px;background:#fff;border:1.5px solid var(--line);border-radius:12px;font-family:inherit;font-size:15px;color:var(--ink)}
   .search:focus{outline:none;border-color:var(--green-primary);box-shadow:0 0 0 3px rgba(45,95,63,.08)}
@@ -99,7 +106,8 @@
       <div class="tabs" id="tabs"></div>
       <div class="seltray">
         <div class="selchips" id="selChips"></div>
-        <button class="cmpbtn" id="cmpBtn" disabled onclick="goCompare()">비교하기</button>
+        <button class="cmpbtn need" id="cmpBtn" onclick="goCompare()"><span class="cmp-finger">👆</span><span id="cmpBtnText">비교하기 (2개 또는 3개 선택)</span></button>
+        <div class="cmp-hint" id="cmpHint"></div>
       </div>
       <input class="search" id="search" placeholder="제품명 검색" autocomplete="off">
       <div class="meta" id="listMeta"></div>
@@ -230,8 +238,19 @@ function renderChips(){
       return `<span class="selchip"><span>${esc(p.name)}</span><b onclick="event.stopPropagation();toggleSel('${esc(id)}')">×</b></span>`;
     }).join("");
   }
-  document.getElementById('cmpBtn').disabled = selected.length < 2;
-  document.getElementById('cmpBtn').textContent = selected.length<2 ? "비교하기 (2개 이상)" : `비교하기 (${selected.length}개)`;
+  const btn = document.getElementById('cmpBtn');
+  const txt = document.getElementById('cmpBtnText');
+  const finger = btn.querySelector('.cmp-finger');
+  if (selected.length < 2){
+    btn.classList.add('need'); btn.classList.remove('ready');
+    if (finger) finger.style.display = "";
+    txt.textContent = "비교하기 (2개 또는 3개 선택)";
+  } else {
+    btn.classList.remove('need'); btn.classList.add('ready');
+    if (finger) finger.style.display = "none";
+    txt.textContent = `비교하기 (${selected.length}개)`;
+    const hint = document.getElementById('cmpHint'); if (hint) hint.textContent = "";
+  }
 }
 
 function cell(val, unit, isBest){
@@ -239,7 +258,13 @@ function cell(val, unit, isBest){
 }
 
 function goCompare(){
-  if (selected.length<2) return;
+  if (selected.length<2){
+    const btn = document.getElementById('cmpBtn');
+    const hint = document.getElementById('cmpHint');
+    if (hint) hint.textContent = "제품을 2개 이상 선택해주세요";
+    if (btn){ btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake'); }
+    return;
+  }
   const prods = selected.map(prodById).filter(Boolean);
   const m = curData.metrics.primary;
   // best 계산
