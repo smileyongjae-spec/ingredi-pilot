@@ -294,6 +294,14 @@
     .cr-expanded .cv-card { margin-bottom: 4px; box-shadow: none; border: none; padding: 12px 6px 4px; }
 
     .cat-profilebar { display: flex; gap: 6px; background: #fff; border: 1px solid var(--line-soft); border-radius: 12px; padding: 4px; margin-top: 14px; box-shadow: var(--shadow-sm); }
+    .cat-subbar { display: flex; gap: 6px; margin-top: 8px; }
+    .cat-subbar:empty { display: none; }
+    .cat-sub { flex: 1; text-align: center; padding: 8px 6px; border-radius: 20px; background: var(--green-bg); border: 1px solid #E1EAE2; color: var(--ink-soft); font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .cat-sub.active { background: var(--green-primary); color: #fff; border-color: var(--green-primary); }
+    .cv-bonus { font-size: 10.5px; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+    .cv-bonus.vitA { background: var(--green-light); color: var(--green-primary); }
+    .cv-bonus.beta { background: #FBF1E3; color: #B07142; }
+    .cv-cold { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 100px; background: #EAF3FB; color: #3A6EA5; border: 1px solid #CFE3F5; }
     .cat-pf { flex: 1; border: none; background: none; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--ink-soft); padding: 9px 4px; border-radius: 9px; cursor: pointer; transition: 0.15s; display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.2; }
     .cat-pf small { font-size: 10px; font-weight: 500; color: var(--ink-faint); }
     .cat-pf:active { transform: scale(0.97); }
@@ -524,6 +532,7 @@
   <main class="screen" id="screenCategory">
     <div class="cat-tabbar" id="catTabbar"></div>
     <div class="cat-profilebar" id="catProfileBar"></div>
+    <div class="cat-subbar" id="catSubBar"></div>
     <div class="cat-meta" id="catMeta"></div>
     <div id="catCards"></div>
     <div class="cat-status" id="catStatus"></div>
@@ -776,6 +785,68 @@ const catCache = {};
 let activeCat = null;
 let activeProfile = "balanced";
 
+// ── 서브 분류(유산균 대상 / 비타민C 용량) ──
+const SUBFILTERS = {
+  "마이크로바이옴": [{key:"일반",label:"일반(온가족)"},{key:"여성",label:"여성"},{key:"키즈",label:"키즈"}],
+  "비타민C": [{key:"일반",label:"일반"},{key:"메가도즈",label:"메가도즈"}]
+};
+const activeSub = {};
+function truthyStr(v){
+  if (v===true) return true;
+  if (typeof v==="number") return v>0;
+  const s = String(v==null?"":v).trim().toLowerCase();
+  return s!=="" && s!=="0" && s!=="false" && s!=="no" && s!=="없음" && s!=="x" && s!=="-";
+}
+function matchSub(cat, key, p){
+  if (cat==="마이크로바이옴"){
+    const t = String(p.target||"").trim() || "일반";
+    return key==="일반" ? (t==="일반") : (t===key);
+  }
+  if (cat==="비타민C"){
+    const mega = num(p.primaryValue) >= 2000; // 1일 섭취량 기준
+    return key==="메가도즈" ? mega : !mega;
+  }
+  return true;
+}
+// 눈: 통합 카로티노이드(표시=raw 합) + 아스타잔틴 계수 가중 + 비타민A/베타카로틴 가산 → 핵심성분점수
+function applyEyeLogic(products){
+  if (!products.length || products[0]._eyeDone) return;
+  const AST = 2.5;
+  const arr = products.map(function(p){
+    const lut = num(p.primaryValue); // 이 시점 primaryValue = 루테인
+    const zea = num(p.extra && p.extra["지아잔틴_mg"]);
+    const ast = num(p.extra && p.extra["아스타잔틴_mg"]);
+    return { p:p, raw: lut+zea+ast, w: lut+zea+ast*AST };
+  });
+  const ws = arr.map(o=>o.w).filter(x=>x>0);
+  const wmin = ws.length?Math.min.apply(null,ws):0, wmax = ws.length?Math.max.apply(null,ws):0;
+  arr.forEach(function(o){
+    o.p.primaryValue = o.raw; // 카드 대표 함량 = 실제 mg 합
+    const base = (wmax>wmin) ? ((o.w-wmin)/(wmax-wmin))*90 : (o.w>0?90:0);
+    const vitA = truthyStr(o.p.extra && o.p.extra["비타민A"]);
+    const beta = num(o.p.extra && o.p.extra["베타카로틴_mg"])>0 || truthyStr(o.p.extra && o.p.extra["베타카로틴_mg"]);
+    let core = base + (vitA?5:0) + (beta?3:0);
+    if (core>100) core = 100;
+    if (!o.p.scores) o.p.scores = {};
+    o.p.scores.core = core;
+    o.p._eye = { vitA:vitA, beta:beta };
+    o.p._eyeDone = true;
+  });
+}
+function renderSubBar(cat){
+  const bar = document.getElementById('catSubBar');
+  if (!bar) return;
+  const subs = SUBFILTERS[cat];
+  if (!subs){ bar.innerHTML = ""; return; }
+  const cur = activeSub[cat] || subs[0].key;
+  bar.innerHTML = subs.map(s=>`<button class="cat-sub${s.key===cur?' active':''}" onclick="setSub('${s.key}')">${escapeHtml(s.label)}</button>`).join("");
+}
+window.setSub = function(key){
+  if (!activeCat) return;
+  activeSub[activeCat] = key;
+  if (catCache[activeCat]) renderCategory(catCache[activeCat]);
+};
+
 const PROFILES = [
   { key:"balanced", label:"균형",   sub:"성분·가격·리뷰", w:{core:0.50, cost:0.35, review:0.15} },
   { key:"premium",  label:"고품질", sub:"핵심성분 중심", w:{core:0.70, cost:0.10, review:0.20} },
@@ -887,6 +958,12 @@ function renderCardV8(p, ctx){
       : `<span class="cv-tag">${escapeHtml(t)}</span>`;
   }).join("");
   const primKey = PRIMARY_TERM[cat] || "vscore";
+  const eyeSub = (cat==="눈") ? `<div style="font-size:9.5px;color:var(--ink-faint);margin-top:1px">루테인+지아잔틴+아스타잔틴</div>` : "";
+  const eyeBonus = (cat==="눈" && p._eye)
+    ? `<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px">${p._eye.vitA?'<span class="cv-bonus vitA">비타민A ✓ +5</span>':''}${p._eye.beta?'<span class="cv-bonus beta">베타카로틴 ✓ +3</span>':''}</div>`
+    : "";
+  const belowPrimary = (cat==="눈") ? eyeBonus : (purityChip ? `<div style="margin-top:7px">${purityChip}</div>` : "");
+  const coldBadge = (cat==="마이크로바이옴" && truthyStr(p.extra && p.extra["냉장유통"])) ? `<span class="cv-cold">❄️ 냉장보관</span>` : "";
   const cartSvg = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
   const buyBtn = p.link
     ? `<a class="cv-buybtn" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">${cartSvg}구매하러 가기</a>`
@@ -913,8 +990,9 @@ function renderCardV8(p, ctx){
         ${capsule}
         <div style="min-width:0">
           <span class="cv-plabel" style="white-space:nowrap">${escapeHtml(m.primary.label)} 함량 <button class="cv-q" onclick="openTermSheet('${primKey}')">?</button></span>
+          ${eyeSub}
           <div style="margin-top:4px;line-height:1.1"><span class="cv-pval" style="font-size:22px">${fmt(pv)}</span><span class="cv-punit">${escapeHtml(m.primary.unit)}</span> <span class="cv-rank" style="margin-top:0">· ${st.prim.n}개 중 ${prank}위</span></div>
-          ${purityChip ? `<div style="margin-top:7px">${purityChip}</div>` : ""}
+          ${belowPrimary}
         </div>
       </div>
       <div class="cv-panel" style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
@@ -936,7 +1014,7 @@ function renderCardV8(p, ctx){
       <div style="display:flex;flex-wrap:wrap">${voc}</div>
     </div>
     <div class="cv-specs"><b>원료사</b> ${escapeHtml(p.supplier||"-")}</div>
-    <div class="cv-tagrow">${tagsHtml}</div>
+    <div class="cv-tagrow">${tagsHtml}${coldBadge}</div>
     <div class="cv-reasons"><div class="cv-rlabel">추천 이유</div>${rchips||'<span style="font-size:12px;color:var(--ink-faint)">—</span>'}</div>
     ${buyBtn}
   </div>`;
@@ -968,18 +1046,25 @@ window.toggleCatExpand = function(idx){
 function renderCategory(data){
   const cat = data.category;
   const all = data.products || [];
-  const stats = buildStats(all);
+  if (cat==="눈") applyEyeLogic(all);
   const metrics = data.metrics;
-  computeProfileScores(all);
-  const products = sortByProfile(all, activeProfile);
-  document.getElementById('catMeta').textContent = `${cat} · 전체 ${all.length}개 · ${profileOf(activeProfile).label} 정렬`;
+  if (cat==="눈" && metrics && metrics.primary) metrics.primary.label = "핵심 카로티노이드";
+  const subs = SUBFILTERS[cat];
+  const subKey = subs ? (activeSub[cat] || subs[0].key) : null;
+  const filtered = subs ? all.filter(p=>matchSub(cat, subKey, p)) : all;
+  renderSubBar(cat);
+  const stats = buildStats(filtered);
+  computeProfileScores(filtered);
+  const products = sortByProfile(filtered, activeProfile);
+  const subLabel = subs ? ` · ${((subs.find(s=>s.key===subKey)||{}).label)||""}` : "";
+  document.getElementById('catMeta').textContent = `${cat}${subLabel} · ${filtered.length}개 · ${profileOf(activeProfile).label} 정렬`;
   document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
   document.getElementById('catCompareCta').innerHTML = "";
   const el = document.getElementById('catCards');
   if (!products.length){ el.innerHTML=""; document.getElementById('catStatus').textContent="표시할 제품이 없습니다."; return; }
   document.getElementById('catStatus').textContent="";
   const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, idx:i})).join("");
-  const cmpCta = all.length
+  const cmpCta = filtered.length
     ? `<div class="cat-compare-cta" style="margin:6px 2px 20px"><a href="/compare.html?category=${encodeURIComponent(cat)}">이 카테고리 제품 직접 비교하기 →</a></div>`
     : "";
   const restArr = products.slice(3);
