@@ -587,8 +587,8 @@ function renderProductListMode(data) {
       ${visibleHtml}
       ${hiddenHtml}
       <div class="compare-cta">
-        <a class="compare-cta-btn primary" href="/compare.html?ids=${ids}&profile=${profileId}">상위 비교</a>
-        <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${profileId}">직접 선택</a>
+        <a class="compare-cta-btn primary" href="/compare.html?category=${encodeURIComponent(CURRENT_CAT_KO)}&ids=${ids}&profile=${profileId}">상위 비교</a>
+        <a class="compare-cta-btn" href="/compare.html?category=${encodeURIComponent(CURRENT_CAT_KO)}&mode=select&profile=${profileId}">직접 선택</a>
       </div>
     </section>`;
 }
