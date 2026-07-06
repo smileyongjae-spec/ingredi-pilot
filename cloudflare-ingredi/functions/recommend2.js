@@ -119,6 +119,7 @@ export async function onRequest(context) {
       grade: str(f.등급),
       reason: str(f.추천사유),
       profile: str(f.추천프로필),
+      target: str(f.대상분류),
       primaryValue: num(f[cfg.primary.field]),
       scores: { core: num(f.핵심성분점수), cost: num(f.비용점수), review: num(f.리뷰점수) },
       extra
