@@ -67,19 +67,19 @@
 
   /* 비교표 */
   .cmpwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px -2px 0;padding:2px}
-  table.cmp{border-collapse:separate;border-spacing:0;width:100%;min-width:0}
+  table.cmp{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed}
   table.cmp th,table.cmp td{vertical-align:top;text-align:left}
-  .ch-head{position:sticky;left:0;background:var(--paper);z-index:2;width:74px;min-width:74px;font-size:12px;color:var(--ink-faint);font-weight:600;padding:12px 8px 12px 2px;border-bottom:1px solid var(--line-soft)}
-  .ch-prod{padding:0 6px 12px;min-width:128px;width:128px}
-  .pc{background:#fff;border:1px solid var(--line-soft);border-radius:14px;padding:12px 11px;box-shadow:var(--shadow-sm)}
-  .pc-thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--green-bg);border:1px solid var(--line-soft);display:block;margin-bottom:8px}
-  .pc-grade{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:7px;border:1px solid;margin-bottom:6px}
-  .pc-name{font-size:13px;font-weight:700;color:var(--green-deep);line-height:1.35;height:53px;overflow:hidden}
-  .pc-vs{font-size:24px;font-weight:800;color:var(--green-deep);letter-spacing:-.03em;margin-top:6px}
-  .pc-vs small{font-size:10px;font-weight:600;color:var(--ink-faint);letter-spacing:.04em}
-  .pc-rm{display:block;width:100%;margin-top:8px;padding:5px;background:var(--green-light);color:var(--green-deep);border:none;border-radius:7px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
-  .rlabel{position:sticky;left:0;background:var(--paper);z-index:2;font-size:12px;color:var(--ink-faint);font-weight:600;padding:11px 8px 11px 2px;border-top:1px solid var(--line-soft)}
-  .rcell{padding:11px 6px;border-top:1px solid var(--line-soft);font-size:13px;color:var(--ink);line-height:1.4}
+  .ch-head{position:sticky;left:0;background:var(--paper);z-index:2;width:52px;min-width:52px;font-size:12px;color:var(--ink-faint);font-weight:600;padding:12px 6px 12px 2px;border-bottom:1px solid var(--line-soft)}
+  .ch-prod{padding:0 4px 12px}
+  .pc{background:#fff;border:1px solid var(--line-soft);border-radius:12px;padding:9px 7px;box-shadow:var(--shadow-sm)}
+  .pc-thumb{width:100%;max-width:60px;aspect-ratio:1;height:auto;border-radius:9px;object-fit:cover;background:var(--green-bg);border:1px solid var(--line-soft);display:block;margin-bottom:7px}
+  .pc-grade{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid;margin-bottom:5px}
+  .pc-name{font-size:11.5px;font-weight:700;color:var(--green-deep);line-height:1.3;height:45px;overflow:hidden;overflow-wrap:anywhere}
+  .pc-vs{font-size:20px;font-weight:800;color:var(--green-deep);letter-spacing:-.03em;margin-top:5px}
+  .pc-vs small{font-size:9px;font-weight:600;color:var(--ink-faint);letter-spacing:.03em}
+  .pc-rm{display:block;width:100%;margin-top:7px;padding:5px;background:var(--green-light);color:var(--green-deep);border:none;border-radius:7px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
+  .rlabel{position:sticky;left:0;background:var(--paper);z-index:2;font-size:11px;color:var(--ink-faint);font-weight:600;padding:11px 4px 11px 2px;border-top:1px solid var(--line-soft);line-height:1.25}
+  .rcell{padding:11px 4px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
   .rcell .v{font-weight:700;color:var(--green-deep)}
   .rcell.best .v{color:var(--green-primary)}
   .best-dot{display:inline-block;font-size:10px;color:var(--green-primary);margin-left:3px;vertical-align:middle}
@@ -173,7 +173,7 @@ function renderTabs(){
 }
 function markTab(cat){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.key===cat)); }
 
-async function selectCat(cat){
+async function selectCat(cat, presetIds){
   activeCat = cat; markTab(cat);
   selected = []; renderChips();
   document.getElementById('search').value = "";
@@ -190,6 +190,11 @@ async function selectCat(cat){
     }
     curData = cache[cat];
     document.getElementById('listStatus').textContent = "";
+    if (presetIds && presetIds.length){
+      selected = presetIds.map(String).filter(id => curData.products.some(p=>String(p.id)===id)).slice(0, MAX);
+      renderChips();
+      if (selected.length >= 2){ goCompare(); return; }  // 상위 비교 → 바로 비교표
+    }
     renderList("");
   }catch(e){
     document.getElementById('listStatus').textContent = "불러오기 실패 ("+e.message+")";
@@ -338,8 +343,9 @@ document.getElementById('search').addEventListener('input', e=> renderList(e.tar
 // init
 renderTabs();
 const params = new URLSearchParams(location.search);
+const idsParam = (params.get('ids')||"").split(',').map(s=>s.trim()).filter(Boolean);
 const startCat = CATS.find(c=>c.key===params.get('category')) ? params.get('category') : CATS[0].key;
-selectCat(startCat);
+selectCat(startCat, idsParam.length ? idsParam : null);
 </script>
 </body>
 </html>
