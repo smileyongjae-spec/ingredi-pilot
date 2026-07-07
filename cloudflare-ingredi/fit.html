@@ -50,6 +50,12 @@
     .header-back svg { width: 22px; height: 22px; }
     .header-title { font-size: 18px; font-weight: 700; color: var(--green-deep); }
     .header-spacer { width: 36px; }
+    /* ── 공유 버튼 ── */
+    .header-share { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); background: none; border: none; border-radius: 8px; padding: 0; }
+    .header-share:active { transform: scale(0.92); }
+    .header-share svg { width: 21px; height: 21px; }
+    .share-toast { position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: var(--green-deep); color: #fff; font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 100px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+    .share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     .screen { display: none; padding: 20px; }
     .screen.active { display: block; animation: fadeIn 0.3s ease; }
@@ -236,7 +242,7 @@
       </svg>
     </a>
     <div class="header-title">조합 점검</div>
-    <div class="header-spacer"></div>
+    <button class="header-share" type="button" aria-label="공유하기" onclick="shareIngredi()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
   </header>
 
   <!-- ── 입력 화면 ── -->
@@ -328,6 +334,27 @@
 
 <script>
 const API_BASE = window.location.origin;
+
+function shareIngredi(){
+  var url = location.origin + location.pathname;
+  var data = { title: 'ingredi', text: 'AI가 상담하고 추천하는, 광고 없는 건강기능식품 비교 · ingredi', url: url };
+  if (navigator.share) { navigator.share(data).catch(function(){}); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url)
+      .then(function(){ showShareToast('링크가 복사되었어요'); })
+      .catch(function(){ window.prompt('아래 링크를 복사하세요', url); });
+  } else { window.prompt('아래 링크를 복사하세요', url); }
+}
+window.shareIngredi = shareIngredi;
+function showShareToast(msg){
+  var t = document.getElementById('shareToast');
+  if (!t) { t = document.createElement('div'); t.id = 'shareToast'; t.className = 'share-toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  requestAnimationFrame(function(){ t.classList.add('show'); });
+  clearTimeout(t._shareTimer);
+  t._shareTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+window.showShareToast = showShareToast;
 
 // 백버튼 표준: 같은 사이트에서 왔으면 진짜 직전 화면, 직접 진입이면 폴백
 function smartBack(fallback) {
