@@ -596,5 +596,35 @@ window.resetScreen = resetScreen;
 renderItemGrid();
 updateSubmitBtn();
 </script>
+  <!-- Microsoft Clarity -->
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "xilfyj7s52");
+</script>
+
+<!-- "구매하러 가기" 클릭 이벤트 (범용 · 이벤트 위임) -->
+<script type="text/javascript">
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    var txt = (a.textContent || '').replace(/\s+/g, '');
+    var isBuy = txt.indexOf('구매하러가기') !== -1
+             || /cv-buybtn|btn-mini\s+primary|buy/i.test(a.className || '');
+    if (!isBuy) return;
+    if (a.classList && a.classList.contains('disabled')) return;
+    if (typeof window.clarity !== 'function') return;
+    try {
+      window.clarity('event', 'purchase_click');
+      var cat = window.activeCat || window.CURRENT_CAT_KO || '';
+      if (cat) window.clarity('set', 'category', String(cat));
+      var card = a.closest('.cv-card, .product-card, .cr-card, [class*="card"]');
+      var nm = card && card.querySelector('.cv-name, .product-name, .cr-name, h2, h3');
+      if (nm) window.clarity('set', 'product', nm.textContent.trim().slice(0, 60));
+    } catch (_) {}
+  });
+</script>
 </body>
 </html>
