@@ -63,6 +63,26 @@ export async function onRequest(context) {
     }
     return "";
   }
+  // product_id를 강건하게 읽음: 정확 일치 → 정규화(공백/하이픈/대소문자) → 값 패턴(mfds_/new_catalog_)
+  function readProductId(f, fallback) {
+    let v = f.product_id;
+    if (Array.isArray(v)) v = v[0];
+    if (v != null && String(v).trim()) return String(v).trim();
+    for (const k of Object.keys(f)) {
+      const nk = k.trim().toLowerCase().replace(/[-\s]+/g, "_");
+      if (nk === "product_id" || nk === "productid") {
+        let vv = f[k]; if (Array.isArray(vv)) vv = vv[0];
+        vv = (vv == null) ? "" : String(vv).trim();
+        if (vv) return vv;
+      }
+    }
+    for (const k of Object.keys(f)) {
+      let vv = f[k]; if (Array.isArray(vv)) vv = vv[0];
+      vv = (vv == null) ? "" : String(vv).trim();
+      if (/^(mfds_|new_catalog_)/i.test(vv)) return vv;
+    }
+    return fallback || "";
+  }
   function cleanImage(v) {
     let img = v || "";
     if (Array.isArray(img) && img.length > 0) {
@@ -101,7 +121,7 @@ export async function onRequest(context) {
     if (partnersLink) affiliateCount++;
 
     return {
-      id: str(f.product_id) || r.id,
+      id: readProductId(f, r.id),
       name: str(f.제품명),
       image: cleanImage(f.이미지URL),
       link: outLink,
@@ -138,7 +158,7 @@ export async function onRequest(context) {
       const rmap = {};
       for (const r of rv) {
         const f = r.fields || {};
-        const pid = str(f.product_id).trim();
+        const pid = readProductId(f, "");
         if (!pid) continue;
         const good = [], caution = [];
         if (str(f.good_label_1).trim()) good.push({ label: str(f.good_label_1).trim(), score: num(f.good_score_1) });
