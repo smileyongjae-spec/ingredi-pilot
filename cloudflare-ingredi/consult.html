@@ -477,6 +477,45 @@ function renderStatBars(ks) {
   return html || '<div style="font-size:13px;color:var(--ink-faint);padding:8px 0;">표시할 상세 지표가 없어요.</div>';
 }
 
+/* ── 검색·질문 로깅 (Phase 2) ──
+   consult.html은 app.html 입력·예시칩·딥링크의 모든 자유질의가 통과하는 지점이라,
+   여기 한 곳에서 로깅하면 검색어·질문이 중복 없이 100% 기록됩니다.
+   정상 응답이면 카테고리·결과수까지, 실패해도 질의만이라도 폴백 기록합니다. */
+let _searchLogged = false;
+function _catKoOf(c) {
+  if (CAT_KO[c]) return CAT_KO[c];
+  if (c === 'out_of_scope') return '범위밖';
+  return c || '미상';
+}
+function _resultCountOf(d) {
+  if (!d) return null;
+  if (d.mode === 'ingredient' || d.mode === 'product') return (d.ingredientProducts || []).length;
+  if (d.recommendation && Array.isArray(d.recommendation.top3)) return d.recommendation.top3.length;
+  return null;
+}
+function _sendSearchLog(type, content, category, resultCount) {
+  if (!content) return;
+  try {
+    fetch('/log-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: type, content: content, category: category, resultCount: resultCount }),
+      keepalive: true
+    }).catch(function () {});
+  } catch (e) {}
+}
+function logSearchFromData(d) {
+  if (_searchLogged || !query) return;
+  _searchLogged = true;
+  const type = (d && d.mode === 'product') ? '검색' : '질문';
+  _sendSearchLog(type, query, _catKoOf(d && d.category), _resultCountOf(d));
+}
+function logSearchFallback() {
+  if (_searchLogged || !query) return;
+  _searchLogged = true;
+  _sendSearchLog('질문', query, '미상', null);
+}
+
 async function loadConsultation(q) {
   document.getElementById('queryText').textContent = q;
   try {
@@ -485,10 +524,11 @@ async function loadConsultation(q) {
     if (ct.indexOf('text/event-stream') === -1) {
       // JSON (에러 / out_of_scope 등)
       const data = await res.json();
-      if (data.error) { showError(data.message || '답변을 불러올 수 없습니다.'); return; }
+      if (data.error) { logSearchFromData(data); showError(data.message || '답변을 불러올 수 없습니다.'); return; }
       CURRENT_CAT_KO = CAT_KO[data.category] || "오메가3";
       renderResult(data);
       if (data.answer) setAnswerText(data.answer);
+      logSearchFromData(data);
       showResultScreen();
       return;
     }
@@ -508,6 +548,7 @@ async function loadConsultation(q) {
         if (ev.event === 'meta') {
           CURRENT_CAT_KO = CAT_KO[ev.data.category] || "오메가3";
           renderResult(ev.data);
+          logSearchFromData(ev.data);
           if (!shown) { showResultScreen(); shown = true; }
         } else if (ev.event === 'token') {
           answerRaw += (ev.data.text || "");
@@ -517,6 +558,7 @@ async function loadConsultation(q) {
     }
     if (!shown) showResultScreen();
   } catch (err) {
+    logSearchFallback();
     showError('네트워크 오류가 발생했어요.');
   }
 }
