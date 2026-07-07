@@ -293,7 +293,7 @@ export async function onRequest(context) {
     }
 
     // ─── [6] CALL CLAUDE (RAG) ───────────────────────
-    let answer = "", claudeError = null;
+    let answer = "", claudeError = null, claudeReqBody = null;
     if (isProductMode) {
       answer = "";
     } else if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
@@ -318,47 +318,7 @@ export async function onRequest(context) {
         userPrompt += `\n\n[내부 플래그] 의료 주의가 필요한 키워드 감지됨 (${detectedRisks.join(", ")}). 답변 끝에 "복용 전 의사·약사와 상담하세요"를 포함하세요.`;
       }
 
-      const claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
-      // 직접 호출 시 Cloudflare egress 경로/리전 탓에 403 "Request not allowed"가 날 수 있어,
-      // CF_ACCOUNT_ID + CF_AI_GATEWAY 환경변수가 있으면 Cloudflare AI Gateway(안정적 경로) 경유로 호출.
-      // 두 변수가 없으면 기존처럼 api.anthropic.com 직접 호출(폴백).
-      const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
-        ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
-        : "https://api.anthropic.com";
-      async function callClaude() {
-        return fetch(`${ANTHROPIC_BASE}/v1/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-          body: claudeReqBody
-        });
-      }
-
-      // 간헐 오류(레이트리밋·과부하·5xx, 그리고 egress 경로 탓의 간헐적 403 "Request not allowed")면
-      // 짧게 쉬고 최대 2회 재시도 — 다음 시도에서 다른 egress 경로로 나가 성공할 확률을 높임.
-      const RETRY_STATUS = [403, 429, 500, 502, 503, 504, 529];
-      let claudeResponse = await callClaude();
-      for (let attempt = 0; attempt < 2 && !claudeResponse.ok && RETRY_STATUS.indexOf(claudeResponse.status) !== -1; attempt++) {
-        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
-        claudeResponse = await callClaude();
-      }
-
-      if (claudeResponse.ok) {
-        try {
-          const data = await claudeResponse.json();
-          const parts = Array.isArray(data.content) ? data.content : [];
-          answer = parts.filter((b) => b && b.type === "text").map((b) => b.text).join("").trim();
-          if (!answer) {
-            claudeError = "empty_answer: " + JSON.stringify(data).slice(0, 300);
-            answer = "기술적 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
-          }
-        } catch (e) {
-          claudeError = "parse_error: " + ((e && e.message) || e);
-          answer = "기술적 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
-        }
-      } else {
-        claudeError = "http " + claudeResponse.status + ": " + (await claudeResponse.text());
-        answer = "기술적 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
-      }
+      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, stream: true, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
     }
 
     // ─── [7] RECOMMEND PRODUCTS (오메가3 전용) ───────
@@ -436,8 +396,8 @@ export async function onRequest(context) {
       recommendation = { profile: { id: matchedProfileId, label: profile.label, weights: profile.weights }, top3, filteredCount: filtered.length, totalCount: records.length };
     }
 
-    return new Response(JSON.stringify({
-      query, category: matchedCategory, answer,
+    const meta = {
+      query, category: matchedCategory,
       mode: listMode || "counsel",
       ingredientTerm: listTerm,
       ingredientProducts,
@@ -446,10 +406,77 @@ export async function onRequest(context) {
         knowledge: knowledgeMatched.map(k => ({ id: k.id, oneline: k.oneline, evidence: k.evidence || null })),
         faq: faqMatched.map(f => ({ id: f.id, question: f.question }))
       },
-      flags: { requiresMedicalConsult, detectedRisks, knowledgeCount: knowledgeMatched.length, faqCount: faqMatched.length, faqTable: cfg.table, claudeError },
+      flags: { requiresMedicalConsult, detectedRisks, knowledgeCount: knowledgeMatched.length, faqCount: faqMatched.length, faqTable: cfg.table, claudeError: null },
       recommendation,
       disclaimer: "본 정보는 의료 자문이 아니며, 개별 건강 상태에 따라 다를 수 있습니다. 복용 전 의사·약사와 상담하세요."
-    }), { status: 200, headers });
+    };
+
+    const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
+      ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
+      : "https://api.anthropic.com";
+    const enc = new TextEncoder();
+    const ERR_MSG = "기술적 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (event, dataObj) => controller.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(dataObj)}\n\n`));
+        send("meta", meta);
+        try {
+          if (!claudeReqBody) {
+            if (answer) send("token", { text: answer }); // 정적 답변(제품 모드/근거 없음)
+          } else {
+            const RETRY_STATUS = [403, 429, 500, 502, 503, 504, 529];
+            let resp = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              resp = await fetch(`${ANTHROPIC_BASE}/v1/messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+                body: claudeReqBody
+              });
+              if (resp.ok || RETRY_STATUS.indexOf(resp.status) === -1) break;
+              await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+            }
+            if (!resp || !resp.ok || !resp.body) {
+              send("token", { text: ERR_MSG });
+            } else {
+              const reader = resp.body.getReader();
+              const dec = new TextDecoder();
+              let buf = "", gotText = false;
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buf += dec.decode(value, { stream: true });
+                let nl;
+                while ((nl = buf.indexOf("\n")) !== -1) {
+                  const line = buf.slice(0, nl).trim();
+                  buf = buf.slice(nl + 1);
+                  if (!line.startsWith("data:")) continue;
+                  const payload = line.slice(5).trim();
+                  if (!payload || payload === "[DONE]") continue;
+                  try {
+                    const evd = JSON.parse(payload);
+                    if (evd.type === "content_block_delta" && evd.delta && evd.delta.type === "text_delta" && evd.delta.text) {
+                      gotText = true;
+                      send("token", { text: evd.delta.text });
+                    }
+                  } catch (_) { /* 부분 라인 무시 */ }
+                }
+              }
+              if (!gotText) send("token", { text: ERR_MSG });
+            }
+          }
+        } catch (e) {
+          send("token", { text: ERR_MSG });
+        }
+        send("done", {});
+        controller.close();
+      }
+    });
+
+    return new Response(stream, {
+      status: 200,
+      headers: { ...headers, "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache", "X-Accel-Buffering": "no" }
+    });
 
   } catch (error) {
     return new Response(JSON.stringify({ error: "internal_error", message: error.message }), { status: 500, headers });
