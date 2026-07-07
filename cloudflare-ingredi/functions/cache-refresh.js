@@ -8,7 +8,9 @@ const TABLES = [
   // recommend2 가 딥링크/링크를 읽는 _쿠팡업데이트 테이블 (딥링크 변환 후 갱신 필요)
   '오메가3_쿠팡업데이트', '눈_쿠팡업데이트', '마이크로바이옴_쿠팡업데이트', '비타민C_쿠팡업데이트',
   // RAG 카운슬링이 읽는 knowledge / FAQ 테이블
-  'knowledge', 'FAQ_오메가3', 'FAQ_비타민C', 'FAQ_눈', 'FAQ_마이크로바이옴'
+  'knowledge', 'FAQ_오메가3', 'FAQ_비타민C', 'FAQ_눈', 'FAQ_마이크로바이옴',
+  // 카드 리뷰 인사이트 테이블
+  '오메가_리뷰인사이트', '눈_리뷰인사이트', '비타민C_리뷰인사이트'
 ];
 export async function onRequest(context) {
   const { request, env } = context;
