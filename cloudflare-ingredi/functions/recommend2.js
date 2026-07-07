@@ -134,7 +134,7 @@ export async function onRequest(context) {
   const reviewsReady = !!REVIEW_TABLE[catKey];
   if (reviewsReady) {
     try {
-      const rv = await getRecords(env, REVIEW_TABLE[catKey]);
+      const rv = await getRecords(env, REVIEW_TABLE[catKey], { ttl: 1800 });
       const rmap = {};
       for (const r of rv) {
         const f = r.fields || {};
