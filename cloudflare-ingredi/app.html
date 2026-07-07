@@ -268,6 +268,9 @@
     .cv-voc-h { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
     .cv-voc-tag { font-size: 10px; color: #A8997A; background: #F0E9D8; padding: 1px 7px; border-radius: 10px; }
     .cv-vchip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 11px; border-radius: 20px; margin: 0 7px 7px 0; font-weight: 600; }
+    .cv-vchips { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin-bottom: -7px; }
+    .cv-vchips::-webkit-scrollbar { display: none; }
+    .cv-vchips .cv-vchip { flex: 0 0 auto; white-space: nowrap; }
     .cv-specs { margin-top: 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
     .cv-specs b { color: var(--ink-faint); font-weight: 600; }
     .cv-reasons { margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line-soft); }
@@ -944,7 +947,6 @@ function renderCardV8(p, ctx){
     const capRank = rankLo(st.capArr, cap);
     capCol = `<div style="display:flex;align-items:center;gap:6px;line-height:1.1">
         <span class="cv-plabel" style="white-space:nowrap">캡슐 크기(목넘김) <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span>
-        <span style="font-size:10.5px;color:var(--ink-faint)">작은순</span>
       </div>
       <div style="margin-top:4px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:20px">${fmt(cap)}<span class="cv-punit">mg</span></span><span class="cv-rank" style="margin-top:0">${st.cap.n}개 중 ${capRank}위</span></div>`;
   } else {
@@ -1028,7 +1030,6 @@ function renderCardV8(p, ctx){
         <div>
           <div style="display:flex;align-items:center;gap:6px;line-height:1.1">
             <span class="cv-plabel" style="white-space:nowrap">1일 복용 비용 <button class="cv-q" onclick="openTermSheet('cost')">?</button></span>
-            <span style="font-size:10.5px;color:var(--ink-faint)">저렴한순</span>
           </div>
           <div style="margin-top:4px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:20px">${fmt(cost)}<span class="cv-punit">원</span></span><span class="cv-rank" style="margin-top:0">${st.cost.n}개 중 ${costRank}위</span></div>
         </div>
@@ -1040,7 +1041,7 @@ function renderCardV8(p, ctx){
     </div>
     <div class="cv-voc">
       <div class="cv-voc-h"><span style="font-size:12px;color:var(--ink-soft);font-weight:700">리뷰 인사이트</span>${vocTag}<span class="cv-reviewN">리뷰 ${fmt(num(p.reviewCount))}개</span></div>
-      <div style="display:flex;flex-wrap:wrap">${vocChips}</div>
+      <div class="cv-vchips">${vocChips}</div>
     </div>
     <div class="cv-specs"><b>원료사</b> ${escapeHtml(p.supplier||"-")}</div>
     <div class="cv-tagrow">${tagsHtml}${coldBadge}</div>
