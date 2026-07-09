@@ -91,6 +91,20 @@
     .answer-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green-primary); animation: pulse 2s ease infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .answer-text { font-size: 14px; line-height: 1.55; color: var(--ink); letter-spacing: -0.01em; }
+    /* 카테고리 선택 카드 */
+    .catpick { margin-top: 18px; }
+    .catpick-title { font-size: 14px; font-weight: 700; color: var(--green-deep); margin-bottom: 10px; }
+    .catpick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .catpick-btn { display: block; text-align: left; padding: 14px; background: #fff; border: 1.5px solid var(--line-soft); border-radius: 14px; text-decoration: none; transition: all .15s ease; }
+    .catpick-btn:hover { border-color: var(--green-mid); transform: translateY(-2px); }
+    .catpick-btn:active { transform: translateY(0); }
+    .catpick-name { font-size: 15px; font-weight: 700; color: var(--green-deep); }
+    .catpick-desc { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
+    .catpick-note { font-size: 12px; color: var(--ink-soft); margin-top: 12px; padding: 10px 12px; background: var(--green-bg); border: 1px solid #E1EAE2; border-radius: 10px; line-height: 1.5; }
+    /* 나이·성별 맞춤 추천 CTA */
+    .demo-cta { display: block; margin-top: 14px; padding: 14px; background: var(--green-primary); color: #fff; border-radius: 12px; text-align: center; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 3px 10px rgba(45,95,63,.24); }
+    .demo-cta:hover { background: var(--green-deep); }
+    .demo-cta small { display: block; font-size: 11.5px; font-weight: 500; opacity: .78; margin-top: 2px; }
     /* 추천 제품: 답변이 끝난 뒤 부드럽게 등장 */
     .products-reveal { opacity: 0; transform: translateY(8px); transition: opacity .38s ease, transform .38s ease; }
     .products-reveal.in { opacity: 1; transform: translateY(0); }
@@ -765,6 +779,7 @@ function renderCounselProducts(data) {
           <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${rec.profile.id}">Top 3 비교</a>
           <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${rec.profile.id}">직접 선택</a>
         </div>
+        ${renderDemoCta(data)}
       </section>`;
     return;
   }
@@ -784,6 +799,7 @@ function renderCounselProducts(data) {
           <a class="compare-cta-btn primary" href="/app.html?category=${encodeURIComponent(catParam)}">추천 제품 보기</a>
           <a class="compare-cta-btn" href="/compare.html?category=${encodeURIComponent(catParam)}">제품 비교하기</a>
         </div>
+        ${renderDemoCta(data)}
       </section>`;
   } else {
     recEl.innerHTML = '';
@@ -796,7 +812,8 @@ function renderResult(data, deferProducts) {
   const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
   const fCount = data.flags ? data.flags.faqCount || 0 : 0;
   document.getElementById('queryMeta').textContent =
-    data.mode === 'product' ? '제품 검색 결과'
+    data.mode === 'category_select' ? (data.flags && data.flags.unsupportedTerm ? '아직 지원하지 않는 성분' : '카테고리를 골라주세요')
+    : data.mode === 'product' ? '제품 검색 결과'
     : data.category === 'out_of_scope' ? '지원하지 않는 카테고리'
     : `관련 정보 ${kCount + fCount}건 검색`;
 
@@ -821,8 +838,60 @@ function renderResult(data, deferProducts) {
   document.getElementById('disclaimer').textContent = data.disclaimer || '';
 }
 
+// 나이·성별이 잡혔을 때 for-me.html 딥링크 생성
+function forMeHref(catKo, data) {
+  const d = data.demographics || {};
+  const p = new URLSearchParams();
+  if (catKo) p.set('category', catKo);
+  if (d.gender) p.set('gender', d.gender);
+  if (d.age) p.set('age', d.age);
+  p.set('priority', data.priority || 'balanced');
+  if (d.gender === 'female' && d.pregnant === 'yes') p.set('preg', 'yes');
+  return '/for-me.html?' + p.toString();
+}
+function demoLabel(d) {
+  if (!d) return '';
+  const a = d.age ? (d.age === '60' ? '60대 이상' : d.age + '대') : '';
+  const g = d.gender === 'female' ? '여성' : d.gender === 'male' ? '남성' : '';
+  return [a, g].filter(Boolean).join(' ');
+}
+
+// 카테고리 미특정 → 4개 중 고르게 하는 카드
+function renderCategorySelect(data) {
+  const recEl = document.getElementById('recommendContent');
+  if (!recEl) return;
+  const opts = data.categoryOptions || [];
+  const who = demoLabel(data.demographics);
+  const grid = opts.map(function (o) {
+    return `<a class="catpick-btn" href="${escapeHtml(forMeHref(o.key, data))}">
+      <div class="catpick-name">${escapeHtml(o.label)}</div>
+      <div class="catpick-desc">${escapeHtml(o.desc || '')}</div>
+    </a>`;
+  }).join('');
+  const note = who
+    ? `선택하시면 <strong>${escapeHtml(who)}</strong> 기준으로 바로 추천해드려요.`
+    : `선택하시면 나이·성별을 입력받아 맞춤 추천해드려요.`;
+  recEl.innerHTML = `<section class="catpick">
+    <div class="catpick-title">어떤 것이 필요하세요?</div>
+    <div class="catpick-grid">${grid}</div>
+    <div class="catpick-note">${note}</div>
+  </section>`;
+}
+
+// 카테고리는 잡혔고 나이·성별도 있으면 → 맞춤 추천 CTA
+function renderDemoCta(data) {
+  const d = data.demographics;
+  if (!d || (!d.age && !d.gender)) return '';
+  const who = demoLabel(d);
+  if (!who) return '';
+  const catKo = CAT_KO[data.category] || CURRENT_CAT_KO;
+  const catLabel = { "오메가3": "오메가3", "눈": "눈 건강", "마이크로바이옴": "유산균", "비타민C": "비타민C" }[catKo] || catKo;
+  return `<a class="demo-cta" href="${escapeHtml(forMeHref(catKo, data))}">${escapeHtml(who)} 맞춤 ${escapeHtml(catLabel)} 추천 받기<small>나이·성별에 맞춰 다시 정렬해드려요</small></a>`;
+}
+
 // 제품 카드 렌더 (모드 분기) — 단독 호출 가능하도록 분리
 function renderProducts(data) {
+  if (data.mode === 'category_select') { renderCategorySelect(data); return; }
   if (data.mode === 'ingredient' || data.mode === 'product') {
     renderProductListMode(data);
   } else {
