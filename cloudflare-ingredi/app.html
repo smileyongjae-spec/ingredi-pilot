@@ -284,16 +284,22 @@
     .cl-morebtn:hover { background: var(--green-light); }
     .cv-vq { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 9px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; vertical-align: middle; }
     .cv-vnum { font-size: 34px; color: var(--green-deep); font-weight: 800; line-height: 1.05; letter-spacing: -0.04em; }
-    .cv-panels { display: flex; gap: 11px; margin-top: 11px; align-items: stretch; }
-    .cv-panel { flex: 1; padding: 11px 12px; background: var(--green-bg); border-radius: 13px; }
+    /* 함량 · 캡슐 크기 통합 패널 */
+    .cv-pan1 { margin-top: 11px; padding: 11px 12px; background: var(--green-bg); border-radius: 13px; }
+    .cv-frac { margin-top: 4px; display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; line-height: 1.1; }
+    .cv-slash { font-size: 14px; color: var(--ink-faint); font-weight: 700; }
+    .cv-rkrow { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .cv-rkp { display: inline-flex; align-items: baseline; gap: 4px; background: var(--green-light); border-radius: 16px; padding: 3px 9px; }
+    .cv-rkl { font-size: 10px; color: var(--ink-soft); }
+    .cv-rkn { font-size: 11px; color: var(--green-primary); font-weight: 700; }
+    .cv-rkp.none { background: #EAF3FB; }
+    .cv-rkp.none .cv-rkn { color: #3A6EA5; }
+    .cv-fsub { font-size: 10px; color: var(--ink-faint); margin-top: 7px; line-height: 1.45; }
+    .cv-cost { margin-top: 8px; padding: 11px 12px; background: var(--green-bg); border-radius: 13px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
     .cv-plabel { font-size: 12px; color: var(--ink-soft); }
-    .cv-purity { display: inline-block; background: var(--green-light); color: var(--green-primary); font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: 700; }
     .cv-pval { font-size: 26px; color: var(--green-deep); font-weight: 800; letter-spacing: -0.03em; }
     .cv-punit { font-size: 13px; color: var(--ink-faint); }
     .cv-rank { font-size: 12px; color: var(--green-primary); margin-top: 2px; font-weight: 600; }
-    .cv-track { position: relative; height: 6px; background: #E4DFD3; border-radius: 3px; margin-top: 6px; }
-    .cv-dot { position: absolute; top: -4px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--green-deep); border: 2px solid #fff; }
-    .cv-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-faint); margin-top: 2px; }
     .cv-voc { margin-top: 15px; padding: 12px 14px; background: var(--paper); border: 1px dashed var(--line); border-radius: 12px; }
     .cv-voc-h { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
     .cv-voc-tag { font-size: 10px; color: #A8997A; background: #F0E9D8; padding: 1px 7px; border-radius: 10px; }
@@ -346,7 +352,6 @@
     .cat-compare-cta a { display: block; text-align: center; padding: 13px; border-radius: 11px; background: var(--green-primary); color: #fff; font-weight: 700; font-size: 14.5px; text-decoration: none; transition: 0.15s; }
     .cat-compare-cta a:hover { background: var(--green-deep); }
 
-    .cv-purity { cursor: pointer; }
     .cv-q { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 9px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; vertical-align: middle; margin-left: 3px; padding: 0; }
     .cv-q:active { background: var(--green-mid); color: #fff; }
     .cv-tagrow { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
@@ -802,7 +807,6 @@ const CATS = [
   { key:"마이크로바이옴", label:"유산균" },
   { key:"비타민C",       label:"비타민C" }
 ];
-const PURITY = new Set(["오메가3"]);
 const GRADE = {
   A:["#FBF3DD","#B8902F","#EBD9A8"], B:["#F0F0F2","#6E7177","#DADCE0"],
   C:["#EAF1EA","#2D5F3F","#CADBCD"], D:["#F6ECE3","#B07142","#E6D2C2"], E:["#F0EFEC","#8B8E91","#DEDCD6"]
@@ -951,48 +955,10 @@ function renderCardV8(p, ctx){
   const colors = GRADE[grade] || GRADE.C;
   const gb = colors[0], gt = colors[1], gbd = colors[2];
   const pv = num(p.primaryValue);
-  const fill = pctile(st.primArr, pv);
   const prank = rankHi(st.primArr, pv);
   const cost = num(p.dailyCost), cap = num(p.capsuleMg);
   const price = num(p.price);
   const costRank = rankLo(st.costArr, cost);
-  const costPos = st.cost.max>st.cost.min ? clampPos((cost-st.cost.min)/(st.cost.max-st.cost.min)*100) : 50;
-  const primPos = st.prim.max>st.prim.min ? clampPos((pv-st.prim.min)/(st.prim.max-st.prim.min)*100) : 50;
-
-  let purityChip = "";
-  if (PURITY.has(cat)) {
-    let pur = null;
-    const stored = p.extra ? p.extra["캡슐당순도"] : null;
-    if (stored != null && stored !== "" && num(stored) > 0) {
-      pur = num(stored) * 100;                 // Airtable 저장값(캡슐당, 0~1)
-    } else if (cap > 0 && pv > 0) {
-      const nCap = num(p.dailyCapsules) > 0 ? num(p.dailyCapsules) : 1;
-      pur = pv / (cap * nCap) * 100;           // 폴백: 1회 캡슐수로 캡슐당 환산
-    }
-    if (pur != null && pur > 0) {
-      if (pur > 100) pur = 100;                // 안전 상한(데이터 이상 대비)
-      purityChip = `<button class="cv-purity" style="border:none;font-family:inherit" onclick="openTermSheet('purity')">순도 ${Math.round(pur)}%</button>`;
-    }
-  }
-
-  const capY = (6 + 84*(1-fill/100)).toFixed(1);
-  const capH = (84*fill/100).toFixed(1);
-  const capsule = `<svg width="34" height="48" viewBox="0 0 72 96" style="flex-shrink:0">
-    <defs><clipPath id="cc${uid}"><rect x="20" y="6" width="32" height="84" rx="16"/></clipPath></defs>
-    <rect x="20" y="6" width="32" height="84" rx="16" fill="#F0ECE2" stroke="#C9C3B5" stroke-width="1.5"/>
-    <rect x="20" y="${capY}" width="32" height="${capH}" fill="#2D5F3F" clip-path="url(#cc${uid})"/>
-    <line x1="20" y1="48" x2="52" y2="48" stroke="#fff" stroke-width="1.5" opacity="0.5"/></svg>`;
-
-  let capCol;
-  if (cap>0){
-    const capRank = rankLo(st.capArr, cap);
-    capCol = `<div style="display:flex;align-items:center;gap:6px;line-height:1.1">
-        <span class="cv-plabel" style="white-space:nowrap">캡슐 크기(목넘김) <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span>
-      </div>
-      <div style="margin-top:4px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:20px">${fmt(cap)}<span class="cv-punit">mg</span></span><span class="cv-rank" style="margin-top:0">${st.cap.n}개 중 ${capRank}위</span></div>`;
-  } else {
-    capCol = `<span class="cv-plabel" style="white-space:nowrap">캡슐 크기(목넘김) <button class="cv-q" onclick="openTermSheet('capsule')">?</button></span><div style="font-size:12px;color:var(--ink-faint);margin-top:6px">캡슐 없음 (분말/스틱)</div>`;
-  }
 
   const voc = (VOC[cat]||[]).map(function(v){
     const lab=v[0], val=v[1], t=v[2];
@@ -1033,7 +999,22 @@ function renderCardV8(p, ctx){
   const eyeBonus = (cat==="눈" && p._eye)
     ? `<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px">${p._eye.vitA?'<span class="cv-bonus vitA">비타민A ✓ +5</span>':''}${p._eye.beta?'<span class="cv-bonus beta">베타카로틴 ✓ +3</span>':''}</div>`
     : "";
-  const belowPrimary = (cat==="눈") ? eyeBonus : (purityChip ? `<div style="margin-top:7px">${purityChip}</div>` : "");
+  const belowPrimary = (cat==="눈") ? eyeBonus : "";
+
+  // 분수 우변: 캡슐이 있으면 캡슐 용량, 없으면 제형
+  const formLabel = String(p.form || "").trim() || "분말 · 스틱";
+  const hasCap = cap > 0;
+  const denom = hasCap ? `${fmt(cap)}mg 캡슐` : escapeHtml(formLabel);
+  const capRank = hasCap ? rankLo(st.capArr, cap) : null;
+  const capPill = hasCap
+    ? `<span class="cv-rkp"><span class="cv-rkl">캡슐 크기(목넘김)</span><span class="cv-rkn">${capRank}위</span></span>`
+    : `<span class="cv-rkp none"><span class="cv-rkl">캡슐 크기(목넘김)</span><span class="cv-rkn">캡슐 없음</span></span>`;
+  const isMg = String(m.primary.unit) === "mg";
+  const fracSub = !hasCap
+    ? "가루 형태라 목넘김 부담이 없어요"
+    : (isMg
+        ? `효능성분 ${fmt(pv)}mg이 ${fmt(cap)}mg 캡슐에 담겨 있어요`
+        : `캡슐 1알은 ${fmt(cap)}mg이에요`);
   const coldBadge = (cat==="마이크로바이옴" && truthyStr(p.extra && p.extra["냉장유통"])) ? `<span class="cv-cold">❄️ 냉장보관</span>` : "";
   const cartSvg = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
   const buyBtn = p.link
@@ -1056,28 +1037,23 @@ function renderCardV8(p, ctx){
         ${priceBox}
       </div>
     </div>
-    <div class="cv-panels" style="gap:8px;align-items:stretch">
-      <div class="cv-panel" style="flex:1.05;display:flex;align-items:center;gap:10px">
-        ${capsule}
-        <div style="min-width:0">
-          <span class="cv-plabel" style="white-space:nowrap">${escapeHtml(m.primary.label)} 함량 <button class="cv-q" onclick="openTermSheet('${primKey}')">?</button></span>
-          ${eyeSub}
-          <div style="margin-top:4px;line-height:1.1"><span class="cv-pval" style="font-size:22px">${fmt(pv)}</span><span class="cv-punit">${escapeHtml(m.primary.unit)}</span> <span class="cv-rank" style="margin-top:0">· ${st.prim.n}개 중 ${prank}위</span></div>
-          ${belowPrimary}
-        </div>
+    <div class="cv-pan1">
+      <span class="cv-plabel">${escapeHtml(m.primary.label)} 함량 <button class="cv-q" onclick="openTermSheet('${primKey}')">?</button></span>
+      ${eyeSub}
+      <div class="cv-frac">
+        <span class="cv-pval" style="font-size:23px">${fmt(pv)}</span><span class="cv-punit">${escapeHtml(m.primary.unit)}</span>
+        <span class="cv-slash">/</span><span class="cv-slash">${denom}</span>
       </div>
-      <div class="cv-panel" style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
-        <div>
-          <div style="display:flex;align-items:center;gap:6px;line-height:1.1">
-            <span class="cv-plabel" style="white-space:nowrap">1일 복용 비용 <button class="cv-q" onclick="openTermSheet('cost')">?</button></span>
-          </div>
-          <div style="margin-top:4px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.05"><span class="cv-pval" style="font-size:20px">${fmt(cost)}<span class="cv-punit">원</span></span><span class="cv-rank" style="margin-top:0">${st.cost.n}개 중 ${costRank}위</span></div>
-        </div>
-        <div style="height:1px;background:#E6ECE6;margin:9px 0"></div>
-        <div>
-          ${capCol}
-        </div>
+      <div class="cv-rkrow">
+        <span class="cv-rkp"><span class="cv-rkl">효능성분 함량</span><span class="cv-rkn">${prank}위</span></span>
+        ${capPill}
       </div>
+      ${belowPrimary}
+      <div class="cv-fsub">${fracSub}</div>
+    </div>
+    <div class="cv-cost">
+      <span class="cv-plabel">1일 복용 비용 <button class="cv-q" onclick="openTermSheet('cost')">?</button></span>
+      <span style="white-space:nowrap"><span class="cv-pval" style="font-size:23px">${fmt(cost)}</span><span class="cv-punit">원</span> <span class="cv-rkn" style="margin-left:4px">${costRank}위</span></span>
     </div>
     <div class="cv-voc">
       <div class="cv-voc-h"><span style="font-size:12px;color:var(--ink-soft);font-weight:700">리뷰 인사이트</span>${vocTag}<span class="cv-reviewN">리뷰 ${fmt(num(p.reviewCount))}개</span></div>
