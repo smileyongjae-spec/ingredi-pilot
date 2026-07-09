@@ -765,6 +765,7 @@ function renderCounselProducts(data) {
   if (rec && rec.top3 && rec.top3.length > 0) {
     const top3Html = rec.top3.map(productCardHtml).join('');
     const top3Ids = rec.top3.map(p => p.id).join(',');
+    const topCatKo = CAT_KO[data.category] || CURRENT_CAT_KO;
     recEl.innerHTML = `
       <section class="recommend-section">
         <div class="recommend-header">
@@ -776,8 +777,8 @@ function renderCounselProducts(data) {
         </div>
         ${top3Html}
         <div class="compare-cta">
-          <a class="compare-cta-btn primary" href="/compare.html?ids=${top3Ids}&profile=${rec.profile.id}">Top 3 비교</a>
-          <a class="compare-cta-btn" href="/compare.html?mode=select&profile=${rec.profile.id}">직접 선택</a>
+          <a class="compare-cta-btn primary" href="/compare.html?category=${encodeURIComponent(topCatKo)}&ids=${top3Ids}&profile=${rec.profile.id}">제품 3개 비교하기</a>
+          <a class="compare-cta-btn" href="/app.html?category=${encodeURIComponent(topCatKo)}">전체 제품 보기</a>
         </div>
         ${renderDemoCta(data)}
       </section>`;
