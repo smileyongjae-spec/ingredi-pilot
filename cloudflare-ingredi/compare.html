@@ -105,8 +105,14 @@
   .rcell.best .v{color:var(--green-primary)}
   .best-dot{display:inline-block;font-size:10px;color:var(--green-primary);margin-left:3px;vertical-align:middle}
   .rcell .unit{font-size:11px;color:var(--ink-faint);font-weight:500}
+  .cmp-basis{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:11.5px;color:var(--ink-faint)}
+  .cmp-basis b{font-weight:700;color:var(--green-primary);background:var(--green-light);padding:2px 8px;border-radius:20px;font-size:11px}
   .buyrow{display:flex;gap:8px;margin-top:14px}
-  .buy{flex:1;text-align:center;padding:11px;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;background:var(--green-primary);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .buy{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 8px;border-radius:10px;text-decoration:none;background:var(--green-primary);color:#fff;box-shadow:0 3px 10px rgba(45,95,63,.24)}
+  .buy:active{transform:scale(.99)}
+  .buy-cap{font-size:10.5px;font-weight:500;opacity:.72;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .buy-act{display:flex;align-items:center;justify-content:center;gap:5px;font-size:13px;font-weight:700;white-space:nowrap}
+  .buy.disabled{background:var(--line);color:var(--ink-faint);box-shadow:none;pointer-events:none}
   .backsel{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--green-primary);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0 14px}
 
   footer{padding:24px 4px 40px;font-size:11px;color:var(--ink-faint);line-height:1.6;text-align:center}
@@ -143,7 +149,7 @@
       </button>
       <div id="compareTable"></div>
       <footer>
-        ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다. 모든 비교는 공개 데이터·임상 근거 기준이며, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있습니다.
+        ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다. 모든 비교는 공개된 제품 데이터 기준이며, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있습니다.
       </footer>
     </div>
   </div>
@@ -190,9 +196,102 @@ const CATS = [
   { key:"마이크로바이옴", label:"유산균" }, { key:"비타민C", label:"비타민C" }
 ];
 const GRADE = {
-  S:["#FAF3E0","#B8902F","#EAD9A8"], A:["#F0F0F2","#6E7177","#DADCE0"],
-  B:["#EAF1EA","#2D5F3F","#CADBCD"], C:["#F6ECE3","#B07142","#E6D2C2"], D:["#F0EFEC","#8B8E91","#DEDCD6"]
+  A:["#FBF3DD","#B8902F","#EBD9A8"], B:["#F0F0F2","#6E7177","#DADCE0"],
+  C:["#EAF1EA","#2D5F3F","#CADBCD"], D:["#F6ECE3","#B07142","#E6D2C2"], E:["#F0EFEC","#8B8E91","#DEDCD6"]
 };
+function gradeFromScore(s){ s = parseFloat(s); if (isNaN(s)) s = 0; return s>=90?"A":s>=80?"B":s>=70?"C":s>=60?"D":"E"; }
+
+/* ── app.html과 동일한 프로필 점수 엔진 (표시 점수·등급 일치용) ── */
+const PROFILES = [
+  { key:"balanced", label:"균형",   w:{core:0.50, cost:0.35, review:0.15} },
+  { key:"premium",  label:"고품질", w:{core:0.70, cost:0.10, review:0.20} },
+  { key:"budget",   label:"가성비", w:{core:0.25, cost:0.65, review:0.10} }
+];
+let activeProfile = "balanced";   // URL ?profile= 로 덮어씀. 미지정/미인식 → 균형
+let activeSubKey = null;          // URL ?sub= (유산균 대상분류 / 비타민C 용량)
+function profileLabel(){ const p = PROFILES.find(x=>x.key===activeProfile); return p ? p.label : "균형"; }
+
+const SUBFILTERS = {
+  "마이크로바이옴": ["일반","여성","키즈"],
+  "비타민C": ["일반","메가도즈"]
+};
+function truthyStr(v){
+  if (v===true) return true;
+  if (typeof v==="number") return v>0;
+  const t = String(v==null?"":v).trim().toLowerCase();
+  return t!=="" && t!=="0" && t!=="false" && t!=="no" && t!=="없음" && t!=="x" && t!=="-";
+}
+function matchSub(cat, key, p){
+  if (cat==="마이크로바이옴"){
+    const t = String(p.target||"").trim() || "일반";
+    return key==="일반" ? (t==="일반") : (t===key);
+  }
+  if (cat==="비타민C"){
+    const mega = num(p.primaryValue) >= 2000;
+    return key==="메가도즈" ? mega : !mega;
+  }
+  return true;
+}
+// 눈: 카로티노이드 합산 → 핵심성분점수 재계산 (app.html과 동일)
+function applyEyeLogic(products){
+  if (!products.length || products[0]._eyeDone) return;
+  const AST = 2.5;
+  const arr = products.map(function(p){
+    const lut = num(p.primaryValue);
+    const zea = num(p.extra && p.extra["지아잔틴_mg"]);
+    const ast = num(p.extra && p.extra["아스타잔틴_mg"]);
+    return { p:p, raw: lut+zea+ast, w: lut+zea+ast*AST };
+  });
+  const ws = arr.map(o=>o.w).filter(x=>x>0);
+  const wmin = ws.length?Math.min.apply(null,ws):0, wmax = ws.length?Math.max.apply(null,ws):0;
+  arr.forEach(function(o){
+    o.p.primaryValue = o.raw;
+    const base = (wmax>wmin) ? ((o.w-wmin)/(wmax-wmin))*90 : (o.w>0?90:0);
+    const vitA = truthyStr(o.p.extra && o.p.extra["비타민A"]);
+    const beta = num(o.p.extra && o.p.extra["베타카로틴_mg"])>0 || truthyStr(o.p.extra && o.p.extra["베타카로틴_mg"]);
+    let core = base + (vitA?5:0) + (beta?3:0);
+    if (core>100) core = 100;
+    if (!o.p.scores) o.p.scores = {};
+    o.p.scores.core = core;
+    o.p._eyeDone = true;
+  });
+}
+function scoreFor(p, w){
+  const sc = p.scores || {};
+  return w.core*num(sc.core) + w.cost*num(sc.cost) + w.review*num(sc.review);
+}
+// 기준별 순위 → 98~55 균등 분포 (app.html 로직 그대로)
+function computeProfileScores(products){
+  const N = products.length;
+  PROFILES.forEach(function(pr){
+    const ranked = products.map(function(p,i){
+      const k = (pr.key==="balanced") ? num(p.vScore) : scoreFor(p, pr.w);
+      return {p:p, i:i, k:k};
+    });
+    ranked.sort(function(a,b){ return (b.k - a.k) || (a.i - b.i); });
+    ranked.forEach(function(o, idx){
+      const score = (N<=1) ? 98 : Math.round(98 - idx*(98-55)/(N-1));
+      if (!o.p._vs) o.p._vs = {};
+      o.p._vs[pr.key] = score;
+    });
+  });
+}
+// 표시 점수: 모집단 밖 제품은 원본 V_Score로 폴백
+function vsOf(p){
+  return (p && p._vs && p._vs[activeProfile]!=null) ? p._vs[activeProfile] : Math.round(num(p.vScore));
+}
+// 카테고리 응답을 app.html과 같은 모집단 기준으로 준비하고, 화면에 쓸 목록을 돌려준다
+function preparePopulation(data){
+  const cat = data.category;
+  const all = data.products || [];
+  if (cat==="눈") applyEyeLogic(all);
+  const subs = SUBFILTERS[cat];
+  const useSub = subs && activeSubKey && subs.indexOf(activeSubKey)!==-1;
+  const population = useSub ? all.filter(p=>matchSub(cat, activeSubKey, p)) : all;
+  computeProfileScores(population);
+  data._population = population;
+  return population;
+}
 const PLACEHOLDER = "data:image/svg+xml," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 58 58"><rect width="58" height="58" rx="13" fill="#EEF1EC"/><rect x="22" y="12" width="14" height="7" rx="2" fill="#9FB6A4"/><rect x="17" y="18" width="24" height="29" rx="6" fill="#2D5F3F"/><rect x="17" y="29" width="24" height="9" fill="#fff" opacity="0.9"/></svg>'
 );
@@ -206,7 +305,7 @@ let selected = [];           // 선택된 product id (현재 카테고리 한정
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
 function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
-function gradeOf(g){ return GRADE[(g||"").charAt(0).toUpperCase()] || GRADE.B; }
+function gradeOf(p){ return GRADE[gradeFromScore(vsOf(p))] || GRADE.C; }
 function prodById(id){ return (curData?curData.products:[]).find(p=>String(p.id)===String(id)); }
 
 function renderTabs(){
@@ -231,6 +330,7 @@ async function selectCat(cat, presetIds){
       cache[cat] = data;
     }
     curData = cache[cat];
+    preparePopulation(curData);
     document.getElementById('listStatus').textContent = "";
     if (presetIds && presetIds.length){
       selected = presetIds.map(String).filter(id => curData.products.some(p=>String(p.id)===id)).slice(0, MAX);
@@ -248,19 +348,20 @@ function renderList(filter){
   if (!curData) return;
   const m = curData.metrics.primary;
   const f = (filter||"").trim().toLowerCase();
-  const items = curData.products.filter(p=> !f || String(p.name).toLowerCase().indexOf(f)!==-1);
-  document.getElementById('listMeta').textContent = `${activeCat} · ${items.length}개 · 최대 ${MAX}개 선택`;
+  const pool = curData._population || curData.products;
+  const items = pool.filter(p=> !f || String(p.name).toLowerCase().indexOf(f)!==-1);
+  document.getElementById('listMeta').textContent = `${activeCat} · ${items.length}개 · ${profileLabel()} 기준 · 최대 ${MAX}개 선택`;
   const atMax = selected.length >= MAX;
   document.getElementById('list').innerHTML = items.map(p=>{
-    const g = gradeOf(p.grade); const isSel = selected.indexOf(String(p.id))!==-1;
+    const g = gradeOf(p); const gl = gradeFromScore(vsOf(p)); const isSel = selected.indexOf(String(p.id))!==-1;
     const dim = atMax && !isSel ? " dim" : "";
     const img = p.image ? esc(p.image) : PLACEHOLDER;
-    const sub = `${esc(m.label)} ${fmt(num(p.primaryValue))}${esc(m.unit)} · ${esc(p.grade||'-')}등급`;
+    const sub = `${esc(m.label)} ${fmt(num(p.primaryValue))}${esc(m.unit)} · ${gl}등급`;
     return `<div class="prow${isSel?' sel':''}${dim}" onclick="toggleSel('${esc(String(p.id))}')">
       <div class="pcheck">${isSel?'✓':''}</div>
       <img class="pthumb" src="${img}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div class="pinfo"><div class="pname">${esc(p.name)}</div><div class="psub">${sub}</div></div>
-      <div class="pright"><div class="pvs">${Math.round(num(p.vScore))}</div></div>
+      <div class="pright"><div class="pvs">${vsOf(p)}</div></div>
     </div>`;
   }).join("");
   if (!items.length) document.getElementById('list').innerHTML = '<div class="status">검색 결과가 없습니다.</div>';
@@ -323,16 +424,14 @@ function goCompare(){
   const bestPrice = priceVals.length?Math.min(...priceVals):null;
   const capVals = prods.map(p=>num(p.capsuleMg)).filter(v=>v>0);
   const bestCap = capVals.length?Math.min(...capVals):null;
-  const vsVals = prods.map(p=>num(p.vScore));
-  const bestVs = Math.max(...vsVals);
 
   const heads = prods.map(p=>{
-    const g = gradeOf(p.grade); const img = p.image?esc(p.image):PLACEHOLDER;
+    const g = gradeOf(p); const gl = gradeFromScore(vsOf(p)); const img = p.image?esc(p.image):PLACEHOLDER;
     return `<th class="ch-prod"><div class="pc">
       <img class="pc-thumb" src="${img}" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
-      <span class="pc-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${esc(p.grade||'-')}등급</span>
+      <span class="pc-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}등급</span>
       <div class="pc-name">${esc(p.name)}</div>
-      <div class="pc-vs">${Math.round(num(p.vScore))}<small> V-SCORE</small></div>
+      <div class="pc-vs">${vsOf(p)}<small> V-SCORE</small></div>
       <button class="pc-rm" onclick="removeFromCompare('${esc(String(p.id))}')">빼기</button>
     </div></th>`;
   }).join("");
@@ -341,7 +440,6 @@ function goCompare(){
 
   let rows = "";
   rows += row(esc(m.label), p=> cell(fmt(num(p.primaryValue)), esc(m.unit), num(p.primaryValue)===bestPrim));
-  rows += row("V-Score", p=> cell(Math.round(num(p.vScore)), "", num(p.vScore)===bestVs));
   rows += row("1일 비용", p=> cell(num(p.dailyCost)?fmt(num(p.dailyCost)):"—", num(p.dailyCost)?"원":"", bestCost!==null && num(p.dailyCost)===bestCost));
   rows += row("가격", p=> cell(num(p.price)?fmt(num(p.price)):"—", num(p.price)?"원":"", bestPrice!==null && num(p.price)===bestPrice));
   rows += row("캡슐 크기", p=> num(p.capsuleMg)>0 ? cell(fmt(num(p.capsuleMg)),"mg", bestCap!==null && num(p.capsuleMg)===bestCap) : cell("분말/스틱","",false));
@@ -350,12 +448,14 @@ function goCompare(){
   rows += row("인증", p=> cell(esc(String(p.certs||"—").slice(0,40)),"",false));
   rows += row("주된 기능성", p=> cell(esc(String(p.function||"—").slice(0,40)),"",false));
 
+  const cart = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
   const buys = `<div class="buyrow">${prods.map(p=> p.link
-      ? `<a class="buy" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.name.slice(0,8))} 보기</a>`
-      : `<span class="buy" style="background:var(--line);color:var(--ink-faint)">링크 없음</span>`).join("")}</div>`;
+      ? `<a class="buy" href="${esc(p.link)}" target="_blank" rel="noopener" title="${esc(p.name)}" data-product="${esc(p.name)}"><span class="buy-cap">${esc(p.name.slice(0,10))}</span><span class="buy-act">${cart}구매하러 가기</span></a>`
+      : `<span class="buy disabled" title="${esc(p.name)}"><span class="buy-cap">${esc(p.name.slice(0,10))}</span><span class="buy-act">${cart}링크 없음</span></span>`).join("")}</div>`;
 
+  const basis = `<div class="cmp-basis"><b>${profileLabel()} 기준</b><span>V-SCORE·등급은 선택한 기준에 따라 달라집니다</span></div>`;
   document.getElementById('compareTable').innerHTML =
-    `<div class="cmpwrap"><table class="cmp"><thead><tr><th class="ch-head"></th>${heads}</tr></thead><tbody>${rows}</tbody></table></div>${buys}`;
+    `${basis}<div class="cmpwrap"><table class="cmp"><thead><tr><th class="ch-head"></th>${heads}</tr></thead><tbody>${rows}</tbody></table></div>${buys}`;
 
   document.getElementById('selectView').style.display = "none";
   document.getElementById('compareView').style.display = "block";
@@ -387,6 +487,10 @@ renderTabs();
 const params = new URLSearchParams(location.search);
 const idsParam = (params.get('ids')||"").split(',').map(s=>s.trim()).filter(Boolean);
 const startCat = CATS.find(c=>c.key===params.get('category')) ? params.get('category') : CATS[0].key;
+// 기준: app.html에서 넘어온 balanced/premium/budget만 인정. 그 외(카운슬링의 premium_seeker 등)·미지정 → 균형
+const pParam = params.get('profile');
+if (PROFILES.some(x=>x.key===pParam)) activeProfile = pParam;
+activeSubKey = params.get('sub') || null;
 selectCat(startCat, idsParam.length ? idsParam : null);
 </script>
   <!-- Microsoft Clarity -->
@@ -413,9 +517,14 @@ selectCat(startCat, idsParam.length ? idsParam : null);
       window.clarity('event', 'purchase_click');
       var cat = window.activeCat || window.CURRENT_CAT_KO || '';
       if (cat) window.clarity('set', 'category', String(cat));
-      var card = a.closest('.cv-card, .product-card, .cr-card, [class*="card"]');
-      var nm = card && card.querySelector('.cv-name, .product-name, .cr-name, h2, h3');
-      if (nm) window.clarity('set', 'product', nm.textContent.trim().slice(0, 60));
+      var dp = a.getAttribute && a.getAttribute('data-product');
+      if (dp) {
+        window.clarity('set', 'product', dp.trim().slice(0, 60));
+      } else {
+        var card = a.closest('.cv-card, .product-card, .cr-card, [class*="card"]');
+        var nm = card && card.querySelector('.cv-name, .product-name, .cr-name, h2, h3');
+        if (nm) window.clarity('set', 'product', nm.textContent.trim().slice(0, 60));
+      }
     } catch (_) {}
   });
 </script>
