@@ -91,6 +91,12 @@
     .answer-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green-primary); animation: pulse 2s ease infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .answer-text { font-size: 14px; line-height: 1.55; color: var(--ink); letter-spacing: -0.01em; }
+    /* 추천 제품: 답변이 끝난 뒤 부드럽게 등장 */
+    .products-reveal { opacity: 0; transform: translateY(8px); transition: opacity .38s ease, transform .38s ease; }
+    .products-reveal.in { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      .products-reveal { transition: none; opacity: 1; transform: none; }
+    }
     .recommend-section { margin-top: 4px; }
     .recommend-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; padding: 0 4px; }
     .recommend-title { font-size: 16px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.01em; }
@@ -569,6 +575,7 @@ function logSearchFallback() {
 
 async function loadConsultation(q) {
   document.getElementById('queryText').textContent = q;
+  let metaData = null;
   try {
     const res = await fetch(`${API_BASE}/counsel-api?q=${encodeURIComponent(q)}`);
     const ct = res.headers.get('content-type') || '';
@@ -583,7 +590,7 @@ async function loadConsultation(q) {
       showResultScreen();
       return;
     }
-    // SSE 스트리밍: 메타 먼저 렌더 → 답변 토큰을 타이핑되듯 채움
+    // SSE 스트리밍: 답변을 먼저 다 보여준 뒤 → 추천 제품을 노출
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = "", answerRaw = "", shown = false;
@@ -597,8 +604,9 @@ async function loadConsultation(q) {
         const ev = parseSSE(chunk);
         if (!ev) continue;
         if (ev.event === 'meta') {
+          metaData = ev.data;
           CURRENT_CAT_KO = CAT_KO[ev.data.category] || "오메가3";
-          renderResult(ev.data);
+          renderResult(ev.data, true);   // 제품은 아직 그리지 않음
           logSearchFromData(ev.data);
           if (!shown) { showResultScreen(); shown = true; }
         } else if (ev.event === 'token') {
@@ -608,7 +616,10 @@ async function loadConsultation(q) {
       }
     }
     if (!shown) showResultScreen();
+    revealProducts(metaData);          // 답변 완료 후 제품 노출
   } catch (err) {
+    // 메타를 이미 받았다면(스트림 중간 끊김) 에러 대신 제품이라도 보여준다
+    if (metaData) { revealProducts(metaData); return; }
     logSearchFallback();
     showError('네트워크 오류가 발생했어요.');
   }
@@ -781,7 +792,7 @@ function renderCounselProducts(data) {
   }
 }
 
-function renderResult(data) {
+function renderResult(data, deferProducts) {
   if (data.distributions) distributions = data.distributions;
 
   const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
@@ -801,14 +812,37 @@ function renderResult(data) {
       <div class="answer-text" id="answerText"></div>
     </article>`;
 
-  // 제품 영역
+  // 제품 영역 — deferProducts면 답변 스트리밍이 끝난 뒤에 그린다
+  if (deferProducts) {
+    const recEl = document.getElementById('recommendContent');
+    if (recEl) recEl.innerHTML = '';
+  } else {
+    renderProducts(data);
+  }
+
+  document.getElementById('disclaimer').textContent = data.disclaimer || '';
+}
+
+// 제품 카드 렌더 (모드 분기) — 단독 호출 가능하도록 분리
+function renderProducts(data) {
   if (data.mode === 'ingredient' || data.mode === 'product') {
     renderProductListMode(data);
   } else {
     renderCounselProducts(data);
   }
+}
 
-  document.getElementById('disclaimer').textContent = data.disclaimer || '';
+// 답변이 끝난 뒤 제품 리스트를 부드럽게 등장시킨다
+let _productsShown = false;
+function revealProducts(data) {
+  if (_productsShown || !data) return;
+  _productsShown = true;
+  const recEl = document.getElementById('recommendContent');
+  renderProducts(data);
+  if (recEl) {
+    recEl.classList.add('products-reveal');
+    requestAnimationFrame(function () { recEl.classList.add('in'); });
+  }
 }
 
 function showError(msg) {
