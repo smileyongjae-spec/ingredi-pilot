@@ -42,7 +42,7 @@ export async function onRequest(context) {
     omega3: ["오메가", "omega", "epa", "dha", "ala", "dpa", "rtg", "알티지", "어유", "fish oil", "크릴", "ee", "tg", "어류"],
     vitaminC: ["비타민c", "비타민 c", "비타민씨", "vitamin c", "아스코르브산", "ascorbic", "메가도스", "리포좀"],
     eye: ["눈", "루테인", "지아잔틴", "아스타잔틴", "황반", "시력", "안구", "눈건강", "lutein", "zeaxanthin", "마리골드", "베타카로틴", "비타민a"],
-    probiotics: ["프로바이오틱스", "유산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "보장균수", "cfu"]
+    probiotics: ["프로바이오틱스", "유산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "보장균수", "cfu", "윤산균", "유산곤"]
   };
   const CATEGORY_LABEL = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈(루테인)", probiotics: "마이크로바이옴(유산균)" };
   const CATEGORY_TOKENS = {
@@ -58,6 +58,55 @@ export async function onRequest(context) {
     probiotics:{ table: "FAQ_마이크로바이옴", id: "faq_id", q: "question", a: "answer", cat: "category", kw: "keywords", ev: "임상근거" }
   };
   const OUT_OF_SCOPE_MSG = "죄송합니다. ingredi는 현재 오메가3, 비타민C, 눈(루테인), 마이크로바이옴(유산균) 4개 카테고리의 건강기능식품 정보만 제공합니다. 말씀하신 내용은 이 범위를 벗어나 정확히 답하기 어렵습니다.";
+
+  // "영양제 추천해줘" 처럼 카테고리가 특정되지 않은 일반 요청
+  const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "영양보충", "뭐 먹", "무엇을 먹", "뭘 먹"];
+  // 알려진 건기식이지만 ingredi가 아직 다루지 않는 것
+  const UNSUPPORTED_TERMS = [
+    "밀크시슬", "밀크씨슬", "실리마린", "마그네슘", "아연", "콜라겐", "홍삼", "프로폴리스",
+    "비타민d", "비타민b", "비타민e", "칼슘", "철분", "엽산", "msm", "글루코사민",
+    "종합비타민", "멀티비타민", "코엔자임", "코큐텐", "nmn", "쏘팔메토",
+    "크랜베리", "히알루론산", "가르시니아", "보스웰리아", "은행잎", "단백질", "포스파티딜"
+  ];
+  const CATEGORY_OPTIONS = [
+    { key: "오메가3",       label: "오메가3",  desc: "혈행·뇌·눈 건강" },
+    { key: "눈",           label: "눈 건강",   desc: "루테인·지아잔틴" },
+    { key: "마이크로바이옴", label: "유산균",   desc: "장 건강·면역" },
+    { key: "비타민C",       label: "비타민C",  desc: "항산화·면역" }
+  ];
+
+  // 질문에서 나이·성별을 뽑아 for-me.html 파라미터로 변환
+  function parseDemographics(q) {
+    const text = String(q || "");
+    let age = null, gender = null;
+    let m = text.match(/(\d{1,3})\s*(?:살|세)/);
+    if (m) {
+      const a = parseInt(m[1], 10);
+      if (a >= 10 && a <= 120) age = a >= 60 ? "60" : String(Math.max(20, Math.floor(a / 10) * 10));
+    }
+    if (!age) {
+      m = text.match(/(\d{1,2})\s*대/);
+      if (m) {
+        const d = parseInt(m[1], 10);
+        if (d >= 60) age = "60"; else if (d >= 20) age = String(d); else if (d > 0) age = "20";
+      }
+    }
+    if (/여성|여자|엄마|어머니|아내|딸|와이프/.test(text)) gender = "female";
+    else if (/남성|남자|아빠|아버지|남편|아들/.test(text)) gender = "male";
+    const pregnant = /임신|임산부|수유/.test(text) ? "yes" : null;
+    return { age, gender, pregnant };
+  }
+  function demoLabel(d) {
+    const a = d.age ? (d.age === "60" ? "60대 이상" : d.age + "대") : "";
+    const g = d.gender === "female" ? "여성" : d.gender === "male" ? "남성" : "";
+    return [a, g].filter(Boolean).join(" ");
+  }
+  // matchProfileLocal 결과 → for-me.html의 priority 값
+  function toPriority(pid) {
+    if (pid === "premium_seeker") return "premium";
+    if (pid === "budget_seeker") return "budget";
+    return "balanced";
+  }
 
   // ─── HELPERS ─────────────────────────────────────
   function normalizeKey(s) { return String(s).replace(/[\s_\-\(\)\[\]]/g, "").toLowerCase(); }
@@ -154,6 +203,39 @@ export async function onRequest(context) {
 
     const healthKeywords = ["혈행", "혈중", "지방", "염증", "심혈관", "뇌", "시력", "고혈압", "당뇨", "콜레스테롤", "관절", "장", "면역", "눈", "피부"];
     const isHealthQuery = healthKeywords.some(k => lowerQuery.indexOf(k) !== -1);
+
+    const demographics = parseDemographics(query);
+
+    // ─── [1-b] 카테고리 미특정 → 4개 중 선택 유도 (out_of_scope 대신) ───
+    if (!matchedCategory) {
+      let unsupportedTerm = null;
+      for (const t of UNSUPPORTED_TERMS) {
+        if (lowerQuery.indexOf(t) !== -1) { unsupportedTerm = t; break; }
+      }
+      const isGeneric = GENERIC_TERMS.some(t => lowerQuery.indexOf(t) !== -1);
+
+      if (unsupportedTerm || isGeneric) {
+        const who = demoLabel(demographics);
+        const forWhom = who ? `${who}에게 맞는 제품을 추천해드릴게요.` : "고르시면 바로 추천해드릴게요.";
+        const answerText = unsupportedTerm
+          ? `ingredi는 현재 오메가3, 눈 건강(루테인), 유산균, 비타민C 4개 카테고리만 다루고 있어요. 말씀하신 성분은 아직 준비되지 않았습니다.\n\n아래 4가지 중 필요한 것을 골라주시면 ${forWhom}`
+          : `어떤 영양제를 찾으시나요?\n\n아래 4가지 중에서 골라주시면 ${forWhom}`;
+
+        return new Response(JSON.stringify({
+          query,
+          category: "needs_category",
+          mode: "category_select",
+          answer: answerText,
+          categoryOptions: CATEGORY_OPTIONS,
+          demographics,
+          priority: toPriority(matchProfileLocal(query)),
+          sources: { knowledge: [], faq: [] },
+          flags: { needsCategory: true, unsupportedTerm: unsupportedTerm || null, knowledgeCount: 0, faqCount: 0 },
+          recommendation: null,
+          disclaimer: "본 정보는 의료 자문이 아니며, 개별 건강 상태에 따라 다를 수 있습니다. 복용 전 의사·약사와 상담하세요."
+        }), { status: 200, headers });
+      }
+    }
 
     // 카테고리·건강 키워드 둘 다 없으면 '오메가3 제품명일 수 있음'으로 보고 진행(기존 동작 유지)
     let maybeProduct = false;
@@ -398,6 +480,8 @@ export async function onRequest(context) {
 
     const meta = {
       query, category: matchedCategory,
+      demographics,
+      priority: toPriority(matchProfileLocal(query)),
       mode: listMode || "counsel",
       ingredientTerm: listTerm,
       ingredientProducts,
