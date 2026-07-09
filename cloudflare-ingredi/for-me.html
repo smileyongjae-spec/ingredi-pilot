@@ -392,6 +392,42 @@ function updateSubmit() {
 }
 document.getElementById('submitBtn').addEventListener('click', getRecommendation);
 
+/* ── 딥링크 프리필: /for-me.html?category=마이크로바이옴&gender=female&age=30&priority=balanced&preg=yes ── */
+(function prefillFromQuery(){
+  var sp;
+  try { sp = new URLSearchParams(location.search); } catch(e) { return; }
+  var VALID = {
+    category: ["오메가3","눈","마이크로바이옴","비타민C"],
+    gender: ["male","female"],
+    age: ["20","30","40","50","60"],
+    priority: ["premium","budget","balanced"],
+    pregStatus: ["yes","no"]
+  };
+  function pick(field, value){
+    if (!value || VALID[field].indexOf(value) === -1) return false;
+    var group = document.querySelector('[data-field="' + field + '"]');
+    if (!group) return false;
+    var btn = group.querySelector('[data-value="' + value + '"]');
+    if (!btn) return false;
+    group.querySelectorAll('.seg-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    state[field] = value;
+    return true;
+  }
+  var hit = false;
+  hit = pick('category', sp.get('category')) || hit;
+  var gOk = pick('gender', sp.get('gender'));
+  hit = gOk || hit;
+  if (gOk && state.gender === 'female') document.getElementById('pregSection').classList.add('show');
+  hit = pick('age', sp.get('age')) || hit;
+  hit = pick('priority', sp.get('priority')) || hit;
+  if (state.gender === 'female') pick('pregStatus', sp.get('preg'));
+  if (!hit) return;
+  updateSubmit();
+  // 4개가 모두 채워졌으면(카운슬링에서 넘어온 경우) 바로 추천 실행
+  if (state.category && state.gender && state.age && state.priority) getRecommendation();
+})();
+
 function isPregnant() { return state.gender === 'female' && state.pregStatus === 'yes'; }
 function deriveProfile() {
   if (isPregnant()) return 'pregnancy';
