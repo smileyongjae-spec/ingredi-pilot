@@ -235,7 +235,7 @@
     <button class="submit-btn" id="submitBtn" disabled>맞춤 추천 받기</button>
 
     <div class="disclosure">
-      <p class="disclosure-text"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 모든 추천은 임상 근거와 데이터로만 이루어집니다. 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 제품 추천 결과에 영향을 주지 않습니다.</p>
+      <p class="disclosure-text"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 모든 추천은 공개된 제품 데이터로만 이루어집니다. 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 제품 추천 결과에 영향을 주지 않습니다.</p>
     </div>
   </main>
 
@@ -249,7 +249,7 @@
     <div id="resultAlert"></div>
     <div id="resultProducts"></div>
     <div class="disclosure">
-      <p class="disclosure-text"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 모든 추천은 임상 근거와 데이터로만 이루어집니다. 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 제품 추천 결과에 영향을 주지 않습니다.</p>
+      <p class="disclosure-text"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 모든 추천은 공개된 제품 데이터로만 이루어집니다. 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 제품 추천 결과에 영향을 주지 않습니다.</p>
     </div>
   </main>
 
@@ -302,9 +302,10 @@ window.smartBack = smartBack;
 const state = { category: null, gender: null, age: null, pregStatus: 'no', priority: null };
 
 const GRADE = {
-  S:["#FAF3E0","#B8902F","#EAD9A8"], A:["#F0F0F2","#6E7177","#DADCE0"],
-  B:["#EAF1EA","#2D5F3F","#CADBCD"], C:["#F6ECE3","#B07142","#E6D2C2"], D:["#F0EFEC","#8B8E91","#DEDCD6"]
+  A:["#FBF3DD","#B8902F","#EBD9A8"], B:["#F0F0F2","#6E7177","#DADCE0"],
+  C:["#EAF1EA","#2D5F3F","#CADBCD"], D:["#F6ECE3","#B07142","#E6D2C2"], E:["#F0EFEC","#8B8E91","#DEDCD6"]
 };
+function gradeFromScore(s){ s = parseFloat(s); if (isNaN(s)) s = 0; return s>=90?"A":s>=80?"B":s>=70?"C":s>=60?"D":"E"; }
 const PRIMARY_TERM = { "오메가3":"epadha", "눈":"lutein", "마이크로바이옴":"cfu", "비타민C":"vitc" };
 const PROFILE_WEIGHT = {
   balanced:       { core:0.50, cost:0.35, review:0.15 },
@@ -483,7 +484,8 @@ function renderStatBars(p, m, cat) {
 }
 
 function productCardHtml(p, rank, m, cat) {
-  const g = GRADE[(p.grade||"").charAt(0).toUpperCase()] || GRADE.B;
+  const gl = gradeFromScore(num(p.vScore));
+  const g = GRADE[gl] || GRADE.C;
   const pid = escapeHtml(String(p.id || ('r' + rank)));
   const tagList = [];
   if (p.form) tagList.push(String(p.form));
@@ -503,7 +505,7 @@ function productCardHtml(p, rank, m, cat) {
         <div class="product-image-wrap">${img}<span class="product-rank-badge">${rank}</span></div>
         <div class="product-info">
           <div class="product-info-top">
-            <span class="product-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${escapeHtml(p.grade||'-')}등급</span>
+            <span class="product-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}등급</span>
             <div class="product-vscore-block"><div class="product-vscore-num">${Math.round(num(p.vScore))}</div><div class="product-vscore-cap">V-SCORE</div></div>
           </div>
           <div class="product-name">${escapeHtml(p.name || '')}</div>
