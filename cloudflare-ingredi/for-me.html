@@ -307,13 +307,20 @@ const GRADE = {
 };
 function gradeFromScore(s){ s = parseFloat(s); if (isNaN(s)) s = 0; return s>=90?"A":s>=80?"B":s>=70?"C":s>=60?"D":"E"; }
 const PRIMARY_TERM = { "오메가3":"epadha", "눈":"lutein", "마이크로바이옴":"cfu", "비타민C":"vitc" };
+// 가중치는 사용자가 고른 우선순위(priority)만 결정한다.
+// 시니어·임신은 가중치가 아니라 '맥락'(라벨·설명·의료 안내)으로만 반영 — 현재 scores 3축으로는
+// 제형·캡슐크기(시니어)·순도·인증(임산부)을 표현할 수 없어, 차별화하는 척하지 않는다.
 const PROFILE_WEIGHT = {
-  balanced:       { core:0.50, cost:0.35, review:0.15 },
-  premium_seeker: { core:0.70, cost:0.10, review:0.20 },
-  budget_seeker:  { core:0.25, cost:0.65, review:0.10 },
-  senior:         { core:0.70, cost:0.10, review:0.20 },
-  pregnancy:      { core:0.70, cost:0.10, review:0.20 }
+  balanced: { core:0.50, cost:0.35, review:0.15 },
+  premium:  { core:0.70, cost:0.10, review:0.20 },
+  budget:   { core:0.25, cost:0.65, review:0.10 }
 };
+// app.html / compare.html과 동일한 키로 맞춰 점수 계산에 사용
+const SCORE_PROFILES = [
+  { key:"balanced", w: PROFILE_WEIGHT.balanced },
+  { key:"premium",  w: PROFILE_WEIGHT.premium },
+  { key:"budget",   w: PROFILE_WEIGHT.budget }
+];
 
 const TERM_INFO = {
   epadha: { title: "EPA+DHA 함량", badge: "핵심 성분", body: "오메가3의 핵심 성분이에요. EPA는 혈행·염증 개선, DHA는 뇌·눈 건강에 도움을 줘요. 하루 권장량은 보통 500~2,000mg이에요.", points: ["막대에서 이 제품의 위치와 평균을 비교해보세요"] },
@@ -429,29 +436,42 @@ document.getElementById('submitBtn').addEventListener('click', getRecommendation
 })();
 
 function isPregnant() { return state.gender === 'female' && state.pregStatus === 'yes'; }
-function deriveProfile() {
-  if (isPregnant()) return 'pregnancy';
-  if (state.age === '50' || state.age === '60') return 'senior';
-  if (state.priority === 'premium') return 'premium_seeker';
-  if (state.priority === 'budget') return 'budget_seeker';
-  return 'balanced';
+function isSenior() { return state.age === '50' || state.age === '60'; }
+// 정렬·표시 점수의 기준 = 사용자가 고른 우선순위 (시니어·임신이 덮어쓰지 않는다)
+function deriveWeightKey() {
+  return PROFILE_WEIGHT[state.priority] ? state.priority : 'balanced';
 }
-function buildSummary(profile) {
+// 맥락: 안내 문구·의료 경고용
+function deriveContext() {
+  if (isPregnant()) return 'pregnancy';
+  if (isSenior()) return 'senior';
+  return null;
+}
+function buildSummary(weightKey, context) {
   const ageMap = { '20':'20대','30':'30대','40':'40대','50':'50대','60':'60대 이상' };
   const catLabel = { "오메가3":"오메가3","눈":"눈 건강","마이크로바이옴":"유산균","비타민C":"비타민C" }[state.category];
   const g = state.gender === 'female' ? '여성' : '남성';
   let title = `${catLabel} · ${ageMap[state.age]} ${g}`;
   if (isPregnant()) title += ' · 임신·수유';
-  const profLabel = { pregnancy:'안전성 우선', senior:'고함량·흡수율', premium_seeker:'최고 품질', budget_seeker:'가성비', balanced:'균형형' }[profile];
-  title += ` · ${profLabel}`;
-  const rationale = {
-    pregnancy: '임신·수유 중에는 안전성과 인증을 우선해, 품질이 검증된 제품 위주로 골랐어요. 복용 전 의사·약사 상담을 권장해요.',
-    senior: '50세 이상에 맞춰 핵심 성분 함량이 높은 제품을 우선했어요.',
-    premium_seeker: '품질 우선으로, 핵심 성분·등급이 뛰어난 제품을 골랐어요.',
-    budget_seeker: '가성비 우선으로, 1일 비용이 합리적인 제품을 골랐어요.',
+  const wLabel = { premium:'최고 품질', budget:'가성비', balanced:'균형형' }[weightKey];
+  title += ` · ${wLabel} 기준`;
+
+  const base = {
+    premium:  '핵심 성분 비중을 높여, 성분·등급이 뛰어난 제품을 위로 올렸어요.',
+    budget:   '가격 비중을 높여, 1일 비용이 합리적인 제품을 위로 올렸어요.',
     balanced: '핵심 성분·가격·신뢰도를 고루 반영한 균형 추천이에요.'
-  }[profile];
-  return { title, rationale };
+  }[weightKey];
+  const extra = {
+    pregnancy: ' 임신·수유 중에는 안전성이 가장 중요해요. 복용 전 반드시 의사·약사와 상담하세요.',
+    senior: ' 캡슐 크기와 제형은 카드에서 직접 확인해보세요. 목넘김이 부담되면 분말·스틱 제형이 편해요.'
+  }[context] || '';
+  let scope = '';
+  if (state.category === '마이크로바이옴') {
+    scope = state.gender === 'female'
+      ? ' 일반·여성용 제품을 함께 보여드려요.'
+      : ' 일반용 제품만 보여드려요.';
+  }
+  return { title, rationale: base + scope + extra };
 }
 
 function showScreen(name) {
@@ -463,9 +483,70 @@ window.showScreen = showScreen;
 
 function scoreFor(p, w){ const s = p.scores || {}; return w.core*num(s.core) + w.cost*num(s.cost) + w.review*num(s.review); }
 
+function truthyStr(v){
+  if (v===true) return true;
+  if (typeof v==="number") return v>0;
+  const t = String(v==null?"":v).trim().toLowerCase();
+  return t!=="" && t!=="0" && t!=="false" && t!=="no" && t!=="없음" && t!=="x" && t!=="-";
+}
+// 성별 → 유산균 대상분류. 키즈는 항상 제외(폼에 어린이 선택지가 없음)
+function matchTarget(cat, p){
+  if (cat !== "마이크로바이옴") return true;
+  const t = String(p.target||"").trim() || "일반";
+  if (t === "키즈") return false;
+  if (state.gender === "female") return t === "일반" || t === "여성";
+  return t === "일반";
+}
+// 눈: 카로티노이드 합산 → 핵심성분점수 재계산 (app.html·compare.html과 동일)
+function applyEyeLogic(products){
+  if (!products.length || products[0]._eyeDone) return;
+  const AST = 2.5;
+  const arr = products.map(function(p){
+    const lut = num(p.primaryValue);
+    const zea = num(p.extra && p.extra["지아잔틴_mg"]);
+    const ast = num(p.extra && p.extra["아스타잔틴_mg"]);
+    return { p:p, raw: lut+zea+ast, w: lut+zea+ast*AST };
+  });
+  const ws = arr.map(o=>o.w).filter(x=>x>0);
+  const wmin = ws.length?Math.min.apply(null,ws):0, wmax = ws.length?Math.max.apply(null,ws):0;
+  arr.forEach(function(o){
+    o.p.primaryValue = o.raw;
+    const base = (wmax>wmin) ? ((o.w-wmin)/(wmax-wmin))*90 : (o.w>0?90:0);
+    const vitA = truthyStr(o.p.extra && o.p.extra["비타민A"]);
+    const beta = num(o.p.extra && o.p.extra["베타카로틴_mg"])>0 || truthyStr(o.p.extra && o.p.extra["베타카로틴_mg"]);
+    let core = base + (vitA?5:0) + (beta?3:0);
+    if (core>100) core = 100;
+    if (!o.p.scores) o.p.scores = {};
+    o.p.scores.core = core;
+    o.p._eyeDone = true;
+  });
+}
+// 기준별 순위 → 98~55 균등 분포. 표시 점수 = 정렬 점수
+function computeProfileScores(products){
+  const N = products.length;
+  SCORE_PROFILES.forEach(function(pr){
+    const ranked = products.map(function(p,i){
+      const k = (pr.key==="balanced") ? num(p.vScore) : scoreFor(p, pr.w);
+      return {p:p, i:i, k:k};
+    });
+    ranked.sort(function(a,b){ return (b.k - a.k) || (a.i - b.i); });
+    ranked.forEach(function(o, idx){
+      const score = (N<=1) ? 98 : Math.round(98 - idx*(98-55)/(N-1));
+      if (!o.p._vs) o.p._vs = {};
+      o.p._vs[pr.key] = score;
+    });
+  });
+}
+let ACTIVE_WEIGHT_KEY = 'balanced';
+function vsOf(p){
+  return (p && p._vs && p._vs[ACTIVE_WEIGHT_KEY]!=null) ? p._vs[ACTIVE_WEIGHT_KEY] : Math.round(num(p.vScore));
+}
+
 async function getRecommendation() {
-  const profile = deriveProfile();
-  const summary = buildSummary(profile);
+  const weightKey = deriveWeightKey();
+  const context = deriveContext();
+  ACTIVE_WEIGHT_KEY = weightKey;
+  const summary = buildSummary(weightKey, context);
   const cat = state.category;
   showScreen('loading');
   try {
@@ -473,11 +554,16 @@ async function getRecommendation() {
     if (!res.ok) throw new Error('Server error: ' + res.status);
     const data = await res.json();
     if (data.error) throw new Error(data.message || data.error);
-    const w = PROFILE_WEIGHT[profile] || PROFILE_WEIGHT.balanced;
-    const ranked = (data.products || []).slice().map((p,i)=>({p,i}))
-      .sort((a,b)=>{ const d = scoreFor(b.p,w)-scoreFor(a.p,w); if (Math.abs(d)>1e-9) return d; const dv=num(b.p.vScore)-num(a.p.vScore); return dv!==0?dv:a.i-b.i; })
+    const all = data.products || [];
+    if (cat === "눈") applyEyeLogic(all);
+    // 성별·연령에 맞는 모집단으로 좁힌 뒤 점수 계산 → 표시=정렬
+    const population = all.filter(p => matchTarget(cat, p));
+    if (!population.length) throw new Error('조건에 맞는 제품이 없어요');
+    computeProfileScores(population);
+    const ranked = population.slice().map((p,i)=>({p,i}))
+      .sort((a,b)=>{ const d = vsOf(b.p) - vsOf(a.p); return d !== 0 ? d : a.i - b.i; })
       .map(o=>o.p);
-    renderResults(ranked, data.metrics, cat, summary, profile);
+    renderResults(ranked, data.metrics, cat, summary, context);
     showScreen('result');
   } catch (err) {
     document.getElementById('resultSummary').innerHTML = '';
@@ -520,7 +606,7 @@ function renderStatBars(p, m, cat) {
 }
 
 function productCardHtml(p, rank, m, cat) {
-  const gl = gradeFromScore(num(p.vScore));
+  const gl = gradeFromScore(vsOf(p));
   const g = GRADE[gl] || GRADE.C;
   const pid = escapeHtml(String(p.id || ('r' + rank)));
   const tagList = [];
@@ -542,7 +628,7 @@ function productCardHtml(p, rank, m, cat) {
         <div class="product-info">
           <div class="product-info-top">
             <span class="product-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}등급</span>
-            <div class="product-vscore-block"><div class="product-vscore-num">${Math.round(num(p.vScore))}</div><div class="product-vscore-cap">V-SCORE</div></div>
+            <div class="product-vscore-block"><div class="product-vscore-num">${vsOf(p)}</div><div class="product-vscore-cap">V-SCORE</div></div>
           </div>
           <div class="product-name">${escapeHtml(p.name || '')}</div>
           <div class="product-meta">${escapeHtml(m.primary.label)} ${fmt(num(p.primaryValue))}${escapeHtml(m.primary.unit)}${cost}</div>
@@ -559,7 +645,7 @@ function productCardHtml(p, rank, m, cat) {
 function toggleDetail(id) { const el = document.getElementById('detail-' + id); if (el) el.classList.toggle('active'); }
 window.toggleDetail = toggleDetail;
 
-function renderResults(products, m, cat, summary, profile) {
+function renderResults(products, m, cat, summary, context) {
   document.getElementById('resultSummary').innerHTML = `
     <div class="result-summary">
       <div class="result-summary-label">INGREDI 맞춤 추천</div>
