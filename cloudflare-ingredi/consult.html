@@ -94,9 +94,7 @@
     /* 추천 제품: 답변이 끝난 뒤 부드럽게 등장 */
     .products-reveal { opacity: 0; transform: translateY(8px); transition: opacity .38s ease, transform .38s ease; }
     .products-reveal.in { opacity: 1; transform: translateY(0); }
-    @media (prefers-reduced-motion: reduce) {
-      .products-reveal { transition: none; opacity: 1; transform: none; }
-    }
+    @media (prefers-reduced-motion: reduce) { .products-reveal { transition: none; opacity: 1; transform: none; } }
     .recommend-section { margin-top: 4px; }
     .recommend-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; padding: 0 4px; }
     .recommend-title { font-size: 16px; font-weight: 700; color: var(--green-deep); letter-spacing: -0.01em; }
@@ -779,7 +777,7 @@ function renderCounselProducts(data) {
         <div class="recommend-header">
           <div>
             <div class="recommend-title">${escapeHtml(label)} 제품 보기</div>
-            <div class="recommend-subtitle">ingredi가 임상 근거로 비교해드려요</div>
+            <div class="recommend-subtitle">ingredi가 제품 데이터로 비교해드려요</div>
           </div>
         </div>
         <div class="compare-cta">
