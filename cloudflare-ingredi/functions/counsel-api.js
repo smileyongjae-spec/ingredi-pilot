@@ -58,6 +58,7 @@ export async function onRequest(context) {
     probiotics:{ table: "FAQ_마이크로바이옴", id: "faq_id", q: "question", a: "answer", cat: "category", kw: "keywords", ev: "임상근거" }
   };
   const OUT_OF_SCOPE_MSG = "죄송합니다. ingredi는 현재 오메가3, 비타민C, 눈(루테인), 마이크로바이옴(유산균) 4개 카테고리의 건강기능식품 정보만 제공합니다. 말씀하신 내용은 이 범위를 벗어나 정확히 답하기 어렵습니다.";
+  const FOUR_CATS = "오메가3, 눈 건강(루테인), 유산균, 비타민C";
 
   // "영양제 추천해줘" 처럼 카테고리가 특정되지 않은 일반 요청
   const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "영양보충", "뭐 먹", "무엇을 먹", "뭘 먹"];
@@ -67,6 +68,14 @@ export async function onRequest(context) {
     "비타민d", "비타민b", "비타민e", "칼슘", "철분", "엽산", "msm", "글루코사민",
     "종합비타민", "멀티비타민", "코엔자임", "코큐텐", "nmn", "쏘팔메토",
     "크랜베리", "히알루론산", "가르시니아", "보스웰리아", "은행잎", "단백질", "포스파티딜"
+  ];
+  // 4개 카테고리로 답할 수 없는 증상·효능
+  const SYMPTOM_TERMS = [
+    "두통", "머리가 아", "머리아", "편두통", "복통", "배가 아", "배아", "속쓰림", "소화불량",
+    "설사", "변비", "메스꺼", "구토", "어지럼", "어지러", "불면", "잠이 안", "수면",
+    "우울", "불안", "스트레스", "탈모", "머리카락", "여드름", "아토피", "관절", "무릎",
+    "허리", "어깨", "생리통", "갱년기", "전립선", "다이어트", "체중", "살 빼", "붓기",
+    "부종", "빈혈", "감기", "몸살", "열이 나", "기침", "알레르기", "비염", "간 수치", "숙취"
   ];
   const CATEGORY_OPTIONS = [
     { key: "오메가3",       label: "오메가3",  desc: "혈행·뇌·눈 건강" },
@@ -201,7 +210,8 @@ export async function onRequest(context) {
       if (matchedCategory) break;
     }
 
-    const healthKeywords = ["혈행", "혈중", "지방", "염증", "심혈관", "뇌", "시력", "고혈압", "당뇨", "콜레스테롤", "관절", "장", "면역", "눈", "피부"];
+    // 4개 카테고리와 실제로 연결되는 건강 키워드만 남김 (관절·피부는 SYMPTOM_TERMS로 이동)
+    const healthKeywords = ["혈행", "혈중", "지방", "염증", "심혈관", "뇌", "시력", "고혈압", "당뇨", "콜레스테롤", "장", "면역", "눈", "항산화"];
     const isHealthQuery = healthKeywords.some(k => lowerQuery.indexOf(k) !== -1);
 
     const demographics = parseDemographics(query);
@@ -214,12 +224,34 @@ export async function onRequest(context) {
       }
       const isGeneric = GENERIC_TERMS.some(t => lowerQuery.indexOf(t) !== -1);
 
-      if (unsupportedTerm || isGeneric) {
+      let symptomTerm = null;
+      for (const t of SYMPTOM_TERMS) {
+        if (lowerQuery.indexOf(t) !== -1) { symptomTerm = t; break; }
+      }
+
+      if (unsupportedTerm || isGeneric || symptomTerm) {
         const who = demoLabel(demographics);
-        const forWhom = who ? `${who}에게 맞는 제품을 추천해드릴게요.` : "고르시면 바로 추천해드릴게요.";
-        const answerText = unsupportedTerm
-          ? `ingredi는 현재 오메가3, 눈 건강(루테인), 유산균, 비타민C 4개 카테고리만 다루고 있어요. 말씀하신 성분은 아직 준비되지 않았습니다.\n\n아래 4가지 중 필요한 것을 골라주시면 ${forWhom}`
-          : `어떤 영양제를 찾으시나요?\n\n아래 4가지 중에서 골라주시면 ${forWhom}`;
+        // 나이·성별이 없으면 "맞는 제품을" 이라는 수식을 붙이지 않는다
+        const forWhom = who ? `${who}에게 맞는 제품을 추천해드릴게요.` : "바로 추천해드릴게요.";
+
+        let reason, answerText;
+        if (symptomTerm) {
+          reason = "symptom";
+          answerText =
+            `죄송해요. ingredi는 현재 ${FOUR_CATS} 4개 카테고리만 다루고 있어서, 말씀하신 증상에 맞는 정보를 드리기 어려워요.\n\n` +
+            `증상이 계속되면 의사·약사와 상담해보세요.\n\n` +
+            `아래 4가지 중 필요한 것이 있다면 골라주세요. ${forWhom}`;
+        } else if (unsupportedTerm) {
+          reason = "unsupported";
+          answerText =
+            `죄송해요. ingredi는 현재 ${FOUR_CATS} 4개 카테고리만 다루고 있어요. 말씀하신 성분은 아직 준비되지 않았습니다.\n\n` +
+            `아래 4가지 중 필요한 것을 골라주시면 ${forWhom}`;
+        } else {
+          reason = "generic";
+          answerText =
+            `ingredi는 ${FOUR_CATS} 4개 카테고리를 다루고 있어요.\n\n` +
+            `어떤 것이 필요하세요? 골라주시면 ${forWhom}`;
+        }
 
         return new Response(JSON.stringify({
           query,
@@ -230,7 +262,13 @@ export async function onRequest(context) {
           demographics,
           priority: toPriority(matchProfileLocal(query)),
           sources: { knowledge: [], faq: [] },
-          flags: { needsCategory: true, unsupportedTerm: unsupportedTerm || null, knowledgeCount: 0, faqCount: 0 },
+          flags: {
+            needsCategory: true,
+            reason,
+            unsupportedTerm: unsupportedTerm || null,
+            symptomTerm: symptomTerm || null,
+            knowledgeCount: 0, faqCount: 0
+          },
           recommendation: null,
           disclaimer: "본 정보는 의료 자문이 아니며, 개별 건강 상태에 따라 다를 수 있습니다. 복용 전 의사·약사와 상담하세요."
         }), { status: 200, headers });
