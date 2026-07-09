@@ -456,7 +456,6 @@
     <section class="hero">
       <h1 class="hero-headline">광고 없는 정직한 비교</h1>
       <div class="hero-sub">나에게 맞는 건강기능식품 찾기</div>
-      <p class="hero-subtitle">임상 근거 기반 V-Score</p>
       <div class="hero-note">현재 <strong>오메가3 · 유산균 · 비타민C · 눈</strong> 4개 카테고리만 서비스가 가능해요. 계속 상품을 넓혀가고 있어요.</div>
     </section>
 
@@ -1150,7 +1149,7 @@ function renderCategory(data){
   document.getElementById('catStatus').textContent="";
   const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, idx:i})).join("");
   const cmpCta = filtered.length
-    ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">함량 · 가격 · 캡슐 · 인증을 한눈에</div></div></div><a href="/compare.html?category=${encodeURIComponent(cat)}">제품 비교하기 →</a></div>`
+    ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">함량 · 가격 · 캡슐 · 인증을 한눈에</div></div></div><a href="/compare.html?category=${encodeURIComponent(cat)}&profile=${activeProfile}${subs ? `&sub=${encodeURIComponent(subKey)}` : ""}">제품 비교하기 →</a></div>`
     : "";
   const restArr = products.slice(3);
   let rest = "";
