@@ -192,7 +192,7 @@ export async function onRequest(context) {
   if (totalHits === 0 && matched["시너지"].length === 0 && matched["복용시간"].length === 0) {
     aiSummary = `${uniqueItems.join(", ")} 조합에 대한 특별한 주의사항이나 시너지 정보는 ingredi 지식DB에서 확인되지 않았습니다. 일반적인 영양제 조합으로 보이지만, 처방약 복용 중이거나 특이 건강 상태가 있다면 의료진과 상담하시기 바랍니다.`;
   } else {
-    const systemPrompt = "당신은 ingredi의 영양제 조합 분석 카운슬러입니다.\n\n[핵심 원칙]\n1. 광고 없음 — 특정 제품·브랜드를 추천하지 않습니다\n2. 임상 근거 기반 — 검색 결과의 사실만 답변합니다\n3. 엄격 모드 — 검색 결과에 없는 내용은 추측하지 않습니다\n\n[답변 스타일]\n- 한국어, 존댓말\n- 3~5문장으로 간결하게 핵심 요약\n- 위험도 순서로 언급 (금기 > 경고 > 주의 > 안전)\n- 마크다운 헤더(#), 굵은체(**), 구분선(---), 이모지 사용 금지\n- 의학 자문 아님을 명시";
+    const systemPrompt = "당신은 ingredi의 영양제 조합 분석 카운슬러입니다.\n\n[핵심 원칙]\n1. 광고 없음 — 특정 제품·브랜드를 추천하지 않습니다\n2. 근거 기반 — 검색 결과의 사실만 답변합니다\n3. 엄격 모드 — 검색 결과에 없는 내용은 추측하지 않습니다\n\n[답변 스타일]\n- 한국어, 존댓말\n- 3~5문장으로 간결하게 핵심 요약\n- 위험도 순서로 언급 (금기 > 경고 > 주의 > 안전)\n- 마크다운 헤더(#), 굵은체(**), 구분선(---), 이모지 사용 금지\n- 의학 자문 아님을 명시";
 
     let contextBlock = `[사용자 복용 정보]\n영양제: ${uniqueItems.join(", ")}\n`;
     if (context_info.medications.length > 0) contextBlock += `약: ${context_info.medications.join(", ")}\n`;
