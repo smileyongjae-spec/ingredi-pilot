@@ -303,9 +303,6 @@
     .cv-vchips .cv-vchip { flex: 0 0 auto; white-space: nowrap; }
     .cv-specs { margin-top: 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
     .cv-specs b { color: var(--ink-faint); font-weight: 600; }
-    .cv-reasons { margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line-soft); }
-    .cv-rlabel { font-size: 12px; color: var(--ink-faint); margin-bottom: 8px; }
-    .cv-rchip { display: inline-block; background: var(--green-light); color: var(--green-deep); font-size: 12px; padding: 5px 11px; border-radius: 20px; margin: 0 6px 7px 0; }
     .cv-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
     .cv-rev { font-size: 12px; color: var(--ink-faint); }
     .cv-buy { font-size: 14px; color: var(--green-primary); font-weight: 700; text-decoration: none; }
@@ -935,16 +932,6 @@ function setProfile(key){
 }
 window.setProfile = setProfile;
 
-function reasonChips(reason) {
-  reason = String(reason || "");
-  for (const sep of [" · "," / ",", "]) {
-    if (reason.indexOf(sep) !== -1) {
-      const parts = reason.split(sep).map(s => s.trim()).filter(Boolean);
-      if (parts.length > 1) return parts.slice(0, 4);
-    }
-  }
-  return reason ? [reason] : [];
-}
 function statOf(arr){ return arr.length ? {min:Math.min(...arr), max:Math.max(...arr), n:arr.length} : {min:0,max:0,n:0}; }
 function rankHi(arr,v){ return arr.filter(x=>x>v).length+1; }
 function rankLo(arr,v){ return arr.filter(x=>x<v).length+1; }
@@ -1027,7 +1014,6 @@ function renderCardV8(p, ctx){
     vocChips = voc;
     vocTag = `<span class="cv-voc-tag">예시 · 준비중</span>`;
   }
-  const rchips = reasonChips(p.reason).map(r=>`<span class="cv-rchip">${escapeHtml(r)}</span>`).join("");
   const certsStr = String(p.certs||"");
   const certs = escapeHtml(certsStr.slice(0,30)) + (certsStr.length>30?"…":"");
   const img = p.image ? escapeHtml(p.image) : PLACEHOLDER;
@@ -1099,7 +1085,6 @@ function renderCardV8(p, ctx){
     </div>
     <div class="cv-specs"><b>원료사</b> ${escapeHtml(p.supplier||"-")}</div>
     <div class="cv-tagrow">${tagsHtml}${coldBadge}</div>
-    <div class="cv-reasons"><div class="cv-rlabel">추천 이유</div>${rchips||'<span style="font-size:12px;color:var(--ink-faint)">—</span>'}</div>
     ${buyBtn}
   </div>`;
 }
