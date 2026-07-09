@@ -463,7 +463,6 @@ export async function onRequest(context) {
         const capsuleMg   = parseFloat(getField(f, "캡슐용량_mg", "capsuleMg", "캡슐 용량 (mg)")) || 0;
         const grade       = getField(f, "등급") || "";
         const tier        = grade || getField(f, "Tier등급") || "";   // 신 테이블 등급(S/A/B) 우선
-        const reason      = getField(f, "추천사유") || "";
         const passFail    = getField(f, "함량_Pass_Fail") || "";
         // 링크 우선순위: 파트너스 딥링크 → raw 쿠팡 URL → 네이버(제품링크)
         const coupangLink = getField(f, "coupang_deeplink")
@@ -478,7 +477,7 @@ export async function onRequest(context) {
         // V-Score: 신 테이블에 사전 계산·저장된 V_Score를 단일 진실로 사용 (런타임 재계산 폐지)
         const vScore = parseFloat(getField(f, "V_Score", "vScore", "V_SCORE")) || 0;
         const highDoseFlag = dailyMg > 2000;
-        return { id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost), capsuleMg, form, supplier, certs, grade, tier, reason, passFail, coupangLink, vScore, highDoseFlag };
+        return { id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost), capsuleMg, form, supplier, certs, grade, tier, passFail, coupangLink, vScore, highDoseFlag };
       });
 
       let filtered = scored.filter(item => {
