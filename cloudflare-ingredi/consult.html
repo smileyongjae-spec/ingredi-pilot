@@ -813,7 +813,7 @@ function renderResult(data, deferProducts) {
   const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
   const fCount = data.flags ? data.flags.faqCount || 0 : 0;
   document.getElementById('queryMeta').textContent =
-    data.mode === 'category_select' ? (data.flags && data.flags.unsupportedTerm ? '아직 지원하지 않는 성분' : '카테고리를 골라주세요')
+    data.mode === 'category_select' ? ({ symptom: '아직 지원하지 않는 증상', unsupported: '아직 지원하지 않는 성분' }[(data.flags || {}).reason] || '카테고리를 골라주세요')
     : data.mode === 'product' ? '제품 검색 결과'
     : data.category === 'out_of_scope' ? '지원하지 않는 카테고리'
     : `관련 정보 ${kCount + fCount}건 검색`;
