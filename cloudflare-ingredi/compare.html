@@ -437,12 +437,13 @@ function goCompare(){
   }).join("");
 
   function row(label, fn){ return `<tr><td class="rlabel">${label}</td>${prods.map(fn).join("")}</tr>`; }
+  function sub(t){ return `<div style="font-weight:400;font-size:10px;color:var(--ink-faint);margin-top:2px;line-height:1.3">${t}</div>`; }
 
   let rows = "";
-  rows += row(esc(m.label), p=> cell(fmt(num(p.primaryValue)), esc(m.unit), num(p.primaryValue)===bestPrim));
+  rows += row("효능성분<br>함량" + sub(esc(m.label)), p=> cell(fmt(num(p.primaryValue)), esc(m.unit), num(p.primaryValue)===bestPrim));
   rows += row("1일 비용", p=> cell(num(p.dailyCost)?fmt(num(p.dailyCost)):"—", num(p.dailyCost)?"원":"", bestCost!==null && num(p.dailyCost)===bestCost));
   rows += row("가격", p=> cell(num(p.price)?fmt(num(p.price)):"—", num(p.price)?"원":"", bestPrice!==null && num(p.price)===bestPrice));
-  rows += row("캡슐 크기", p=> num(p.capsuleMg)>0 ? cell(fmt(num(p.capsuleMg)),"mg", bestCap!==null && num(p.capsuleMg)===bestCap) : cell("분말/스틱","",false));
+  rows += row("캡슐<br>크기" + sub("목넘김"), p=> num(p.capsuleMg)>0 ? cell(fmt(num(p.capsuleMg)),"mg", bestCap!==null && num(p.capsuleMg)===bestCap) : cell("분말 · 스틱","",false));
   rows += row("제형", p=> cell(esc(p.form||"—"),"",false));
   rows += row("원료사", p=> cell(esc(p.supplier||"—"),"",false));
   rows += row("인증", p=> cell(esc(String(p.certs||"—").slice(0,40)),"",false));
