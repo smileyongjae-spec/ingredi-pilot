@@ -2,7 +2,7 @@
 // File path: functions/recommend2.js
 // URL: /recommend2?category=<오메가3|눈|마이크로바이옴|비타민C>
 //
-// 단일 소스: *_쿠팡업데이트 테이블이 V_Score·등급·추천사유 + 제품링크/쿠팡 URL/coupang_deeplink 를
+// 단일 소스: *_쿠팡업데이트 테이블이 V_Score·등급 + 제품링크/쿠팡 URL/coupang_deeplink 를
 //            모두 보유한 완전한 테이블이므로, 조인 없이 이 테이블 하나만 읽는다.
 //
 // [딥링크] 링크 우선순위 = coupang_deeplink(파트너스 딥링크) → 쿠팡 URL(raw) → 제품링크(네이버).
@@ -137,7 +137,6 @@ export async function onRequest(context) {
       function: str(f.주된기능성),
       vScore: num(f.V_Score),
       grade: str(f.등급),
-      reason: str(f.추천사유),
       profile: str(f.추천프로필),
       target: str(f.대상분류),
       primaryValue: num(f[cfg.primary.field]),
