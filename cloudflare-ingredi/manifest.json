@@ -1,7 +1,7 @@
 {
   "name": "ingredi",
   "short_name": "ingredi",
-  "description": "광고 없는 건강기능식품 비교 · 임상 근거 기반 추천",
+  "description": "광고 없는 건강기능식품 비교 · AI가 상담하고 추천해드려요",
   "lang": "ko",
   "start_url": "/app.html",
   "scope": "/",
