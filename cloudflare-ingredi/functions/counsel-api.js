@@ -77,6 +77,20 @@ export async function onRequest(context) {
   // 건기식으로 답할 사안이 아닌 질환·치료 영역. 검색하지 않고 의료 상담으로 안내한다.
   const MEDICAL_REFERRAL = /우울증|우울|불안장애|공황|조현병|자살|암\s*(치료|환자)?|항암|당뇨병|갑상선|백신|코로나|독감|고열|응급|골절|임신중절|생리통|월경|처방|약\s*(을|좀)?\s*(먹|드시|복용)/;
 
+  // 힌트로 카테고리·도메인이 확정됐을 때 검색에 주입할 대표어.
+  // "장 안좋음" 의 '장' 은 1글자라 토큰에서 탈락한다 → 유산균 문서를 못 찾는다.
+  const SEED_TOKENS = {
+    omega3:     ["오메가3", "epa", "dha"],
+    eye:        ["루테인", "눈 건강", "황반"],
+    probiotics: ["유산균", "프로바이오틱스", "장 건강"],
+    vitaminC:   ["비타민c", "항산화"]
+  };
+  const DOMAIN_SEED = {
+    "면역": ["면역"], "인지": ["인지", "기억력"], "뼈": ["뼈", "골밀도"], "수면": ["수면"],
+    "피부": ["피부"], "다이어트": ["체지방", "다이어트"], "관절": ["관절"], "간": ["간 건강", "간"],
+    "혈압": ["혈압"], "커큐민": ["커큐민"], "글루타치온": ["글루타치온"]
+  };
+
   const CROSS_DOMAINS = new Set(["페르소나", "카페질문"]);
   const DOMAIN_LABEL = {
     "면역": "면역", "인지": "인지·기억력", "뼈": "뼈 건강", "수면": "수면", "피부": "피부 건강",
@@ -215,7 +229,7 @@ export async function onRequest(context) {
       const s = stripJosa(c);
       if (s && s.length > 1 && !STOPWORDS.has(s)) tokenSet.add(s.toLowerCase());
     }
-    const lowerTokens = [...tokenSet].filter(t => t.length > 1);
+    const lowerTokens = [...tokenSet].filter(t => t.length > 1);   // 1글자 한글은 오매칭이 많아 제외
 
     // ─── [2] 라우팅: 제품명 → 카테고리 → 증상 힌트 → 일반 요청 ──
     let matchedCategory = null;
@@ -318,21 +332,28 @@ export async function onRequest(context) {
     const allDocs = faqDocs.concat(knowDocs);
 
     // ─── [5] 스코어링 (IDF 가중: 흔한 단어의 영향력 축소) ──
+    // 힌트로 카테고리·도메인이 확정됐을 때 쓸 대표어. 질문어로 못 찾을 때만 투입한다.
+    const seedTokens = ((matchedCategory && SEED_TOKENS[matchedCategory]) ||
+                        (hintDomain && DOMAIN_SEED[hintDomain]) || [])
+                       .filter(t => lowerTokens.indexOf(t) === -1);
+
     const N = allDocs.length || 1;
     const IDF = {};
-    for (const t of lowerTokens) {
+    for (const t of lowerTokens.concat(seedTokens)) {
       let df = 0;
       for (const d of allDocs) if (d.hayKw.indexOf(t) !== -1 || d.hayQ.indexOf(t) !== -1 || d.hayA.indexOf(t) !== -1) df++;
       IDF[t] = Math.log(1 + N / (1 + df));   // 전 행에 등장하면 ~0.7, 희귀하면 ~7
     }
-    function scoreDoc(d) {
+    const SEED_WEIGHT = 0.35;   // 대표어는 보조 신호. 사용자가 쓴 단어를 덮지 않는다
+    function scoreDoc(d, tokens, seedSet) {
       let s = 0;
-      for (const t of lowerTokens) {
+      for (const t of tokens) {
         const w = IDF[t];
         if (w < 1.0) continue;                // 너무 흔한 단어(효과·있어 등)는 무시
-        if (d.hayKw.indexOf(t) !== -1) s += 2.0 * w;
-        if (d.hayQ.indexOf(t) !== -1) s += 1.5 * w;
-        if (d.hayA.indexOf(t) !== -1) s += 1.0 * w;
+        const k = (seedSet && seedSet.has(t)) ? SEED_WEIGHT : 1.0;
+        if (d.hayKw.indexOf(t) !== -1) s += 2.0 * w * k;
+        if (d.hayQ.indexOf(t) !== -1) s += 1.5 * w * k;
+        if (d.hayA.indexOf(t) !== -1) s += 1.0 * w * k;
       }
       if (s === 0) return 0;
       if (d.kind === "faq") s *= 1.3;
@@ -355,7 +376,19 @@ export async function onRequest(context) {
     } else {
       pool = allDocs;
     }
-    let scored = pool.map(d => ({ d, s: scoreDoc(d) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+    function searchWith(tokens, seedSet) {
+      return pool.map(d => ({ d, s: scoreDoc(d, tokens, seedSet) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+    }
+    // 1단계: 사용자가 쓴 단어로만 검색
+    let scored = searchWith(lowerTokens);
+    let usedSeeds = false;
+    // 2단계: 카테고리 전용 문서가 2건 미만이면 대표어를 투입한다.
+    // "장 안좋음" 의 '장' 은 1글자라 토큰에서 탈락해 유산균 문서를 못 찾는다.
+    if (seedTokens.length) {
+      const scopeKey = matchedCategory ? CAT_KO[matchedCategory] : null;
+      const hits = scored.filter(x => scopeKey ? x.d.prodCat === scopeKey : x.d.domain === hintDomain).length;
+      if (hits < 2) { scored = searchWith(lowerTokens.concat(seedTokens), new Set(seedTokens)); usedSeeds = true; }
+    }
 
     // ─── [6] 라우팅 (카테고리 미지정 시 검색 결과가 결정) ──
     let mode = "counsel";
@@ -647,7 +680,7 @@ export async function onRequest(context) {
       recommendation,
       disclaimer: DISCLAIMER
     };
-    if (wantDebug) meta.debug = { matchedIds: top.map(d => `${d.kind === "faq" ? "F" : "K"}:${d.id}`), tokens: lowerTokens, poolSize: pool.length };
+    if (wantDebug) meta.debug = { matchedIds: top.map(d => `${d.kind === "faq" ? "F" : "K"}:${d.id}`), tokens: lowerTokens, seedTokens, usedSeeds, poolSize: pool.length };
 
     if (wantDebug && url.searchParams.get("json") === "1") {
       return new Response(JSON.stringify(meta, null, 2), { status: 200, headers });
