@@ -1,4 +1,6 @@
-// Cloudflare Pages Function: Unified category recommendation (v5)
+// Cloudflare Pages Function: Unified category recommendation (v6)
+// [v6] 절대평가 재설계 1단계: 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다.
+//      컬럼이 Airtable에 없으면 해당 값은 null — "모름"을 0점으로 둔갑시키지 않는다.
 // File path: functions/recommend2.js
 // URL: /recommend2?category=<오메가3|눈|마이크로바이옴|비타민C>
 //
@@ -53,6 +55,11 @@ export async function onRequest(context) {
   }
 
   function num(v) { const n = parseFloat(String(v).replace(/,/g, "")); return isNaN(n) ? 0 : n; }
+  function numOrNull(v) {
+    if (v === "" || v === null || v === undefined) return null;
+    const n = parseFloat(String(v).replace(/,/g, ""));
+    return isNaN(n) ? null : n;
+  }
   function str(v) { return (v === undefined || v === null) ? "" : String(v); }
   function readField(f, names) {
     for (const k of names) {
@@ -140,7 +147,16 @@ export async function onRequest(context) {
       profile: str(f.추천프로필),
       target: str(f.대상분류),
       primaryValue: num(f[cfg.primary.field]),
-      scores: { core: num(f.핵심성분점수), cost: num(f.비용점수), review: num(f.리뷰점수) },
+      scores: {
+        core: num(f.핵심성분점수),
+        cost: num(f.비용점수),
+        review: num(f.리뷰점수),
+        // [v6] 엑셀 5축의 나머지. 카테고리마다 축 이름이 다를 수 있어 후보를 순서대로 찾는다.
+        form:     numOrNull(readField(f, ["제형점수", "제형편의점수", "리포좀중성점수"])),
+        supplier: numOrNull(readField(f, ["원료사점수", "원료사균주점수", "원료품질점수"])),
+        cert:     numOrNull(readField(f, ["인증점수", "인증근거점수", "부형제안전점수"])),
+        final:    numOrNull(readField(f, ["최종점수"]))
+      },
       extra
     };
   }).filter(it => it.name);
