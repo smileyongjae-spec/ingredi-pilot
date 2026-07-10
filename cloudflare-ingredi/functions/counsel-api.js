@@ -32,10 +32,10 @@ export async function onRequest(context) {
   const KNOW_TABLE = "knowledge";
 
   const CATEGORY_KEYWORDS = {
-    omega3:     ["오메가", "omega", "epa", "dha", "ala", "dpa", "rtg", "알티지", "어유", "fish oil", "크릴", "어류"],
+    omega3:     ["오메가", "omega", "epa", "dha", "ala", "dpa", "rtg", "알티지", "어유", "fish oil", "크릴", "어류", "goed", "ifos"],
     vitaminC:   ["비타민c", "비타민 c", "비타민씨", "vitamin c", "아스코르브산", "ascorbic", "메가도스", "리포좀"],
     eye:        ["루테인", "지아잔틴", "아스타잔틴", "황반", "시력", "안구", "눈건강", "lutein", "zeaxanthin", "마리골드"],
-    probiotics: ["프로바이오틱스", "프리바이오틱스", "신바이오틱스", "포스트바이오틱스", "유산균", "윤산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "보장균수", "cfu"]
+    probiotics: ["프로바이오틱스", "프리바이오틱스", "신바이오틱스", "포스트바이오틱스", "유산균", "윤산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "lactobacillus", "bifidobacterium", "보장균수", "cfu"]
   };
   const CAT_KO    = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈", probiotics: "유산균" };
   const KO_CAT    = { "오메가3": "omega3", "비타민C": "vitaminC", "눈": "eye", "유산균": "probiotics" };
@@ -44,8 +44,8 @@ export async function onRequest(context) {
 
   // 증상·효능 표현 → 서비스 카테고리 (조사가 붙어도 잡히도록 정규식)
   const PRODUCT_HINTS = [
-    { cat: "probiotics", re: /장\s*(이|은|을|내|건강|기능|트러블|활동|운동)|장\s*(안\s*좋|나빠|불편)|배변|변비|설사|화장실|대변|묽은변|배\s*(가|를|에).{0,5}(아프|아파|불편|더부룩)/ },
-    { cat: "eye",        re: /눈\s*(이|은|을|의|건강|영양제|피로|시림|나빠|안\s*좋)|시력|황반|안구|침침|뻑뻑/ },
+    { cat: "probiotics", re: /장\s*(이|은|을|도|내|건강|기능|트러블|활동|운동)|장\s*(안\s*좋|나빠|불편)|배변|변비|설사|화장실|대변|묽은변|배\s*(가|를|에).{0,5}(아프|아파|불편|더부룩)/ },
+    { cat: "eye",        re: /눈\s*(이|은|을|도|의|건강|관리|영양제|피로|시림|나빠|안\s*좋)|시력|황반|안구|침침|뻑뻑/ },
     { cat: "omega3",     re: /혈행|중성지방|콜레스테롤|혈중지질|심혈관/ },
     { cat: "vitaminC",   re: /항산화|괴혈병/ }
   ];
@@ -53,7 +53,7 @@ export async function onRequest(context) {
   const DOMAIN_HINTS = [
     { dom: "수면",       re: /수면|불면|잠\s*(이|을|못|안|설치)|숙면|멜라토닌|테아닌|melatonin|theanine|insomnia|sleep/ },
     { dom: "관절",       re: /관절|무릎|연골|글루코사민|보스웰리아|glucosamine|boswellia|joint/ },
-    { dom: "간",         re: /간\s*(이|은|을|에|수치|건강|기능)|간\s*(안\s*좋|나빠)|숙취|밀크시슬|밀크씨슬|실리마린|milk\s*thistle|silymarin|음주|술\s*(을|자주|많이|마시)|알코올/ },
+    { dom: "간",         re: /간\s*(이|은|을|도|에|수치|건강|기능)|간\s*(안\s*좋|나빠)|숙취|밀크시슬|밀크씨슬|실리마린|milk\s*thistle|silymarin|음주|술\s*(을|자주|많이|마시)|알코올/ },
     { dom: "피부",       re: /피부|여드름|뾰루지|주름|콜라겐|미백|기미|collagen|biotin|skin/ },
     { dom: "다이어트",   re: /다이어트|diet|체중|체지방|살\s*(을|이|빼|안\s*빠)|가르시니아|garcinia/ },
     { dom: "뼈",         re: /뼈|골다공증|골밀도|칼슘|calcium|bone/ },
@@ -68,11 +68,16 @@ export async function onRequest(context) {
   const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "뭐 먹", "무엇을 먹", "뭘 먹", "뭐가 좋", "뭐 사"];
   // 사람을 가리키는 말이 있으면 페르소나 가이드로 확정
   const PERSONA_WORDS = /남성|여성|남자|여자|아이|어린이|청소년|학생|부모님|시니어|노인|엄마|아빠|아내|남편|임산부|직장인|수험생|갱년기|출산|산후|운동|헬스|\d+\s*(대|살|세)|(이|삼|사|오|육)십\s*대/;
-  const MIN_ROUTE_SCORE = 5.0;   // 이보다 낮으면 우연 매칭으로 본다
+  // 특정 성분을 짚지 못한 막연한 상태·감정 표현, 그리고 일반 규제 질문.
+  // 검색 투표에 맡기면 아무 카테고리나 골라버린다 → 성분 가이드로 보낸다.
+  const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
+
+  const MIN_ROUTE_SCORE = 5.0;    // 힌트·카테고리 경로의 최소 점수
+  const MIN_VOTE_SCORE  = 16.0;  // 근거가 카테고리를 정하는 경로는 더 엄격하게
 
   // 서비스 운영·모델 자체·프롬프트 조작 시도 → 검색하지 않고 고정 안내
   const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐)|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|jailbreak|ignore\s+previous/i;
-  const SERVICE_QUERY = /환불|반품|교환|배송|결제|쿠폰|주문|취소|배달|고객센터|광고\s*(를)?\s*받|협찬|수수료/;
+  const SERVICE_QUERY = /환불|반품|교환|배송|결제|쿠폰|주문|취소|배달|고객센터|광고|협찬|수수료|제휴|쿠팡|아이허브|약국|직구|최저가|세일|할인|돈\s*(을)?\s*(벌|버는)|수익|어떻게\s*운영/;
 
   // 건기식으로 답할 사안이 아닌 질환·치료 영역. 검색하지 않고 의료 상담으로 안내한다.
   const MEDICAL_REFERRAL = /우울증|우울|불안장애|공황|조현병|자살|암\s*(치료|환자)?|항암|당뇨병|갑상선|백신|코로나|독감|고열|응급|골절|임신중절|생리통|월경|처방|약\s*(을|좀)?\s*(먹|드시|복용)/;
@@ -256,8 +261,7 @@ export async function onRequest(context) {
 
     // ─── [3-b] 라우팅 확정 (제품 DB가 로드된 뒤) ────
     let productMatchRecord = null;
-    const _meta = META_QUERY.test(query) || SERVICE_QUERY.test(query);
-    if (!_meta && remainder.length >= 3) {
+    if (remainder.length >= 3) {
       const cand = detectProductName(query, pRecords || []);
       if (cand) {
         const qn = normEntity(query);
@@ -265,7 +269,7 @@ export async function onRequest(context) {
         if (qn.length >= 4 && nn.indexOf(qn) !== -1) { productMatchRecord = cand; matchedCategory = "omega3"; }
       }
     }
-    if (!productMatchRecord && !_meta) {
+    if (!productMatchRecord) {
       for (const cat in CATEGORY_KEYWORDS) {
         if (CATEGORY_KEYWORDS[cat].some(k => lowerQuery.indexOf(k) !== -1)) { matchedCategory = cat; break; }
       }
@@ -273,7 +277,7 @@ export async function onRequest(context) {
       if (!matchedCategory) for (const h of DOMAIN_HINTS) if (h.re.test(query)) { hintDomain = h.dom; break; }
       // 카테고리를 특정할 수 없는 제품선택 주제 (목넘김·제형·성분중복) → 성분 가이드
       const CROSS_TOPIC = /목넘김|삼키|삼킴|캡슐\s*(못|크|작)|알약\s*(못|크)|제형\s*(차이|선택)|성분\s*중복|중복\s*섭취/;
-      if (!matchedCategory && !hintDomain && CROSS_TOPIC.test(query)) isGeneric = true;
+      if (!matchedCategory && !hintDomain && (CROSS_TOPIC.test(query) || VAGUE_QUERY.test(query))) isGeneric = true;
 
       if (!matchedCategory && !hintDomain && isGeneric !== true) {
         const hasGeneric = GENERIC_TERMS.some(t => lowerQuery.indexOf(t) !== -1);
@@ -284,9 +288,12 @@ export async function onRequest(context) {
     }
     // 질환·치료 질문이되 우리 카테고리와 무관할 때만 의료 상담으로 회부한다.
     // ("항암치료 중인데 오메가3" 는 오메가3 답변 + 위험 경고가 맞다)
-    const needsDoctor = !productMatchRecord && !matchedCategory && !hintDomain && MEDICAL_REFERRAL.test(query);
-    const isMeta = META_QUERY.test(query);
-    const isService = SERVICE_QUERY.test(query);
+    // 메타·서비스·의료 회부는 모두 "우리가 답할 주제가 아닐 때"만 발동한다.
+    // ("해외직구 오메가3 괜찮아?" 는 오메가3 답변이 맞다)
+    const offTopic = !productMatchRecord && !matchedCategory && !hintDomain;
+    const needsDoctor = offTopic && MEDICAL_REFERRAL.test(query);
+    const isMeta = offTopic && META_QUERY.test(query);
+    const isService = offTopic && SERVICE_QUERY.test(query);
 
     // ─── [4] 문서 정규화 ───────────────────────────
     function docFromFaq(r) {
@@ -421,7 +428,7 @@ export async function onRequest(context) {
       const bestServed = servedRank[0] ? servedRank[0][1] : 0;
       const bestAdv = advRank[0] ? advRank[0][1] : 0;
 
-      if (bestServed < MIN_ROUTE_SCORE && bestAdv < MIN_ROUTE_SCORE && personaSum < MIN_ROUTE_SCORE) {
+      if (bestServed < MIN_VOTE_SCORE && bestAdv < MIN_VOTE_SCORE && personaSum < MIN_VOTE_SCORE) {
         mode = "none";   // 우연 매칭 — 근거로 보지 않는다
       } else if (bestServed > 0 && bestServed >= bestAdv) {
         // 서비스 카테고리 두 개가 근접하면 사용자에게 물어본다
