@@ -1,104 +1,105 @@
-// Cloudflare Pages Function: Integrated counseling endpoint
-// File path: functions/counsel-api.js
-// URL: /counsel-api?q=<user_question>
+// functions/counsel-api.js  (v7 — 단일 FAQ 테이블 + 검색 우선 라우팅)
 //
-// v6 (4-category): AI 카운슬링을 4개 카테고리로 확장
-//   - 카테고리 게이트에 '눈' 추가 (오메가3·비타민C·눈·마이크로바이옴), out_of_scope 메시지 4종
-//   - knowledge 카테고리 필터 + 답변예시(상세) 컨텍스트 포함
-//   - FAQ 카테고리별 테이블 라우팅 (FAQ_오메가3 / FAQ_비타민C / FAQ_눈 / FAQ_마이크로바이옴)
-//   - 위험 키워드 보강 (흡연+베타카로틴 / 임신+레티놀 / 면역저하+유산균 / 신장결석 / 항생제 등)
-//   - 제품 추천(top3)은 오메가3 전용 로직이라 omega3일 때만 산출, 그 외 카테고리는 답변만(추천 빈 구조)
-//
-// (이전 버전 주석 생략)
+// 변경 요약
+//   - FAQ_오메가3/비타민C/눈/마이크로바이옴 4개 테이블 → FAQ_전체상품 1개로 통합
+//   - 게이트 → 검색 순서를 뒤집음: 카테고리 키워드가 없으면 전 행을 검색해 데이터가 카테고리를 말하게 함
+//   - 제품카테고리 / 건강도메인 컬럼으로 스코프와 응답 모드를 결정
+//   - 응답 모드: counsel(제품 추천 O) / advisory(정보만) / guide(페르소나) / product / ingredient / category_select
+//   - 미서비스 성분·효능도 답변하되 제품 추천은 하지 않고, 말미에 4개 카테고리를 안내
+//   - ?debug=1 로 매칭된 행 ID 확인 가능
 
 import { getRecords } from "./_lib/airtable.js";
 
 export async function onRequest(context) {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Content-Type": "application/json"
-  };
-  const request = context.request;
-  if (request.method === "OPTIONS") return new Response("", { status: 200, headers });
-
-  const env = context.env;
-  const ANTHROPIC_KEY = env.ANTHROPIC_API_KEY;
-  const TOKEN = env.AIRTABLE_TOKEN;
-  const BASE_ID = env.AIRTABLE_BASE_ID;
-  if (!ANTHROPIC_KEY || !TOKEN || !BASE_ID) {
-    return new Response(JSON.stringify({ error: "config_missing" }), { status: 500, headers });
+  const { request, env } = context;
+  const headers = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" };
+  if (request.method === "OPTIONS") {
+    return new Response(null, { headers: { ...headers, "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
   }
 
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") || "").trim();
-  if (!query) {
-    return new Response(JSON.stringify({ error: "bad_request", message: "Missing q parameter" }), { status: 400, headers });
-  }
+  const wantDebug = url.searchParams.get("debug") === "1";
+  if (!query) return new Response(JSON.stringify({ error: "missing_query" }), { status: 400, headers });
 
-  // ─── 카테고리 설정 (ask.js와 동일) ─────────────────
+  const ANTHROPIC_KEY = env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) return new Response(JSON.stringify({ error: "missing_api_key" }), { status: 500, headers });
+
+  const lowerQuery = query.toLowerCase();
+
+  // ─── 상수 ────────────────────────────────────────
+  const FAQ_TABLE = "FAQ_전체상품";
+  const KNOW_TABLE = "knowledge";
+
   const CATEGORY_KEYWORDS = {
-    omega3: ["오메가", "omega", "epa", "dha", "ala", "dpa", "rtg", "알티지", "어유", "fish oil", "크릴", "ee", "tg", "어류"],
-    vitaminC: ["비타민c", "비타민 c", "비타민씨", "vitamin c", "아스코르브산", "ascorbic", "메가도스", "리포좀"],
-    eye: ["눈", "루테인", "지아잔틴", "아스타잔틴", "황반", "시력", "안구", "눈건강", "lutein", "zeaxanthin", "마리골드", "베타카로틴", "비타민a"],
-    probiotics: ["프로바이오틱스", "유산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "보장균수", "cfu", "윤산균", "유산곤"]
+    omega3:     ["오메가", "omega", "epa", "dha", "ala", "dpa", "rtg", "알티지", "어유", "fish oil", "크릴", "어류"],
+    vitaminC:   ["비타민c", "비타민 c", "비타민씨", "vitamin c", "아스코르브산", "ascorbic", "메가도스", "리포좀"],
+    eye:        ["루테인", "지아잔틴", "아스타잔틴", "황반", "시력", "안구", "눈건강", "lutein", "zeaxanthin", "마리골드"],
+    probiotics: ["프로바이오틱스", "유산균", "윤산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "보장균수", "cfu"]
   };
-  const CATEGORY_LABEL = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈(루테인)", probiotics: "마이크로바이옴(유산균)" };
-  const CATEGORY_TOKENS = {
-    omega3: ["오메가", "omega", "epa", "dha"],
-    vitaminC: ["비타민c", "비타민 c", "아스코르"],
-    eye: ["눈", "루테인", "지아잔틴", "아스타잔틴", "황반", "베타카로틴", "비타민a"],
-    probiotics: ["마이크로바이옴", "프로바이오틱스", "유산균", "유익균"]
-  };
-  const FAQ_CONFIG = {
-    omega3:    { table: "FAQ_오메가3", id: "FAQ_ID", q: "질문 (사용자 표현)", a: "답변 (3원칙 적용)", main: "대분류", sub: "소분류", med: "의료 주의사항", kw: null, ev: null },
-    vitaminC:  { table: "FAQ_비타민C", id: "faq_id", q: "question", a: "answer", cat: "category", kw: "keywords", ev: "임상근거" },
-    eye:       { table: "FAQ_눈", id: "faq_id", q: "question", a: "answer", cat: "category", kw: "keywords", ev: "임상근거" },
-    probiotics:{ table: "FAQ_마이크로바이옴", id: "faq_id", q: "question", a: "answer", cat: "category", kw: "keywords", ev: "임상근거" }
-  };
-  const OUT_OF_SCOPE_MSG = "죄송합니다. ingredi는 현재 오메가3, 비타민C, 눈(루테인), 마이크로바이옴(유산균) 4개 카테고리의 건강기능식품 정보만 제공합니다. 말씀하신 내용은 이 범위를 벗어나 정확히 답하기 어렵습니다.";
+  const CAT_KO    = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈", probiotics: "유산균" };
+  const KO_CAT    = { "오메가3": "omega3", "비타민C": "vitaminC", "눈": "eye", "유산균": "probiotics" };
+  const CAT_LABEL = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈 건강(루테인)", probiotics: "유산균" };
   const FOUR_CATS = "오메가3, 눈 건강(루테인), 유산균, 비타민C";
 
-  // "영양제 추천해줘" 처럼 카테고리가 특정되지 않은 일반 요청
-  const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "영양보충", "뭐 먹", "무엇을 먹", "뭘 먹"];
-  // 알려진 건기식이지만 ingredi가 아직 다루지 않는 것
-  const UNSUPPORTED_TERMS = [
-    "밀크시슬", "밀크씨슬", "실리마린", "마그네슘", "아연", "콜라겐", "홍삼", "프로폴리스",
-    "비타민d", "비타민b", "비타민e", "칼슘", "철분", "엽산", "msm", "글루코사민",
-    "종합비타민", "멀티비타민", "코엔자임", "코큐텐", "nmn", "쏘팔메토",
-    "크랜베리", "히알루론산", "가르시니아", "보스웰리아", "은행잎", "단백질", "포스파티딜"
+  // 증상·효능 표현 → 서비스 카테고리 (조사가 붙어도 잡히도록 정규식)
+  const PRODUCT_HINTS = [
+    { cat: "probiotics", re: /장\s*(이|은|을|내|건강|기능)|배변|변비|설사|장트러블|장활동|장운동/ },
+    { cat: "eye",        re: /눈\s*(이|은|을|의|건강)|시력|황반|안구|눈피로|침침/ },
+    { cat: "omega3",     re: /혈행|중성지방|콜레스테롤|혈중지질|심혈관/ },
+    { cat: "vitaminC",   re: /항산화|괴혈병/ }
   ];
-  // 4개 카테고리로 답할 수 없는 증상·효능
-  const SYMPTOM_TERMS = [
-    "두통", "머리가 아", "머리아", "편두통", "복통", "배가 아", "배아", "속쓰림", "소화불량",
-    "설사", "변비", "메스꺼", "구토", "어지럼", "어지러", "불면", "잠이 안", "수면",
-    "우울", "불안", "스트레스", "탈모", "머리카락", "여드름", "아토피", "관절", "무릎",
-    "허리", "어깨", "생리통", "갱년기", "전립선", "다이어트", "체중", "살 빼", "붓기",
-    "부종", "빈혈", "감기", "몸살", "열이 나", "기침", "알레르기", "비염", "간 수치", "숙취"
-  ];
-  const CATEGORY_OPTIONS = [
-    { key: "오메가3",       label: "오메가3",  desc: "혈행·뇌·눈 건강" },
-    { key: "눈",           label: "눈 건강",   desc: "루테인·지아잔틴" },
-    { key: "마이크로바이옴", label: "유산균",   desc: "장 건강·면역" },
-    { key: "비타민C",       label: "비타민C",  desc: "항산화·면역" }
+  // 미서비스 건강도메인 힌트
+  const DOMAIN_HINTS = [
+    { dom: "수면",       re: /수면|불면|잠\s*(이|을|못|안)|숙면|melatonin|테아닌/ },
+    { dom: "관절",       re: /관절|무릎|연골|글루코사민|보스웰리아/ },
+    { dom: "간",         re: /간\s*(이|은|을|에|수치|건강|기능)|숙취|밀크시슬|밀크씨슬|실리마린/ },
+    { dom: "피부",       re: /피부|여드름|주름|콜라겐|미백|기미/ },
+    { dom: "다이어트",   re: /다이어트|체중|체지방|살\s*(을|이|빼)|가르시니아/ },
+    { dom: "뼈",         re: /뼈|골다공증|골밀도|칼슘/ },
+    { dom: "혈압",       re: /혈압/ },
+    { dom: "인지",       re: /기억력|인지|집중력|치매|두뇌/ },
+    { dom: "커큐민",     re: /커큐민|강황|울금/ },
+    { dom: "글루타치온", re: /글루타치온|글루타티온/ },
+    { dom: "면역",       re: /면역/ }
   ];
 
-  // 질문에서 나이·성별을 뽑아 for-me.html 파라미터로 변환
+  const CROSS_DOMAINS = new Set(["페르소나", "카페질문"]);
+  const DOMAIN_LABEL = {
+    "면역": "면역", "인지": "인지·기억력", "뼈": "뼈 건강", "수면": "수면", "피부": "피부 건강",
+    "다이어트": "체중 관리", "관절": "관절 건강", "간": "간 건강", "혈압": "혈압 관리",
+    "커큐민": "커큐민", "글루타치온": "글루타치온"
+  };
+  const CATEGORY_OPTIONS = [
+    { key: "오메가3", label: "오메가3",  desc: "혈행·뇌·눈 건강" },
+    { key: "눈",     label: "눈 건강",  desc: "루테인·지아잔틴" },
+    { key: "유산균",  label: "유산균",   desc: "장 건강·면역" },
+    { key: "비타민C", label: "비타민C",  desc: "항산화·면역" }
+  ];
+
+  const DISCLAIMER = "본 정보는 의료 자문이 아니며, 개별 건강 상태에 따라 다를 수 있습니다. 복용 전 의사·약사와 상담하세요.";
+
+  // ─── HELPERS ─────────────────────────────────────
+  function normalizeKey(s) { return String(s).replace(/[\s_\-\(\)\[\]]/g, "").toLowerCase(); }
+  function getField(fields, ...candidates) {
+    for (const c of candidates) if (fields[c] !== undefined && fields[c] !== null && fields[c] !== "") return fields[c];
+    const norm = {};
+    for (const k in fields) norm[normalizeKey(k)] = fields[k];
+    for (const c of candidates) { const v = norm[normalizeKey(c)]; if (v !== undefined && v !== null && v !== "") return v; }
+    return "";
+  }
+  function asText(v) { return Array.isArray(v) ? v.join(" ") : String(v || ""); }
+  function normEntity(s) { return String(s || "").replace(/[\s\-_\u00B7]/g, "").toLowerCase(); }
+
+  // ─── 나이·성별 ───────────────────────────────────
   function parseDemographics(q) {
     const text = String(q || "");
     let age = null, gender = null;
     let m = text.match(/(\d{1,3})\s*(?:살|세)/);
-    if (m) {
-      const a = parseInt(m[1], 10);
-      if (a >= 10 && a <= 120) age = a >= 60 ? "60" : String(Math.max(20, Math.floor(a / 10) * 10));
-    }
+    if (m) { const a = parseInt(m[1], 10); if (a >= 10 && a <= 120) age = a >= 60 ? "60" : String(Math.max(20, Math.floor(a / 10) * 10)); }
     if (!age) {
       m = text.match(/(\d{1,2})\s*대/);
-      if (m) {
-        const d = parseInt(m[1], 10);
-        if (d >= 60) age = "60"; else if (d >= 20) age = String(d); else if (d > 0) age = "20";
-      }
+      if (m) { const d = parseInt(m[1], 10); if (d >= 60) age = "60"; else if (d >= 20) age = String(d); else if (d > 0) age = "20"; }
     }
     if (/여성|여자|엄마|어머니|아내|딸|와이프/.test(text)) gender = "female";
     else if (/남성|남자|아빠|아버지|남편|아들/.test(text)) gender = "male";
@@ -110,178 +111,56 @@ export async function onRequest(context) {
     const g = d.gender === "female" ? "여성" : d.gender === "male" ? "남성" : "";
     return [a, g].filter(Boolean).join(" ");
   }
-  // matchProfileLocal 결과 → for-me.html의 priority 값
   function toPriority(pid) {
     if (pid === "premium_seeker") return "premium";
     if (pid === "budget_seeker") return "budget";
     return "balanced";
   }
 
-  // ─── HELPERS ─────────────────────────────────────
-  function normalizeKey(s) { return String(s).replace(/[\s_\-\(\)\[\]]/g, "").toLowerCase(); }
-  function getField(fields, ...candidates) {
-    if (!fields) return null;
-    for (const cand of candidates) {
-      if (fields[cand] !== undefined && fields[cand] !== null && fields[cand] !== "") return fields[cand];
-    }
-    const normalizedCands = candidates.map(normalizeKey);
-    const allKeys = Object.keys(fields);
-    for (const key of allKeys) {
-      const normKey = normalizeKey(key);
-      if (normalizedCands.indexOf(normKey) !== -1) {
-        if (fields[key] !== undefined && fields[key] !== null && fields[key] !== "") return fields[key];
-      }
-    }
-    for (const key of allKeys) {
-      const normKey = normalizeKey(key);
-      for (const nc of normalizedCands) {
-        if (normKey.indexOf(nc) !== -1 || nc.indexOf(normKey) !== -1) {
-          if (fields[key] !== undefined && fields[key] !== null && fields[key] !== "") return fields[key];
-        }
-      }
-    }
-    return null;
-  }
-  function normEntity(s) { return String(s || "").replace(/[\s\-_\u00B7]/g, "").toLowerCase(); }
-
-  // ─── PROFILE WEIGHTS (오메가3 추천 전용) ──────────
+  // ─── 오메가3 추천 프로필 ─────────────────────────
   const PROFILES = {
-    "premium_seeker": { label: "최고 품질 선호", weights: { dose: 30, form: 20, source: 20, cert: 20, price: 10 }, medicalConsult: false },
-    "budget_seeker":  { label: "가성비 선호", weights: { dose: 20, form: 15, source: 15, cert: 10, price: 40 }, medicalConsult: false },
-    "balanced":       { label: "균형형 (기본값)", weights: { dose: 30, form: 20, source: 20, cert: 20, price: 10 }, medicalConsult: false },
-    "pregnancy":      { label: "임산부·수유부", weights: { dose: 15, form: 15, source: 30, cert: 35, price: 5 }, medicalConsult: true },
-    "senior":         { label: "시니어 (50+)", weights: { dose: 35, form: 25, source: 15, cert: 15, price: 10 }, medicalConsult: false, filters: { minDailyDose: 1000 } }
+    balanced:       { label: "균형",     weights: { dose: 0.25, form: 0.25, source: 0.20, cert: 0.15, price: 0.15 }, filters: {} },
+    premium_seeker: { label: "고품질",   weights: { dose: 0.20, form: 0.30, source: 0.25, cert: 0.20, price: 0.05 }, filters: {} },
+    budget_seeker:  { label: "가성비",   weights: { dose: 0.25, form: 0.15, source: 0.10, cert: 0.10, price: 0.40 }, filters: {} },
+    pregnancy:      { label: "임산부",   weights: { dose: 0.20, form: 0.25, source: 0.25, cert: 0.25, price: 0.05 }, filters: {} },
+    senior:         { label: "시니어",   weights: { dose: 0.30, form: 0.25, source: 0.20, cert: 0.15, price: 0.10 }, filters: { minDailyDose: 1000 } }
   };
   function matchProfileLocal(q) {
-    const lower = q.toLowerCase();
-    const keywordMap = [
-      { profile: "pregnancy",      keywords: ["임산부", "임신", "수유", "pregnant"] },
-      { profile: "senior",         keywords: ["시니어", "노인", "부모님", "50대", "60대", "70대", "어버지", "어머니", "senior"] },
-      { profile: "budget_seeker",  keywords: ["가성비", "저렴", "싸는", "경제적", "예산", "cheap", "budget"] },
-      { profile: "premium_seeker", keywords: ["최고", "프리미엄", "고급", "비싸도", "premium", "best"] }
-    ];
-    for (const km of keywordMap) for (const kw of km.keywords) if (lower.indexOf(kw.toLowerCase()) !== -1) return km.profile;
+    const s = String(q || "");
+    if (/임신|임산부|수유/.test(s)) return "pregnancy";
+    if (/시니어|노인|고령|60대|70대|80대/.test(s)) return "senior";
+    if (/최고|프리미엄|고품질|좋은\s*거|비싸도/.test(s)) return "premium_seeker";
+    if (/저렴|싼|가성비|가격|예산/.test(s)) return "budget_seeker";
     return "balanced";
   }
   function scoreDose(d) { if (!d || d <= 0) return 20; if (d >= 1500) return 100; if (d >= 1000) return 80; if (d >= 600) return 60; if (d >= 500) return 40; return 20; }
-  function scoreForm(form) { if (!form) return 50; const f = String(form).toLowerCase(); if (f.indexOf("rtg") !== -1) return 100; if (f.indexOf("phospholipid") !== -1) return 95; if (f === "tg") return 90; if (f === "ee") return 60; return 50; }
-  function scoreSource(supplier) { if (!supplier) return 40; const s = String(supplier).toLowerCase(); for (const t of ["dsm", "basf", "epax", "croda", "solutex", "kd"]) if (s.indexOf(t) !== -1) return 90; return 60; }
-  function scoreCert(certs) { if (!certs || String(certs).trim() === "") return 0; let score = 0; const c = String(certs).toUpperCase(); if (c.indexOf("IFOS") !== -1) { score += (c.indexOf("5-STAR") !== -1 || c.indexOf("5스타") !== -1) ? 40 : 25; } if (c.indexOf("GMP") !== -1) score += 20; if (c.indexOf("GOED") !== -1) score += 20; if (c.indexOf("MSC") !== -1) score += 15; if (c.indexOf("NSF") !== -1) score += 15; if (c.indexOf("ISO") !== -1) score += 10; return Math.min(100, score); }
-  function scorePrice(p) { if (!p || p <= 0) return 50; if (p <= 200) return 100; if (p <= 400) return 90; if (p <= 600) return 80; if (p <= 900) return 60; if (p <= 1200) return 40; return 20; }
 
-  // ─── 성분 엔티티 감지 (오메가3 성분 단독 입력) ────
-  const INGREDIENT_TERMS = [
-    { key: "epadha", label: "EPA+DHA", aliases: ["epa+dha", "epadha"] },
-    { key: "epa",    label: "EPA",     aliases: ["epa"] },
-    { key: "dha",    label: "DHA",     aliases: ["dha"] },
-    { key: "omega3", label: "오메가3", aliases: ["오메가3", "omega3", "오메가쓰리"] },
-    { key: "rtg",    label: "rTG",     aliases: ["rtg", "알티지"], form: "rtg" },
-    { key: "tg",     label: "TG",      aliases: ["tg"], form: "tg" },
-    { key: "ee",     label: "EE",      aliases: ["ee", "에틸에스터", "에틸에스테르"], form: "ee" },
-    { key: "ala",    label: "ALA",     aliases: ["ala"] },
-    { key: "dpa",    label: "DPA",     aliases: ["dpa"] }
+  // ─── 성분/제품명 감지 (오메가3) ──────────────────
+  const INGREDIENTS = [
+    { key: "epa", label: "EPA" }, { key: "dha", label: "DHA" },
+    { key: "rtg", label: "rTG", form: "rtg" }, { key: "알티지", label: "rTG", form: "rtg" },
+    { key: "tg", label: "TG", form: "tg" }, { key: "ee", label: "EE", form: "ee" }
   ];
   function detectIngredient(q) {
     const n = normEntity(q);
-    if (!n || n.length > 10) return null;
-    for (const t of INGREDIENT_TERMS) if (t.aliases.some(a => normEntity(a) === n)) return t;
+    if (n.length > 12) return null;
+    for (const ing of INGREDIENTS) if (n === normEntity(ing.key)) return ing;
     return null;
   }
   function detectProductName(q, records) {
-    const n = normEntity(q);
-    if (!n || n.length < 2) return null;
-    for (const r of (records || [])) {
-      const name = getField(r.fields, "제품명", "name") || "";
-      const nn = normEntity(name);
-      if (!nn) continue;
-      if (nn.indexOf(n) !== -1 || n.indexOf(nn) !== -1) return r;
+    const qn = normEntity(q);
+    if (qn.length < 3) return null;
+    for (const r of records || []) {
+      const nm = normEntity(getField(r.fields || {}, "제품명", "name"));
+      if (nm && (nm.indexOf(qn) !== -1 || qn.indexOf(nm) !== -1)) return r;
     }
     return null;
   }
 
   try {
-    // ─── [1] CATEGORY GATE (4종) ─────────────────────
-    const lowerQuery = query.toLowerCase();
-    let matchedCategory = null;
-    for (const cat in CATEGORY_KEYWORDS) {
-      for (const kw of CATEGORY_KEYWORDS[cat]) {
-        if (lowerQuery.indexOf(kw.toLowerCase()) !== -1) { matchedCategory = cat; break; }
-      }
-      if (matchedCategory) break;
-    }
-
-    // 4개 카테고리와 실제로 연결되는 건강 키워드만 남김 (관절·피부는 SYMPTOM_TERMS로 이동)
-    const healthKeywords = ["혈행", "혈중", "지방", "염증", "심혈관", "뇌", "시력", "고혈압", "당뇨", "콜레스테롤", "장", "면역", "눈", "항산화"];
-    const isHealthQuery = healthKeywords.some(k => lowerQuery.indexOf(k) !== -1);
-
     const demographics = parseDemographics(query);
 
-    // ─── [1-b] 카테고리 미특정 → 4개 중 선택 유도 (out_of_scope 대신) ───
-    if (!matchedCategory) {
-      let unsupportedTerm = null;
-      for (const t of UNSUPPORTED_TERMS) {
-        if (lowerQuery.indexOf(t) !== -1) { unsupportedTerm = t; break; }
-      }
-      const isGeneric = GENERIC_TERMS.some(t => lowerQuery.indexOf(t) !== -1);
-
-      let symptomTerm = null;
-      for (const t of SYMPTOM_TERMS) {
-        if (lowerQuery.indexOf(t) !== -1) { symptomTerm = t; break; }
-      }
-
-      if (unsupportedTerm || isGeneric || symptomTerm) {
-        const who = demoLabel(demographics);
-        // 나이·성별이 없으면 "맞는 제품을" 이라는 수식을 붙이지 않는다
-        const forWhom = who ? `${who}에게 맞는 제품을 추천해드릴게요.` : "바로 추천해드릴게요.";
-
-        let reason, answerText;
-        if (symptomTerm) {
-          reason = "symptom";
-          answerText =
-            `죄송해요. ingredi는 현재 ${FOUR_CATS} 4개 카테고리만 다루고 있어서, 말씀하신 증상에 맞는 정보를 드리기 어려워요.\n\n` +
-            `증상이 계속되면 의사·약사와 상담해보세요.\n\n` +
-            `아래 4가지 중 필요한 것이 있다면 골라주세요. ${forWhom}`;
-        } else if (unsupportedTerm) {
-          reason = "unsupported";
-          answerText =
-            `죄송해요. ingredi는 현재 ${FOUR_CATS} 4개 카테고리만 다루고 있어요. 말씀하신 성분은 아직 준비되지 않았습니다.\n\n` +
-            `아래 4가지 중 필요한 것을 골라주시면 ${forWhom}`;
-        } else {
-          reason = "generic";
-          answerText =
-            `ingredi는 ${FOUR_CATS} 4개 카테고리를 다루고 있어요.\n\n` +
-            `어떤 것이 필요하세요? 골라주시면 ${forWhom}`;
-        }
-
-        return new Response(JSON.stringify({
-          query,
-          category: "needs_category",
-          mode: "category_select",
-          answer: answerText,
-          categoryOptions: CATEGORY_OPTIONS,
-          demographics,
-          priority: toPriority(matchProfileLocal(query)),
-          sources: { knowledge: [], faq: [] },
-          flags: {
-            needsCategory: true,
-            reason,
-            unsupportedTerm: unsupportedTerm || null,
-            symptomTerm: symptomTerm || null,
-            knowledgeCount: 0, faqCount: 0
-          },
-          recommendation: null,
-          disclaimer: "본 정보는 의료 자문이 아니며, 개별 건강 상태에 따라 다를 수 있습니다. 복용 전 의사·약사와 상담하세요."
-        }), { status: 200, headers });
-      }
-    }
-
-    // 카테고리·건강 키워드 둘 다 없으면 '오메가3 제품명일 수 있음'으로 보고 진행(기존 동작 유지)
-    let maybeProduct = false;
-    if (!matchedCategory && !isHealthQuery) maybeProduct = true;
-    if (!matchedCategory) matchedCategory = "omega3";
-    const isOmega3 = matchedCategory === "omega3";
-
-    // ─── [2] 구어체 → 검색 토큰 확장 ─────────────────
+    // ─── [1] 토큰 정제 ─────────────────────────────
     const synonymMap = [
       [/오래\s*(먹|복용|드시|섭취)/g, " 장기 복용 오래"],
       [/계속\s*(먹어|먹으면|복용하면|드시면)/g, " 장기 복용 계속"],
@@ -295,14 +174,11 @@ export async function onRequest(context) {
       [/항생제/g, " 항생제 간격"]
     ];
     let expandedQuery = query;
-    for (const [pattern, replacement] of synonymMap) expandedQuery = expandedQuery.replace(pattern, replacement);
-    const originalTokens = query.split(/\s+/).filter(t => t.length > 0);
-    const expandedTokens = expandedQuery.split(/\s+/).filter(t => t.length > 0);
-    const allTokens = [...new Set([...originalTokens, ...expandedTokens])];
+    for (const [p, r] of synonymMap) expandedQuery = expandedQuery.replace(p, r);
+    const allTokens = [...new Set([...query.split(/\s+/), ...expandedQuery.split(/\s+/)])].filter(Boolean);
 
-    // 검색 토큰 정제: 한글 조사·문장부호 제거 + 불용어 제거 (조사로 인한 0건 매칭 방지)
     const JOSA = ["으로","로서","로써","에서","에게","한테","이라는","라는","이라고","라고","이란","란","이나","이며","이고","은","는","이","가","을","를","와","과","의","에","도","만","요"];
-    const STOPWORDS = new Set(["뭐야","뭔지","뭐냐","뭐","무엇","뭔가","알려줘","설명","설명해줘","해줘","어때","인가요","일까요","되나요","건가요","좋아요","괜찮아요","대해","관해","그리고","근데"]);
+    const STOPWORDS = new Set(["뭐야","뭔지","뭐냐","뭐","무엇","뭔가","알려줘","설명","설명해줘","해줘","어때","인가요","일까요","되나요","건가요","좋아요","괜찮아요","대해","관해","그리고","근데","추천","추천해줘"]);
     function cleanTok(t) { return t.replace(/[?!.,~"'`()\[\]·…:;]/g, "").trim(); }
     function stripJosa(t) { for (const j of JOSA) { if (t.length > j.length + 1 && t.endsWith(j)) return t.slice(0, t.length - j.length); } return t; }
     const tokenSet = new Set();
@@ -312,66 +188,203 @@ export async function onRequest(context) {
       const s = stripJosa(c);
       if (s && s.length > 1 && !STOPWORDS.has(s)) tokenSet.add(s.toLowerCase());
     }
-    const lowerTokens = [...tokenSet];
+    const lowerTokens = [...tokenSet].filter(t => t.length > 1);
 
-    // ─── [3] LOAD TABLES (KV 캐시) ───────────────────
-    const cfg = FAQ_CONFIG[matchedCategory];
-    async function safeGet(table) { try { return await getRecords(env, table); } catch (_) { return []; } }
+    // ─── [2] 명시적 카테고리 → 증상 힌트 → (없으면) 검색 라우팅 ──
+    let matchedCategory = null;
+    let hintDomain = null;
+    for (const cat in CATEGORY_KEYWORDS) {
+      if (CATEGORY_KEYWORDS[cat].some(k => lowerQuery.indexOf(k) !== -1)) { matchedCategory = cat; break; }
+    }
+    if (!matchedCategory) {
+      for (const h of PRODUCT_HINTS) if (h.re.test(query)) { matchedCategory = h.cat; break; }
+    }
+    if (!matchedCategory) {
+      for (const h of DOMAIN_HINTS) if (h.re.test(query)) { hintDomain = h.dom; break; }
+    }
+
+    // ─── [3] 테이블 로드 ───────────────────────────
+    async function safeGet(t) { try { return await getRecords(env, t); } catch (_) { return []; } }
+    const needOmegaProducts = !matchedCategory || matchedCategory === "omega3";
     const [kRecords, fRecords, pRecords] = await Promise.all([
-      safeGet("knowledge"),
-      safeGet(cfg.table),
-      isOmega3 ? safeGet("오메가3_쿠팡업데이트") : Promise.resolve([])
+      safeGet(KNOW_TABLE),
+      safeGet(FAQ_TABLE),
+      needOmegaProducts ? safeGet("오메가3_쿠팡업데이트") : Promise.resolve([])
     ]);
 
-    // knowledge 매칭 (카테고리 필터 + 답변예시 포함)
-    const fK_keyword="키워드", fK_oneline="한줄정의", fK_related="관련성분키워드",
-          fK_category="카테고리", fK_id="지식ID", fK_answer="답변예시", fK_evidence="임상근거";
-    const catTokens = CATEGORY_TOKENS[matchedCategory] || [];
-    function rowHaystack(f) { return [f[fK_keyword]||"", f[fK_oneline]||"", f[fK_related]||"", f[fK_category]||"", f[fK_answer]||""].join(" ").toLowerCase(); }
-    let scopedK = (kRecords || []).filter(r => { const hay = rowHaystack(r.fields || {}); return catTokens.some(t => hay.indexOf(t.toLowerCase()) !== -1); });
-    if (scopedK.length === 0) scopedK = kRecords || [];
+    // ─── [4] 문서 정규화 ───────────────────────────
+    function docFromFaq(r) {
+      const f = r.fields || {};
+      const kw = asText(getField(f, "keywords"));
+      const q  = asText(getField(f, "question"));
+      const a  = asText(getField(f, "answer"));
+      return {
+        kind: "faq",
+        id: getField(f, "faq_id") || r.id,
+        question: q, answer: a,
+        evidence: asText(getField(f, "임상근거")),
+        prodCat: asText(getField(f, "제품카테고리")).trim(),
+        domain:  asText(getField(f, "건강도메인")).trim(),
+        review:  asText(getField(f, "검수상태")).trim(),
+        hayKw: (kw + " " + asText(getField(f, "소분류"))).toLowerCase(),
+        hayQ: q.toLowerCase(),
+        hayA: a.toLowerCase()
+      };
+    }
+    function docFromKnow(r) {
+      const f = r.fields || {};
+      const kw = asText(getField(f, "키워드")) + " " + asText(getField(f, "관련성분키워드"));
+      const one = asText(getField(f, "한줄정의"));
+      const a = asText(getField(f, "답변예시"));
+      return {
+        kind: "knowledge",
+        id: getField(f, "지식ID") || r.id,
+        topic: asText(getField(f, "카테고리")),
+        oneline: one, answer: a,
+        evidence: asText(getField(f, "임상근거")),
+        prodCat: asText(getField(f, "제품카테고리")).trim(),
+        domain:  asText(getField(f, "건강도메인")).trim(),
+        hayKw: kw.toLowerCase(),
+        hayQ: one.toLowerCase(),
+        hayA: a.toLowerCase()
+      };
+    }
+    // 분류 컬럼이 비어 있는 행은 검색에서 제외 (조용한 오염 방지)
+    const skipped = { faq: 0, knowledge: 0 };
+    const faqDocs = (fRecords || []).map(docFromFaq).filter(d => { if (!d.prodCat || !d.domain) { skipped.faq++; return false; } return true; });
+    const knowDocs = (kRecords || []).map(docFromKnow).filter(d => { if (!d.prodCat || !d.domain) { skipped.knowledge++; return false; } return true; });
+    const allDocs = faqDocs.concat(knowDocs);
 
-    let knowledgeMatched = scopedK
-      .map(r => {
-        const f = r.fields || {};
-        const hay = rowHaystack(f);
-        let score = 0;
-        for (const t of lowerTokens) if (t.length > 1 && hay.indexOf(t) !== -1) score++;
-        return { record: r, score, fields: f };
-      })
-      .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 6)
-      .map(item => ({
-        id: item.fields[fK_id] || item.record.id,
-        category: item.fields[fK_category] || "",
-        oneline: item.fields[fK_oneline] || "",
-        answer: item.fields[fK_answer] || "",
-        evidence: item.fields[fK_evidence] || "",
-        score: item.score
-      }));
+    // ─── [5] 스코어링 (IDF 가중: 흔한 단어의 영향력 축소) ──
+    const N = allDocs.length || 1;
+    const IDF = {};
+    for (const t of lowerTokens) {
+      let df = 0;
+      for (const d of allDocs) if (d.hayKw.indexOf(t) !== -1 || d.hayQ.indexOf(t) !== -1 || d.hayA.indexOf(t) !== -1) df++;
+      IDF[t] = Math.log(1 + N / (1 + df));   // 전 행에 등장하면 ~0.7, 희귀하면 ~7
+    }
+    function scoreDoc(d) {
+      let s = 0;
+      for (const t of lowerTokens) {
+        const w = IDF[t];
+        if (w < 1.0) continue;                // 너무 흔한 단어(효과·있어 등)는 무시
+        if (d.hayKw.indexOf(t) !== -1) s += 2.0 * w;
+        if (d.hayQ.indexOf(t) !== -1) s += 1.5 * w;
+        if (d.hayA.indexOf(t) !== -1) s += 1.0 * w;
+      }
+      if (s === 0) return 0;
+      if (d.kind === "faq") s *= 1.3;
+      // 페르소나는 보조 조언, 카페는 실제 사용자 문장이라 표현이 겹쳐 과대평가되기 쉬움
+      if (d.domain === "페르소나") s *= 0.8;
+      else if (d.domain === "카페질문") s *= 0.45;
+      return s;
+    }
+    const isCross = d => CROSS_DOMAINS.has(d.domain);
+    const inCategory = (d, catKo) => d.prodCat === catKo;
 
-    // FAQ 매칭 (카테고리 테이블 cfg)
-    const faqMatched = (fRecords || [])
-      .map(r => {
-        const f = r.fields || {};
-        const hay = [f[cfg.q]||"", f[cfg.a]||"", f[cfg.main]||f[cfg.cat]||"", f[cfg.sub]||"", cfg.kw?(f[cfg.kw]||""):""].join(" ").toLowerCase();
-        let score = 0;
-        for (const t of lowerTokens) if (t.length > 1 && hay.indexOf(t) !== -1) score++;
-        return { record: r, score, fields: f };
-      })
-      .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .map(item => ({
-        id: item.fields[cfg.id] || item.record.id,
-        question: item.fields[cfg.q] || "",
-        answer: item.fields[cfg.a] || "",
-        medicalNote: cfg.med ? (item.fields[cfg.med] || "") : "",
-        evidence: cfg.ev ? (item.fields[cfg.ev] || "") : ""
-      }));
+    let pool;
+    if (matchedCategory) {
+      const ko = CAT_KO[matchedCategory];
+      pool = allDocs.filter(d => inCategory(d, ko) || isCross(d));
+    } else if (hintDomain) {
+      pool = allDocs.filter(d => d.domain === hintDomain || isCross(d));
+    } else {
+      pool = allDocs;
+    }
+    let scored = pool.map(d => ({ d, s: scoreDoc(d) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
 
-    // ─── [4] DETECT MEDICAL RISK (보강) ──────────────
+    // ─── [6] 라우팅 (카테고리 미지정 시 검색 결과가 결정) ──
+    let mode = "counsel";
+    let advisoryDomain = null;
+    let ambiguousCats = null;
+
+    if (!matchedCategory && hintDomain) {
+      mode = scored.length ? "advisory" : "none";
+      advisoryDomain = hintDomain;
+    } else if (!matchedCategory) {
+      const TOPN = scored.slice(0, 12);
+      const served = {}, advisory = {};
+      let personaSum = 0;
+      for (const { d, s } of TOPN) {
+        if (d.prodCat !== "해당없음") served[d.prodCat] = (served[d.prodCat] || 0) + s;
+        else if (d.domain === "페르소나") personaSum += s;
+        else if (d.domain === "카페질문") { /* 라우팅 근거로 쓰지 않음 */ }
+        else if (d.domain !== "해당없음") advisory[d.domain] = (advisory[d.domain] || 0) + s;
+      }
+      const servedRank = Object.entries(served).sort((a, b) => b[1] - a[1]);
+      const advRank = Object.entries(advisory).sort((a, b) => b[1] - a[1]);
+      const bestServed = servedRank[0] ? servedRank[0][1] : 0;
+      const bestAdv = advRank[0] ? advRank[0][1] : 0;
+
+      if (bestServed > 0 && bestServed >= bestAdv) {
+        // 서비스 카테고리 두 개가 근접하면 사용자에게 물어본다
+        if (servedRank[1] && servedRank[1][1] >= servedRank[0][1] * 0.8) {
+          ambiguousCats = [servedRank[0][0], servedRank[1][0]];
+          mode = "category_select";
+        } else {
+          matchedCategory = KO_CAT[servedRank[0][0]] || null;
+          mode = "counsel";
+        }
+      } else if (bestAdv > 0) {
+        advisoryDomain = advRank[0][0];
+        mode = "advisory";
+      } else if (personaSum > 0) {
+        mode = "guide";           // 페르소나 조언은 답변 가치가 있음
+      } else {
+        mode = "none";            // 카페 행만 걸린 건 우연 매칭 — 근거로 보지 않음
+      }
+
+      // 카테고리가 정해졌으면 그 스코프로 다시 좁힌다
+      if (matchedCategory) {
+        const ko = CAT_KO[matchedCategory];
+        scored = scored.filter(x => inCategory(x.d, ko) || isCross(x.d));
+      } else if (mode === "advisory") {
+        scored = scored.filter(x => x.d.domain === advisoryDomain || isCross(x.d));
+      } else if (mode === "guide") {
+        scored = scored.filter(x => x.d.domain === "페르소나");
+      }
+    }
+
+    // 검색 0건 → 제품명일 수 있음 (오메가3 제품 DB 조회)
+    let productMatchRecord = null;
+    if (mode === "none") {
+      productMatchRecord = detectProductName(query, pRecords || []);
+      if (productMatchRecord) { matchedCategory = "omega3"; mode = "counsel"; }
+    }
+
+    // ─── [7] 그래도 못 찾으면 카테고리 선택 카드 ────
+    if (mode === "none" || mode === "category_select") {
+      const who = demoLabel(demographics);
+      const forWhom = who ? `${who}에게 맞는 제품을 추천해드릴게요.` : "바로 추천해드릴게요.";
+      let answerText, reason;
+      if (mode === "category_select" && ambiguousCats) {
+        reason = "ambiguous";
+        answerText = `말씀하신 내용은 ${ambiguousCats.join("과 ")} 모두와 관련이 있어요.\n\n어느 쪽이 궁금하신지 골라주시면 ${forWhom}`;
+      } else {
+        reason = "not_found";
+        answerText = `죄송해요. 말씀하신 내용은 ingredi가 근거 데이터로 확인해 드리기 어려운 내용이에요.\n\n증상이 계속되면 의사·약사와 상담해보세요.\n\ningredi는 현재 ${FOUR_CATS} 4개 카테고리를 다루고 있어요. 아래에서 필요한 것을 골라주시면 ${forWhom}`;
+      }
+      return new Response(JSON.stringify({
+        query, category: "needs_category", mode: "category_select",
+        answer: answerText, categoryOptions: CATEGORY_OPTIONS,
+        demographics, priority: toPriority(matchProfileLocal(query)),
+        sources: { knowledge: [], faq: [] },
+        flags: { needsCategory: true, reason, ambiguousCats, knowledgeCount: 0, faqCount: 0, skipped },
+        recommendation: null, disclaimer: DISCLAIMER
+      }), { status: 200, headers });
+    }
+
+    // ─── [8] 컨텍스트 상위 8건 ─────────────────────
+    const top = scored.slice(0, 8).map(x => x.d);
+    const knowledgeMatched = top.filter(d => d.kind === "knowledge");
+    const faqMatched = top.filter(d => d.kind === "faq");
+
+    const isOmega3 = matchedCategory === "omega3";
+    const isProductMode = !!productMatchRecord;
+    const ingredient = isOmega3 ? detectIngredient(query) : null;
+    const canRecommend = mode === "counsel" && isOmega3;
+
+    // ─── [9] 의료 위험 플래그 ──────────────────────
     const riskKeywords = {
       pregnancy: ["임산부", "임신", "수유"],
       surgery: ["수술", "시술"],
@@ -384,76 +397,50 @@ export async function onRequest(context) {
       antibiotics: ["항생제"]
     };
     const detectedRisks = [];
-    for (const riskType in riskKeywords) {
-      for (const kw of riskKeywords[riskType]) { if (lowerQuery.indexOf(kw.toLowerCase()) !== -1) { detectedRisks.push(riskType); break; } }
-    }
+    for (const t in riskKeywords) for (const kw of riskKeywords[t]) { if (lowerQuery.indexOf(kw.toLowerCase()) !== -1) { detectedRisks.push(t); break; } }
     const requiresMedicalConsult = detectedRisks.length > 0;
 
-    // ─── [5] 제품명 매칭 (오메가3 maybeProduct만) ────
-    let productMatchRecord = null;
-    if (isOmega3 && maybeProduct) {
-      productMatchRecord = detectProductName(query, pRecords || []);
-      if (!productMatchRecord) {
-        return new Response(JSON.stringify({
-          query, category: "out_of_scope", answer: OUT_OF_SCOPE_MSG,
-          sources: [], flags: { outOfScope: true }, recommendation: null
-        }), { status: 200, headers });
-      }
-    }
-    const isProductMode = !!productMatchRecord;
-    const ingredient = isOmega3 ? detectIngredient(query) : null;
-
-    // ─── 개요 폴백: 토큰이 빗나갔지만 카테고리는 유효 → 핵심 지식(효능/개념)으로 답변 ──
-    if (knowledgeMatched.length === 0 && faqMatched.length === 0 && scopedK.length > 0) {
-      const ORDER = { "효능": 0, "개념": 1, "성분": 2, "섭취량": 3, "구성": 4, "균수": 5 };
-      knowledgeMatched = scopedK.slice()
-        .sort((a, b) => ((ORDER[(a.fields || {})[fK_category]] ?? 9) - (ORDER[(b.fields || {})[fK_category]] ?? 9)))
-        .slice(0, 4)
-        .map(rec => { const f = rec.fields || {}; return { id: f[fK_id] || rec.id, category: f[fK_category] || "", oneline: f[fK_oneline] || "", answer: f[fK_answer] || "", evidence: f[fK_evidence] || "", score: 0 }; });
-    }
-
-    // ─── [6] CALL CLAUDE (RAG) ───────────────────────
-    let answer = "", claudeError = null, claudeReqBody = null;
-    if (isProductMode) {
-      answer = "";
-    } else if (knowledgeMatched.length === 0 && faqMatched.length === 0) {
-      answer = "그 부분은 ingredi가 근거 데이터로 확인해 드리기 어려운 내용입니다. 대신 " + CATEGORY_LABEL[matchedCategory] + "의 함량·제형·복용법 같은 일반 정보는 안내해 드릴 수 있습니다.";
-    } else {
+    // ─── [10] Claude 프롬프트 ──────────────────────
+    let answer = "", claudeReqBody = null;
+    if (!isProductMode) {
       const systemPrompt = "당신은 ingredi의 건강기능식품 정보 카운슬러입니다.\n\n[핵심 원칙]\n1. 광고 없음 — 특정 제품·브랜드를 추천하지 않습니다\n2. 근거 기반 — 검색 결과의 사실만 답변합니다\n3. 엄격 모드 — 검색 결과에 없는 내용은 추측하지 않습니다\n\n[답변 스타일]\n- 한국어, 존댓말\n- 특정 제품명 언급 금지\n- 의학 자문 아님을 명시\n- 마크다운 헤더(#,##,###), 굵은체(**), 구분선(---), 인용(>), 이모지 사용 금지\n- 항목이 여러 개면 첫 문장 후 줄바꿈하고 각 항목을 '- ' 로 시작\n- 단순 질문은 한 단락으로 간결하게\n- 진단 금지, 위험 상황은 '의사·약사와 상담하세요'로 안내";
 
       let contextBlock = "[검색된 지식]\n";
-      knowledgeMatched.forEach((item, idx) => {
-        contextBlock += `\n[K${idx+1}] ${item.id} (${item.category}): ${item.oneline}`;
-        if (item.answer) contextBlock += ` — ${item.answer}`;
-        if (item.evidence) contextBlock += ` (근거: ${item.evidence})`;
+      knowledgeMatched.forEach((d, i) => {
+        contextBlock += `\n[K${i+1}] ${d.id} (${d.topic}): ${d.oneline}`;
+        if (d.answer) contextBlock += ` — ${d.answer}`;
+        if (d.evidence) contextBlock += ` (근거: ${d.evidence})`;
       });
-      faqMatched.forEach((item, idx) => {
-        contextBlock += `\n[F${idx+1}] Q: ${item.question} / A: ${item.answer}`;
-        if (item.evidence) contextBlock += ` (근거: ${item.evidence})`;
-        if (item.medicalNote) contextBlock += ` [주의: ${item.medicalNote}]`;
+      faqMatched.forEach((d, i) => {
+        contextBlock += `\n[F${i+1}] Q: ${d.question} / A: ${d.answer}`;
+        if (d.evidence) contextBlock += ` (근거: ${d.evidence})`;
       });
 
       let userPrompt = contextBlock + "\n\n[사용자 질문]\n" + query;
       if (requiresMedicalConsult) {
         userPrompt += `\n\n[내부 플래그] 의료 주의가 필요한 키워드 감지됨 (${detectedRisks.join(", ")}). 답변 끝에 "복용 전 의사·약사와 상담하세요"를 포함하세요.`;
       }
-
-      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, stream: true, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
+      if (mode === "advisory") {
+        const dl = DOMAIN_LABEL[advisoryDomain] || advisoryDomain;
+        userPrompt += `\n\n[내부 지시] 이 질문은 ${dl} 관련이며, ingredi가 제품을 비교 제공하지 않는 영역입니다. 정보는 충실히 답변하되 마지막 문단에 다음 취지를 자연스러운 한 문장으로 덧붙이세요: ingredi는 현재 ${FOUR_CATS} 4개 카테고리 제품만 비교해드리고 있으며, 이 중 궁금한 점이 있으면 언제든 물어봐달라는 안내. 특정 제품이나 브랜드는 언급하지 마세요.`;
+      } else if (mode === "guide") {
+        userPrompt += `\n\n[내부 지시] 카테고리가 특정되지 않은 일반 조언 요청입니다. 성분 선택 기준을 중심으로 답변하고, 마지막 문단에 ingredi가 ${FOUR_CATS} 4개 카테고리를 비교 제공한다는 안내를 한 문장으로 덧붙이세요.`;
+      }
+      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, stream: true, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
     }
 
-    // ─── [7] RECOMMEND PRODUCTS (오메가3 전용) ───────
+    // ─── [11] 제품 추천 (오메가3, counsel 모드에서만) ──
     let recommendation = { profile: null, top3: [], filteredCount: 0, totalCount: (pRecords || []).length };
     let distributions = null, ingredientProducts = [], listMode = null, listTerm = null;
 
-    if (isOmega3) {
+    if (canRecommend) {
       const matchedProfileId = matchProfileLocal(query);
       const profile = PROFILES[matchedProfileId];
       const records = pRecords || [];
-      const scored = records.map(r => {
+      const scoredP = records.map(r => {
         const f = r.fields || {};
         const productId   = getField(f, "product_id", "productId");
         const productName = getField(f, "제품명", "name") || "";
-        // 신 테이블(오메가3_쿠팡업데이트)은 EPA_DHA_mg, 구 테이블 호환 위해 합계_mg도 폴백
         const dailyMg     = parseFloat(getField(f, "EPA_DHA_mg", "EPA_DHA_합계_mg")) || 0;
         const form        = getField(f, "제형") || "";
         const supplier    = getField(f, "원료사") || "";
@@ -462,9 +449,8 @@ export async function onRequest(context) {
         const dailyCost   = parseFloat(getField(f, "1일비용_원")) || 0;
         const capsuleMg   = parseFloat(getField(f, "캡슐용량_mg", "capsuleMg", "캡슐 용량 (mg)")) || 0;
         const grade       = getField(f, "등급") || "";
-        const tier        = grade || getField(f, "Tier등급") || "";   // 신 테이블 등급(S/A/B) 우선
+        const tier        = grade || getField(f, "Tier등급") || "";
         const passFail    = getField(f, "함량_Pass_Fail") || "";
-        // 링크 우선순위: 파트너스 딥링크 → raw 쿠팡 URL → 네이버(제품링크)
         const coupangLink = getField(f, "coupang_deeplink")
                          || getField(f, "쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크", "coupang_url")
                          || getField(f, "제품링크") || "";
@@ -473,14 +459,11 @@ export async function onRequest(context) {
           const att = imageUrl[0];
           imageUrl = (att.thumbnails && att.thumbnails.large) ? att.thumbnails.large.url : (att.url || "");
         } else if (typeof imageUrl === 'object' && imageUrl !== null) { imageUrl = imageUrl.url || ""; }
-
-        // V-Score: 신 테이블에 사전 계산·저장된 V_Score를 단일 진실로 사용 (런타임 재계산 폐지)
         const vScore = parseFloat(getField(f, "V_Score", "vScore", "V_SCORE")) || 0;
-        const highDoseFlag = dailyMg > 2000;
-        return { id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost), capsuleMg, form, supplier, certs, grade, tier, passFail, coupangLink, vScore, highDoseFlag };
+        return { id: productId, name: productName, image: imageUrl, dailyMg, dailyCost: Math.round(dailyCost), capsuleMg, form, supplier, certs, grade, tier, passFail, coupangLink, vScore, highDoseFlag: dailyMg > 2000 };
       });
 
-      let filtered = scored.filter(item => {
+      let filtered = scoredP.filter(item => {
         if (item.passFail === "Fail") return false;
         if (profile.filters && profile.filters.minDailyDose && item.dailyMg < profile.filters.minDailyDose) return false;
         return true;
@@ -488,7 +471,7 @@ export async function onRequest(context) {
       filtered.sort((a, b) => b.vScore - a.vScore);
 
       function computeDist(vals) { const v = vals.filter(x => x > 0); if (v.length === 0) return null; const sum = v.reduce((a, b) => a + b, 0); return { min: Math.min(...v), max: Math.max(...v), avg: Math.round(sum / v.length) }; }
-      distributions = { dose: computeDist(scored.map(s => s.dailyMg)), cost: computeDist(scored.map(s => s.dailyCost)), capsule: computeDist(scored.map(s => s.capsuleMg)) };
+      distributions = { dose: computeDist(scoredP.map(s => s.dailyMg)), cost: computeDist(scoredP.map(s => s.dailyCost)), capsule: computeDist(scoredP.map(s => s.capsuleMg)) };
 
       function toCard(item, idx) {
         return { rank: idx + 1, id: item.id, name: item.name, image: item.image || "", vScore: item.vScore,
@@ -498,9 +481,9 @@ export async function onRequest(context) {
 
       if (ingredient) {
         listMode = "ingredient"; listTerm = ingredient.label;
-        let pool = filtered;
-        if (ingredient.form) { const ff = ingredient.form; const formed = filtered.filter(it => String(it.form || "").toLowerCase().indexOf(ff) !== -1); if (formed.length > 0) pool = formed; }
-        ingredientProducts = pool.map(toCard);
+        let pool2 = filtered;
+        if (ingredient.form) { const ff = ingredient.form; const formed = filtered.filter(it => String(it.form || "").toLowerCase().indexOf(ff) !== -1); if (formed.length > 0) pool2 = formed; }
+        ingredientProducts = pool2.map(toCard);
       } else if (isProductMode) {
         listMode = "product"; listTerm = query;
         const qn = normEntity(query);
@@ -515,22 +498,36 @@ export async function onRequest(context) {
       recommendation = { profile: { id: matchedProfileId, label: profile.label, weights: profile.weights }, top3, filteredCount: filtered.length, totalCount: records.length };
     }
 
+    // ─── [12] 응답 ─────────────────────────────────
     const meta = {
-      query, category: matchedCategory,
+      query,
+      category: matchedCategory || "needs_category",
+      productCategory: matchedCategory ? CAT_KO[matchedCategory] : null,
+      healthDomain: advisoryDomain,
       demographics,
       priority: toPriority(matchProfileLocal(query)),
-      mode: listMode || "counsel",
+      mode: listMode || mode,     // ingredient / product / counsel / advisory / guide
       ingredientTerm: listTerm,
       ingredientProducts,
       distributions,
+      categoryOptions: (mode === "advisory" || mode === "guide") ? CATEGORY_OPTIONS : null,
       sources: {
-        knowledge: knowledgeMatched.map(k => ({ id: k.id, oneline: k.oneline, evidence: k.evidence || null })),
-        faq: faqMatched.map(f => ({ id: f.id, question: f.question }))
+        knowledge: knowledgeMatched.map(d => ({ id: d.id, oneline: d.oneline, evidence: d.evidence || null })),
+        faq: faqMatched.map(d => ({ id: d.id, question: d.question }))
       },
-      flags: { requiresMedicalConsult, detectedRisks, knowledgeCount: knowledgeMatched.length, faqCount: faqMatched.length, faqTable: cfg.table, claudeError: null },
+      flags: {
+        requiresMedicalConsult, detectedRisks,
+        knowledgeCount: knowledgeMatched.length, faqCount: faqMatched.length,
+        faqTable: FAQ_TABLE, skipped, claudeError: null
+      },
       recommendation,
-      disclaimer: "본 정보는 의료 자문이 아니며, 개별 건강 상태에 따라 다를 수 있습니다. 복용 전 의사·약사와 상담하세요."
+      disclaimer: DISCLAIMER
     };
+    if (wantDebug) meta.debug = { matchedIds: top.map(d => `${d.kind === "faq" ? "F" : "K"}:${d.id}`), tokens: lowerTokens, poolSize: pool.length };
+
+    if (wantDebug && url.searchParams.get("json") === "1") {
+      return new Response(JSON.stringify(meta, null, 2), { status: 200, headers });
+    }
 
     const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
       ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
@@ -544,7 +541,7 @@ export async function onRequest(context) {
         send("meta", meta);
         try {
           if (!claudeReqBody) {
-            if (answer) send("token", { text: answer }); // 정적 답변(제품 모드/근거 없음)
+            if (answer) send("token", { text: answer });
           } else {
             const RETRY_STATUS = [403, 429, 500, 502, 503, 504, 529];
             let resp = null;
