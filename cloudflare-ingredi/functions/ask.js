@@ -305,17 +305,38 @@ export async function onRequest(context) {
     }
 
     // ─── [6] CLAUDE 호출 ─────────────────────────────
-    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1024, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] })
-    });
-    if (!claudeResponse.ok) {
-      const errorText = await claudeResponse.text();
-      return new Response(JSON.stringify({ error: "claude_api_error", status: claudeResponse.status, message: errorText }), { status: 500, headers });
+    // counsel-api.js와 동일: AI Gateway 우선, 403/429/5xx는 3회 재시도
+    const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
+      ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
+      : "https://api.anthropic.com";
+    const RETRY_STATUS = [403, 429, 500, 502, 503, 504, 529];
+
+    let answer = "";
+    let claudeError = null;
+    let claudeResponse = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      claudeResponse = await fetch(`${ANTHROPIC_BASE}/v1/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1024, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] })
+      });
+      if (claudeResponse.ok || RETRY_STATUS.indexOf(claudeResponse.status) === -1) break;
+      await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
     }
-    const claudeData = await claudeResponse.json();
-    const answer = (claudeData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+
+    if (!claudeResponse || !claudeResponse.ok) {
+      // 진단 엔드포인트이므로 답변이 실패해도 검색 결과는 그대로 돌려준다
+      let detail = "";
+      try { detail = await claudeResponse.text(); } catch (_e) {}
+      claudeError = {
+        status: claudeResponse ? claudeResponse.status : 0,
+        base: ANTHROPIC_BASE.indexOf("gateway") !== -1 ? "ai_gateway" : "direct",
+        message: String(detail).slice(0, 300)
+      };
+    } else {
+      const claudeData = await claudeResponse.json();
+      answer = (claudeData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+    }
 
     // ─── [7] 후처리 ──────────────────────────────────
     const sources = [];
@@ -335,7 +356,13 @@ export async function onRequest(context) {
         knowledgeCount: knowledgeMatched.length,
         faqCount: faqMatched.length,
         faqTable: cfg.table,
-        faqError: faqError
+        faqError: faqError,
+        claudeError: claudeError
+      },
+      // 진단용: 어떤 행이 실제로 매칭됐는지
+      debug: {
+        knowledgeIds: knowledgeMatched.map(k => k.id),
+        faqIds: faqMatched.map(f => f.id)
       },
       disclaimer: disclaimer
     }), { status: 200, headers });
