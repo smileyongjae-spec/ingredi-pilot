@@ -261,36 +261,48 @@
     @keyframes cvFocusPulse { 0%,100% { box-shadow: var(--shadow-sm); } 12%,40% { box-shadow: 0 0 0 3px var(--green-primary), 0 8px 24px rgba(45,95,63,0.22); } }
     .cv-row { display: flex; align-items: center; gap: 13px; }
     .cv-thumb { width: 58px; height: 58px; border-radius: 13px; object-fit: cover; flex-shrink: 0; background: var(--green-bg); border: 1px solid var(--line-soft); }
+    .ht { margin-bottom: 14px; }
+    .ht-btn { width:100%; display:flex; align-items:center; justify-content:space-between;
+              padding:11px 14px; background:var(--paper); border:1px solid var(--line-soft);
+              border-radius:11px; font-size:13px; font-weight:600; color:var(--ink-soft);
+              cursor:pointer; font-family:inherit; }
+    .ht-btn:active { background: var(--green-bg); }
+    .ht-chev { color: var(--ink-faint); font-size: 12px; }
+    .ht-body { margin-top:8px; background:var(--paper); border:1px solid var(--line-soft);
+               border-radius:11px; padding:4px 14px; }
+    .ht-row { padding:11px 0; border-bottom:1px solid var(--line-soft); }
+    .ht-row:last-child { border-bottom:none; }
+    .ht-h { font-size:12px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+    .ht-b { font-size:12px; line-height:1.6; color:var(--ink-soft); word-break:keep-all; }
+
     .cv-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
     .cv-rank { font-size:12px; font-weight:700; color:var(--ink-soft); }
     .cv-gwrap { display:flex; align-items:center; gap:6px; }
-    .cv-gn { font-size:10.5px; color:var(--ink-faint); }
+    .cv-gn { font-size:11px; color:var(--ink-faint); }
     .cv-grade { width:28px; height:28px; border-radius:50%; border:1px solid; font-size:13px; font-weight:700;
                 display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
 
-    .cv-lead { margin-top:15px; font-size:16.5px; line-height:1.5; color:var(--ink); letter-spacing:-.3px; word-break:keep-all; }
+    .cv-lead { margin-top:16px; font-size:18px; line-height:1.55; color:var(--ink); letter-spacing:-.3px; word-break:keep-all; }
     .cv-lead b { font-weight:800; }
 
     .cl-block { margin-top:18px; padding-top:15px; border-top:1px solid var(--line-soft); }
-    .cl-head { display:inline-block; background:none; border:none; padding:0; margin-bottom:4px; cursor:pointer;
-               font-size:11.5px; color:var(--ink-faint); border-bottom:1px dotted var(--line); }
-    .cl-line { display:flex; align-items:baseline; gap:5px; font-size:13.5px; line-height:1.5;
+    .cl-head { font-size:11px; color:var(--ink-faint); margin-bottom:6px; }
+    .cl-line { display:flex; align-items:flex-start; gap:9px; font-size:13.5px; line-height:1.5;
                color:var(--ink-soft); padding:6px 0; }
-    .cl-tx { min-width:0; }
+    .cl-tx { flex:1; min-width:0; }
+    .cl-sp { width:14px; flex:none; }
     .cl-line b { font-weight:700; color:var(--ink); }
-    .cl-ar { flex-shrink:0; align-self:center; }
+    .cl-ar { flex:none; margin-top:3px; }
     .cl-ar.up { color:#2D5F3F; }
     .cl-ar.dn { color:#A8ACB1; }
-    .cl-term { background:none; border:none; padding:0; font:inherit; color:inherit; cursor:pointer;
-               border-bottom:1px dotted var(--ink-faint); }
-    .cl-note { margin-top:11px; font-size:12.5px; line-height:1.5; color:var(--ink-soft);
+    .cl-note { margin-top:12px; font-size:12px; line-height:1.5; color:var(--ink-soft);
                background:var(--paper); border-radius:10px; padding:10px 12px; }
 
     .cv-price { display:flex; align-items:baseline; justify-content:space-between; margin-top:18px;
                 padding-top:14px; border-top:1px solid var(--line-soft); }
-    .cv-price .lbl { font-size:11.5px; color:var(--ink-faint); }
+    .cv-price .lbl { font-size:11px; color:var(--ink-faint); }
     .cv-price .val { font-size:15px; font-weight:800; color:var(--ink); letter-spacing:-.2px; }
-    .cv-form { margin-top:8px; font-size:11.5px; color:var(--ink-faint); }
+    .cv-form { margin-top:8px; font-size:11px; color:var(--ink-faint); }
     .cv-name { font-size: 15px; color: var(--green-deep); font-weight: 700; line-height: 1.4; letter-spacing: -0.02em; }
     #termSheetBody { white-space: pre-line; }
     /* ── 개선 소식 ── */
@@ -310,11 +322,10 @@
     .cl-morebtn { display: block; width: 100%; margin-top: 11px; padding: 9px; background: var(--green-bg); border: 1px solid var(--line-soft); border-radius: 9px; font-size: 12.5px; font-weight: 600; color: var(--green-primary); cursor: pointer; font-family: inherit; }
     .cl-morebtn:hover { background: var(--green-light); }
     /* 함량 · 캡슐 크기 통합 패널 */
-    .cv-mo { display: inline-block; background: #FBF3DD; color: #8A6A1F; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 12px; margin-left: 5px; vertical-align: 2px; white-space: nowrap; }
-    .cv-rank { font-size: 12px; color: var(--green-primary); margin-top: 2px; font-weight: 600; }
+    .cv-mo { display: inline-block; background: #FBF3DD; color: #8A6A1F; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 12px; margin-left: 5px; vertical-align: 2px; white-space: nowrap; }
     .cv-voc { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
     .cv-voc-h { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
-    .cv-voc-tag { font-size: 10px; color: #A8997A; background: #F0E9D8; padding: 1px 7px; border-radius: 10px; }
+    .cv-voc-tag { font-size: 11px; color: #A8997A; background: #F0E9D8; padding: 1px 7px; border-radius: 10px; }
     .cv-vchip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 11px; border-radius: 20px; margin: 0 7px 7px 0; font-weight: 600; }
     .cv-vchips { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin-bottom: -7px; }
     .cv-vchips::-webkit-scrollbar { display: none; }
@@ -362,11 +373,7 @@
     .cv-q:active { background: var(--green-mid); color: #fff; }
     .cv-tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
     .cv-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--green-light); color: var(--green-deep); font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 100px; border: none; font-family: inherit; }
-    .cv-tag.tappable { cursor: pointer; }
-    .cv-tag.tappable:active { background: var(--green-mid); color: #fff; }
     .cv-tag .qb { width: 14px; height: 14px; border-radius: 50%; background: var(--green-primary); color: #fff; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-    .cv-tag.tappable:active .qb { background: #fff; color: var(--green-primary); }
-
     /* ── 판매가 · 리뷰수 · 구매 버튼 ── */
     .cv-reviewN { margin-left: auto; font-size: 12px; color: var(--ink-faint); font-weight: 600; }
     .cv-buybtn { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 15px; padding: 14px; background: var(--green-primary); color: #fff; border-radius: 12px; font-size: 15px; font-weight: 700; text-decoration: none; box-shadow: 0 3px 10px rgba(45,95,63,0.28); transition: background 0.15s ease; }
@@ -1018,15 +1025,11 @@ const ARROW_DOWN = '<svg class="cl-ar dn" viewBox="0 0 24 24" width="14" height=
 
 // 중간(보통)은 아무 표시도 하지 않는다. 빈 자리가 "특별할 것 없음"을 뜻한다.
 function clLine(text, arrow){
-  return `<div class="cl-line"><span class="cl-tx">${text}</span>${arrow || ""}</div>`;
+  return `<div class="cl-line">${arrow || '<span class="cl-sp"></span>'}<span class="cl-tx">${text}</span></div>`;
 }
 
-function termLink(cat, label){
-  const key = PRIMARY_TERM[cat];
-  return (UNDERLINED[cat] && key)
-    ? `<button class="cl-term" onclick="openTermSheet('${key}')">${escapeHtml(label)}</button>`
-    : escapeHtml(label);
-}
+// 카드에는 탭 타깃을 두지 않는다. 용어 설명은 목록 상단 "이 카드 읽는 법" 하나로 모은다.
+function termLink(cat, label){ return escapeHtml(label); }
 
 // 함량 줄. 리드 문장이 이미 값을 말했으면 값을 반복하지 않는다.
 function lineDose(cat, basis, p, m, showVal){
@@ -1077,6 +1080,41 @@ function kidsCapsuleNote(p){
   return `<div class="cl-note">캡슐 ${fmt(cap)}mg — 아이 목넘김을 확인하세요</div>`;
 }
 
+// ── "이 카드 읽는 법" ────────────────────────────
+// 문구를 카테고리마다 복사하지 않는다. 공통 항목 + PRIMARY_TERM 으로 성분 항목만 갈아 끼운다.
+const HOWTO_COMMON = [
+  ["순위와 등급", "1위는 정렬 순서, A는 품질대예요. 등급은 같은 카테고리 안에서의 상대적 위치를 뜻해요."],
+  ["비교 기준", "함량·캡슐·가격은 필터와 무관하게 카테고리 전체 제품과 비교해요. 탭을 옮겨도 평가는 달라지지 않아요."],
+  ["화살표", "↗ 좋은 편, ↘ 아쉬운 편이에요. 표시가 없으면 보통이에요."],
+  ["하루 비용", "판매가를 실제 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
+  ["캡슐 크기", "같은 카테고리 제품을 셋으로 나눠 작은·보통·큰 편으로 표시해요. 캡슐이 크면 삼키기 불편할 수 있어 따로 알려드려요. 가루 형태는 삼킬 필요가 없어요."],
+  ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니에요."]
+];
+
+function howToRead(cat){
+  const items = HOWTO_COMMON.slice();
+  const key = PRIMARY_TERM[cat];
+  const t = key && TERM_INFO[key];
+  // 비타민C처럼 설명할 것이 없으면 빈 항목을 억지로 만들지 않는다
+  if (t && t.title && t.body) items.splice(5, 0, [t.title, String(t.body).split("\n")[0]]);
+  const rows = items.map(([h, b]) =>
+    `<div class="ht-row"><div class="ht-h">${escapeHtml(h)}</div><div class="ht-b">${escapeHtml(b)}</div></div>`).join("");
+  return `<div class="ht">
+    <button class="ht-btn" onclick="toggleHowTo(this)" aria-expanded="false">
+      <span>이 카드 읽는 법</span><span class="ht-chev">▾</span>
+    </button>
+    <div class="ht-body" hidden>${rows}</div>
+  </div>`;
+}
+function toggleHowTo(btn){
+  const box = btn.parentNode.querySelector('.ht-body');
+  const open = box.hasAttribute('hidden');
+  if (open) box.removeAttribute('hidden'); else box.setAttribute('hidden','');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.querySelector('.ht-chev').textContent = open ? '▴' : '▾';
+}
+window.toggleHowTo = toggleHowTo;
+
 function compareBlock(cat, basis, p, m, isTop, hasLead){
   const noun = CAT_UNIT_NOUN[cat] || cat;
   const kids = isKids(p);
@@ -1084,7 +1122,7 @@ function compareBlock(cat, basis, p, m, isTop, hasLead){
   const lines = [ lineDose(cat, basis, p, m, sv), kids ? "" : lineCapsule(basis, p), linePrice(basis, p, isTop, sv) ]
     .filter(Boolean).join("");
   if (!lines) return "";
-  const head = `<button class="cl-head" onclick="openTermSheet('basis')">${noun} ${basis.n}개와 비교하면</button>`;
+  const head = `<div class="cl-head">${noun} ${basis.n}개와 비교하면</div>`;
   return `<div class="cl-block">${head}${lines}</div>` + (kids ? kidsCapsuleNote(p) : "");
 }
 
@@ -1123,12 +1161,7 @@ function renderCardV8(p, ctx){
   const tagList = [];
   String(p.certs||"").split(/[,\/·]/).map(s=>s.trim()).filter(Boolean).slice(0,4).forEach(c=>tagList.push(c));
   const formChip = p.form ? `<div class="cv-form">${escapeHtml(String(p.form))}</div>` : "";
-  const tagsHtml = tagList.map(t=>{
-    const k = termKeyFromTag(t);
-    return k
-      ? `<button class="cv-tag tappable" onclick="openTermFromTag('${escapeHtml(t)}')">${escapeHtml(t)}</button>`
-      : `<span class="cv-tag">${escapeHtml(t)}</span>`;
-  }).join("");
+  const tagsHtml = tagList.map(t=>`<span class="cv-tag">${escapeHtml(t)}</span>`).join("");
   const eyeSub = (cat==="눈") ? `<div style="font-size:9.5px;color:var(--ink-faint);margin-top:1px">루테인+지아잔틴+아스타잔틴</div>` : "";
   const eyeBonus = (cat==="눈" && p._eye)
     ? `<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px">${p._eye.vitA?'<span class="cv-bonus vitA">비타민A ✓ +5</span>':''}${p._eye.beta?'<span class="cv-bonus beta">베타카로틴 ✓ +3</span>':''}</div>`
@@ -1155,13 +1188,13 @@ function renderCardV8(p, ctx){
   const rankLabel = `${(ctx.idx||0)+1}위`;
   const primNoun = PRIMARY_NOUN[cat] || m.primary.label;
   const hasLead = cost>0 && pv>0;
-  const headline = `하루 <b>${fmt(cost)}원</b>에 ${termLink(cat, primNoun)} <b>${fmt(pv)}${escapeHtml(m.primary.unit)}</b>.`;
+  const headline = `하루 <b>${fmt(cost)}원</b>에<br>${termLink(cat, primNoun)} <b>${fmt(pv)}${escapeHtml(m.primary.unit)}</b>.`;
 
   return `<div class="cv-card" id="prod-${escapeHtml(String(p.id||''))}">
     <div class="cv-top">
       <span class="cv-rank">${rankLabel}</span>
       <span class="cv-gwrap"><span class="cv-gn">${basis.n}개 중</span>
-        <button class="cv-grade" style="background:${gb};color:${gt};border-color:${gbd}" onclick="openTermSheet('vscore')">${grade}</button></span>
+        <span class="cv-grade" style="background:${gb};color:${gt};border-color:${gbd}">${grade}</span></span>
     </div>
     <div class="cv-row">
       <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
@@ -1226,6 +1259,7 @@ function renderCategory(data){
   const el = document.getElementById('catCards');
   if (!products.length){ el.innerHTML=""; document.getElementById('catStatus').textContent="표시할 제품이 없습니다."; return; }
   document.getElementById('catStatus').textContent="";
+  const howto = howToRead(cat);
   const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, basis, idx:i})).join("");
   const cmpCta = filtered.length
     ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">함량 · 가격 · 캡슐 · 인증을 한눈에</div></div></div><a href="/compare.html?category=${encodeURIComponent(cat)}&profile=${activeProfile}${subs ? `&sub=${encodeURIComponent(subKey)}` : ""}">제품 비교하기 →</a></div>`
@@ -1236,7 +1270,7 @@ function renderCategory(data){
     rest = `<div class="cat-resthead">그 외 ${restArr.length}개 제품</div>` +
       restArr.map((p,i)=>renderRestCardV8(p, {cat, metrics, stats, basis, idx:i+3})).join("");
   }
-  el.innerHTML = top + cmpCta + rest;
+  el.innerHTML = howto + top + cmpCta + rest;
 }
 
 function renderTabs(){
