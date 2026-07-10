@@ -207,7 +207,7 @@ function gradeFromScore(s){ s = parseFloat(s); if (isNaN(s)) s = 0; return s>=90
 
 /* ── app.html과 동일한 프로필 점수 엔진 (표시 점수·등급 일치용) ── */
 // 점수·등급은 서버 quality/qualityGrade. compare 는 "균형(품질점수)" 관점 하나만 보여준다.
-const PROFILES = [{ key:"balanced", label:"품질 기준" }];
+const PROFILES = [{ key:"balanced", label:"성분 우선" }];
 let activeProfile = "balanced";   // URL ?profile= 로 덮어씀. 미지정/미인식 → 균형
 let activeSubKey = null;          // URL ?sub= (유산균 대상분류 / 비타민C 용량)
 function profileLabel(){ const p = PROFILES.find(x=>x.key===activeProfile); return p ? p.label : "균형"; }
