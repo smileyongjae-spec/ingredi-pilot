@@ -279,6 +279,7 @@
     .cv-rank { font-size:12px; font-weight:700; color:var(--ink-soft); }
     .cv-gwrap { display:flex; align-items:center; gap:6px; }
     .cv-gn { font-size:11px; color:var(--ink-faint); }
+    .cv-grade-na { background:transparent; color:#9AA0A6; border-color:#E4E4E1; }
     .cv-grade { width:28px; height:28px; border-radius:50%; border:1px solid; font-size:13px; font-weight:700;
                 display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
 
@@ -660,12 +661,12 @@ function showShareToast(msg){
 window.showShareToast = showShareToast;
 
 const TERM_INFO = {
-  vscore: { title: "V-Score", badge: "종합 지표",
-    body: "선택하신 기준에 따라 V-Score가 다르게 계산되고, 그 점수가 높은 순서대로 제품이 정렬돼요. 같은 카테고리 안에서 상대 비교용이며, 개인 건강 상태에 따라 최적 제품은 다를 수 있어요.\n\nⒷ Balance(균형) — 성분·가격·리뷰를 고루 반영\nⓆ Quality(고품질) — 핵심성분 비중을 높여 계산\nⓅ Price(가성비) — 가격 비중을 높여 계산",
-    points: ["기준(B·Q·P)별로 따로 계산", "최고 98 ~ 최저 55점, 순위순 분포"] },
-  basis: { title: "비교 기준", badge: "상대 평가",
-    body: "함량·캡슐·가격은 같은 카테고리의 전체 제품과 비교한 결과예요. 탭이나 필터를 바꿔도 비교 기준은 달라지지 않아요.\n\n절대적인 좋고 나쁨이 아니라 \"이 중에서는\" 어떤 편인지를 알려드려요.",
-    points: ["카테고리 전체 제품이 기준", "키즈 제품은 분포에서 제외", "상위 25%만 정확한 백분율 표기"] },
+  vscore: { title: "품질점수", badge: "절대 평가",
+    body: "가격과 리뷰를 빼고, 검증 가능한 것만으로 매긴 점수예요. 근거 함량을 채웠는지, 흡수가 잘 되는 제형인지, 인증을 받았는지를 봐요.\n\n순위가 아니라 절대 기준이라, 다른 제품이 늘거나 줄어도 점수는 바뀌지 않아요.",
+    points: ["A 85점 · B 70점 · C 55점 · D 40점", "가격·리뷰는 점수에 넣지 않아요", "임상 근거 용량을 채우면 함량 만점"] },
+  basis: { title: "비교 기준", badge: "카테고리 내 위치",
+    body: "카드 안의 화살표 문장(함량·캡슐·가격)은 같은 카테고리 전체와 비교한 위치예요. 탭이나 필터를 바꿔도 기준은 달라지지 않아요.\n\n등급은 이와 별개로 절대 기준이에요. 다른 제품과 무관하게 정해져요.",
+    points: ["카테고리 전체 제품이 기준", "키즈 제품은 분포에서 제외", "등급은 순위가 아닌 절대 점수"] },
   gras: { title: "GRAS", badge: "안전성 인정",
     body: "미국 FDA가 \"일반적으로 안전하다(Generally Recognized As Safe)\"고 인정한 원료예요. 오랜 사용 경험과 연구로 안전성이 확인된 성분에 붙어요.\n\n효능을 보증하는 인증은 아니에요.",
     points: ["미국 FDA 안전성 인정", "효능 인증과는 별개"] },
@@ -835,25 +836,9 @@ const GRADE = {
   A:["#2D5F3F","#FAF8F3","#2D5F3F"],     B:["#EAF1EA","#2D5F3F","#CADBCD"],
   C:["transparent","#5A5E63","#D3D5D8"], D:["transparent","#6E7177","#E1E2E4"], E:["transparent","#6E7177","#E8E9EA"]
 };
-const PF_LETTER = { balanced:"B", premium:"Q", budget:"P" };
-function gradeFromScore(s){ s=num(s); return s>=90?"A":s>=80?"B":s>=70?"C":s>=60?"D":"E"; }
-function vsOf(p){ return (p && p._vs && p._vs[activeProfile]!=null) ? p._vs[activeProfile] : Math.round(num(p.vScore)); }
+// 서버(recommend2 v7)가 qualityGrade 를 내려준다. 이 함수는 폴백 전용.
+function gradeFromScore(s){ s=num(s); return s>=85?"A":s>=70?"B":s>=55?"C":s>=40?"D":"E"; }
 // 기준(B/Q/P)별로 순위를 매겨 최고 98 ~ 최저 55점으로 균등 분포시켜 _vs에 저장
-function computeProfileScores(products){
-  const N = products.length;
-  PROFILES.forEach(function(pr){
-    const ranked = products.map(function(p,i){
-      const k = (pr.key==="balanced") ? num(p.vScore) : scoreFor(p, pr.w);
-      return {p:p, i:i, k:k};
-    });
-    ranked.sort(function(a,b){ return (b.k - a.k) || (a.i - b.i); });
-    ranked.forEach(function(o, idx){
-      const score = (N<=1) ? 98 : Math.round(98 - idx*(98-55)/(N-1));
-      if (!o.p._vs) o.p._vs = {};
-      o.p._vs[pr.key] = score;
-    });
-  });
-}
 const VOCCOL = { good:["#EAF1EA","#2D5F3F"], warn:["#FBF1E3","#B07142"], neu:["#F0F0F2","#6E7177"] };
 const VOC = {
   "오메가3":      [["비린내·트림","적음 18%","good"],["알약 크기","큰 편","warn"]],
@@ -892,30 +877,6 @@ function matchSub(cat, key, p){
   return true;
 }
 // 눈: 통합 카로티노이드(표시=raw 합) + 아스타잔틴 계수 가중 + 비타민A/베타카로틴 가산 → 핵심성분점수
-function applyEyeLogic(products){
-  if (!products.length || products[0]._eyeDone) return;
-  const AST = 2.5;
-  const arr = products.map(function(p){
-    const lut = num(p.primaryValue); // 이 시점 primaryValue = 루테인
-    const zea = num(p.extra && p.extra["지아잔틴_mg"]);
-    const ast = num(p.extra && p.extra["아스타잔틴_mg"]);
-    return { p:p, raw: lut+zea+ast, w: lut+zea+ast*AST };
-  });
-  const ws = arr.map(o=>o.w).filter(x=>x>0);
-  const wmin = ws.length?Math.min.apply(null,ws):0, wmax = ws.length?Math.max.apply(null,ws):0;
-  arr.forEach(function(o){
-    o.p.primaryValue = o.raw; // 카드 대표 함량 = 실제 mg 합
-    const base = (wmax>wmin) ? ((o.w-wmin)/(wmax-wmin))*90 : (o.w>0?90:0);
-    const vitA = truthyStr(o.p.extra && o.p.extra["비타민A"]);
-    const beta = num(o.p.extra && o.p.extra["베타카로틴_mg"])>0 || truthyStr(o.p.extra && o.p.extra["베타카로틴_mg"]);
-    let core = base + (vitA?5:0) + (beta?3:0);
-    if (core>100) core = 100;
-    if (!o.p.scores) o.p.scores = {};
-    o.p.scores.core = core;
-    o.p._eye = { vitA:vitA, beta:beta };
-    o.p._eyeDone = true;
-  });
-}
 function renderSubBar(cat){
   const bar = document.getElementById('catSubBar');
   if (!bar) return;
@@ -930,24 +891,41 @@ window.setSub = function(key){
   if (catCache[activeCat]) renderCategory(catCache[activeCat]);
 };
 
+// [절대평가] 점수는 서버가 계산한 quality 하나뿐. 프로필은 "선별 방식"만 다르다.
+//   균형   — 전체를 품질점수순
+//   고품질 — 게이트(제형 최상급 + 인증 보유) 통과분만 품질점수순
+//   가성비 — 파레토 경계(이보다 싸면서 더 좋은 제품이 없음)만 가격순
 const PROFILES = [
-  { key:"balanced", label:"균형",   sub:"성분·가격·리뷰", w:{core:0.50, cost:0.35, review:0.15} },
-  { key:"premium",  label:"고품질", sub:"핵심성분 중심", w:{core:0.70, cost:0.10, review:0.20} },
-  { key:"budget",   label:"가성비", sub:"가격 중심",     w:{core:0.25, cost:0.65, review:0.10} }
+  { key:"balanced", label:"균형",   sub:"품질 순" },
+  { key:"premium",  label:"고품질", sub:"제형·인증 우수" },
+  { key:"budget",   label:"가성비", sub:"가격 대비 품질" }
 ];
 function profileOf(key){ return PROFILES.find(p=>p.key===key) || PROFILES[0]; }
-function scoreFor(p, w){
-  const s = p.scores || {};
-  return w.core*num(s.core) + w.cost*num(s.cost) + w.review*num(s.review);
+
+// 고품질 게이트: 근거로 설명 가능한 조건만 쓴다 ("왜 빠졌나" 에 답할 수 있어야 한다)
+function passPremiumGate(p){
+  const sc = p.scores || {};
+  if (sc.form != null && sc.cert != null) return sc.form >= 80 && sc.cert > 0;
+  if (sc.supplier != null) return sc.supplier >= 80;   // 눈·비타민C: 제형/인증 축이 없다
+  return false;
 }
-function sortByProfile(products, profileKey){
-  // 각 기준의 V-Score(_vs) 순서로 정렬 → 보이는 점수와 순서가 항상 일치
-  return products.map((p,i)=>({p,i})).sort((a,b)=>{
-    const dv = num(b.p._vs && b.p._vs[profileKey]) - num(a.p._vs && a.p._vs[profileKey]);
-    if (dv !== 0) return dv;
-    return a.i - b.i;
-  }).map(o=>o.p);
+function qOf(p){ return (p && p.quality != null) ? p.quality : null; }
+
+// 프로필별 선별 + 정렬. 품질점수는 어디서도 다시 계산하지 않는다.
+function applyProfile(products, key){
+  const scored = products.filter(p => qOf(p) != null);
+  const unscored = products.filter(p => qOf(p) == null);   // 평가 준비중은 항상 뒤로
+  let list;
+  if (key === "premium") {
+    list = scored.filter(passPremiumGate).sort((a,b)=> qOf(b)-qOf(a) || num(a.dailyCost)-num(b.dailyCost));
+  } else if (key === "budget") {
+    list = scored.filter(p => p.isPareto).sort((a,b)=> num(a.dailyCost)-num(b.dailyCost));
+  } else {
+    list = scored.sort((a,b)=> qOf(b)-qOf(a) || num(a.dailyCost)-num(b.dailyCost));
+  }
+  return list.concat(key === "budget" ? [] : unscored);
 }
+
 function renderProfileBar(){
   document.getElementById('catProfileBar').innerHTML = PROFILES.map(pr=>
     `<button class="cat-pf${pr.key===activeProfile?' active':''}" onclick="setProfile('${pr.key}')">${pr.label}<small>${pr.sub}</small></button>`
@@ -1100,9 +1078,9 @@ function kidsCapsuleNote(p){
 // ── "이 카드 읽는 법" ────────────────────────────
 // 문구를 카테고리마다 복사하지 않는다. 공통 항목 + PRIMARY_TERM 으로 성분 항목만 갈아 끼운다.
 const HOWTO_COMMON = [
-  ["순위와 등급", "1위는 정렬 순서, A는 품질대예요. 등급은 같은 카테고리 안에서의 상대적 위치를 뜻해요."],
+  ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — 근거 용량을 채웠는지, 제형과 인증이 우수한지로 정해지고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
   ["비교 기준", "함량·캡슐·가격은 필터와 무관하게 카테고리 전체 제품과 비교해요. 탭을 옮겨도 평가는 달라지지 않아요."],
-  ["화살표", "↗ 좋은 편, ↘ 아쉬운 편이에요. 표시가 없으면 보통이에요."],
+  ["화살표", "↗ 좋은 편, → 보통, ↘ 아쉬운 편이에요."],
   ["하루 비용", "판매가를 실제 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
   ["캡슐 크기", "같은 카테고리 제품을 셋으로 나눠 작은·보통·큰 편으로 표시해요. 캡슐이 크면 삼키기 불편할 수 있어 따로 알려드려요. 가루 형태는 삼킬 필요가 없어요."],
   ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니에요."]
@@ -1144,9 +1122,8 @@ function compareBlock(cat, basis, p, m){
 
 function renderCardV8(p, ctx){
   const cat = ctx.cat, m = ctx.metrics, st = ctx.stats, uid = ctx.idx;
-  const vscore = vsOf(p);
-  const grade = gradeFromScore(vscore);
-  const colors = GRADE[grade] || GRADE.C;
+  const grade = p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null);
+  const colors = GRADE[grade] || ["transparent","#9AA0A6","#E4E4E1"];
   const gb = colors[0], gt = colors[1], gbd = colors[2];
   const pv = num(p.primaryValue);
   const cost = num(p.dailyCost), cap = num(p.capsuleMg);
@@ -1178,7 +1155,7 @@ function renderCardV8(p, ctx){
   String(p.certs||"").split(/[,\/·]/).map(s=>s.trim()).filter(Boolean).slice(0,4).forEach(c=>tagList.push(c));
   const formChip = p.form ? `<div class="cv-form">${escapeHtml(String(p.form))}</div>` : "";
   const tagsHtml = tagList.map(t=>`<span class="cv-tag">${escapeHtml(t)}</span>`).join("");
-  const eyeSub = (cat==="눈") ? `<div style="font-size:9.5px;color:var(--ink-faint);margin-top:1px">루테인+지아잔틴+아스타잔틴</div>` : "";
+  const eyeSub = "";
   const eyeBonus = (cat==="눈" && p._eye)
     ? `<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px">${p._eye.vitA?'<span class="cv-bonus vitA">비타민A ✓ +5</span>':''}${p._eye.beta?'<span class="cv-bonus beta">베타카로틴 ✓ +3</span>':''}</div>`
     : "";
@@ -1208,8 +1185,10 @@ function renderCardV8(p, ctx){
   return `<div class="cv-card" id="prod-${escapeHtml(String(p.id||''))}">
     <div class="cv-top">
       <span class="cv-rank">${rankLabel}</span>
-      <span class="cv-gwrap"><span class="cv-gn">${basis.nAll}개 중</span>
-        <span class="cv-grade" style="background:${gb};color:${gt};border-color:${gbd}">${grade}</span></span>
+      <span class="cv-gwrap">
+        ${grade
+          ? `<span class="cv-grade" style="background:${gb};color:${gt};border-color:${gbd}">${grade}</span>`
+          : `<span class="cv-grade cv-grade-na">–</span>`}</span>
     </div>
     <div class="cv-row">
       <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
@@ -1232,8 +1211,7 @@ function renderCardV8(p, ctx){
 
 function renderRestCardV8(p, ctx){
   const m = ctx.metrics;
-  const vscore = vsOf(p);
-  const grade = gradeFromScore(vscore);
+  const grade = p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null);
   const pv = num(p.primaryValue);
   const img = p.image ? escapeHtml(p.image) : PLACEHOLDER;
   const sub = `${escapeHtml(m.primary.label)} ${fmt(pv)}${escapeHtml(m.primary.unit)}`;
@@ -1243,7 +1221,7 @@ function renderRestCardV8(p, ctx){
       <span class="cr-rank">${ctx.idx+1}위</span>
       <img class="cr-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div class="cr-info"><div class="cr-name">${escapeHtml(p.name)}</div><div class="cr-sub">${sub}</div></div>
-      <div class="cr-right"><div class="cr-vscore">${grade}</div><span class="cr-chev">자세히 ▼</span></div>
+      <div class="cr-right"><div class="cr-vscore">${grade || "–"}</div><span class="cr-chev">자세히 ▼</span></div>
     </div>
     <div class="cr-expanded"><div class="cr-collapse" onclick="toggleCatExpand(${ctx.idx})">접기 ▲</div>${full}</div>
   </div>`;
@@ -1256,7 +1234,6 @@ window.toggleCatExpand = function(idx){
 function renderCategory(data){
   const cat = data.category;
   const all = data.products || [];
-  if (cat==="눈") applyEyeLogic(all);
   const metrics = data.metrics;
   if (cat==="눈" && metrics && metrics.primary) metrics.primary.label = "핵심 카로티노이드";
   const subs = SUBFILTERS[cat];
@@ -1265,8 +1242,7 @@ function renderCategory(data){
   renderSubBar(cat);
   const stats = buildStats(filtered);
   const basis = buildBasis(all);   // 비교 기준은 서브필터와 무관하게 카테고리 전체
-  computeProfileScores(all);       // 등급도 마찬가지. 탭을 옮겨도 등급이 바뀌면 안 된다
-  const products = sortByProfile(filtered, activeProfile);
+  const products = applyProfile(filtered, activeProfile);
   const subLabel = subs ? ` · ${((subs.find(s=>s.key===subKey)||{}).label)||""}` : "";
   document.getElementById('catMeta').textContent = `${cat}${subLabel} · ${filtered.length}개 · ${profileOf(activeProfile).label} 정렬`;
   document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
