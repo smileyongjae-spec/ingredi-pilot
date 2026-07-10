@@ -44,24 +44,24 @@ export async function onRequest(context) {
 
   // 증상·효능 표현 → 서비스 카테고리 (조사가 붙어도 잡히도록 정규식)
   const PRODUCT_HINTS = [
-    { cat: "probiotics", re: /장\s*(이|은|을|내|건강|기능|트러블|활동|운동)|배변|변비|설사|화장실|대변|묽은변|배\s*(가|를|에).{0,5}(아프|아파|불편|더부룩)/ },
-    { cat: "eye",        re: /눈\s*(이|은|을|의|건강|영양제|피로|시림)|시력|황반|안구|침침|뻑뻑/ },
+    { cat: "probiotics", re: /장\s*(이|은|을|내|건강|기능|트러블|활동|운동)|장\s*(안\s*좋|나빠|불편)|배변|변비|설사|화장실|대변|묽은변|배\s*(가|를|에).{0,5}(아프|아파|불편|더부룩)/ },
+    { cat: "eye",        re: /눈\s*(이|은|을|의|건강|영양제|피로|시림|나빠|안\s*좋)|시력|황반|안구|침침|뻑뻑/ },
     { cat: "omega3",     re: /혈행|중성지방|콜레스테롤|혈중지질|심혈관/ },
     { cat: "vitaminC",   re: /항산화|괴혈병/ }
   ];
   // 미서비스 건강도메인 힌트
   const DOMAIN_HINTS = [
-    { dom: "수면",       re: /수면|불면|잠\s*(이|을|못|안|설치)|숙면|멜라토닌|테아닌/ },
-    { dom: "관절",       re: /관절|무릎|연골|글루코사민|보스웰리아/ },
-    { dom: "간",         re: /간\s*(이|은|을|에|수치|건강|기능)|숙취|밀크시슬|밀크씨슬|실리마린|음주|술\s*(을|자주|많이|마시)|알코올/ },
-    { dom: "피부",       re: /피부|여드름|뾰루지|주름|콜라겐|미백|기미/ },
-    { dom: "다이어트",   re: /다이어트|체중|체지방|살\s*(을|이|빼)|가르시니아/ },
-    { dom: "뼈",         re: /뼈|골다공증|골밀도|칼슘/ },
-    { dom: "혈압",       re: /혈압/ },
-    { dom: "인지",       re: /기억력|인지|집중력|치매|두뇌/ },
-    { dom: "커큐민",     re: /커큐민|강황|울금/ },
-    { dom: "글루타치온", re: /글루타치온|글루타티온/ },
-    { dom: "면역",       re: /면역/ }
+    { dom: "수면",       re: /수면|불면|잠\s*(이|을|못|안|설치)|숙면|멜라토닌|테아닌|melatonin|theanine|insomnia|sleep/ },
+    { dom: "관절",       re: /관절|무릎|연골|글루코사민|보스웰리아|glucosamine|boswellia|joint/ },
+    { dom: "간",         re: /간\s*(이|은|을|에|수치|건강|기능)|간\s*(안\s*좋|나빠)|숙취|밀크시슬|밀크씨슬|실리마린|milk\s*thistle|silymarin|음주|술\s*(을|자주|많이|마시)|알코올/ },
+    { dom: "피부",       re: /피부|여드름|뾰루지|주름|콜라겐|미백|기미|collagen|biotin|skin/ },
+    { dom: "다이어트",   re: /다이어트|diet|체중|체지방|살\s*(을|이|빼|안\s*빠)|가르시니아|garcinia/ },
+    { dom: "뼈",         re: /뼈|골다공증|골밀도|칼슘|calcium|bone/ },
+    { dom: "혈압",       re: /혈압|blood\s*pressure/ },
+    { dom: "인지",       re: /기억력|인지|집중력|치매|두뇌|cognitive|memory/ },
+    { dom: "커큐민",     re: /커큐민|강황|울금|curcumin|turmeric/ },
+    { dom: "글루타치온", re: /글루타치온|글루타티온|glutathione/ },
+    { dom: "면역",       re: /면역|immun/ }
   ];
 
   // 카테고리가 특정되지 않은 일반 요청 → 페르소나 가이드로
@@ -69,6 +69,10 @@ export async function onRequest(context) {
   // 사람을 가리키는 말이 있으면 페르소나 가이드로 확정
   const PERSONA_WORDS = /남성|여성|남자|여자|아이|어린이|청소년|학생|부모님|시니어|노인|엄마|아빠|아내|남편|임산부|직장인|수험생|갱년기|출산|산후|운동|헬스|\d+\s*(대|살|세)|(이|삼|사|오|육)십\s*대/;
   const MIN_ROUTE_SCORE = 5.0;   // 이보다 낮으면 우연 매칭으로 본다
+
+  // 서비스 운영·모델 자체·프롬프트 조작 시도 → 검색하지 않고 고정 안내
+  const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐)|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|jailbreak|ignore\s+previous/i;
+  const SERVICE_QUERY = /환불|반품|교환|배송|결제|쿠폰|주문|취소|배달|고객센터|광고\s*(를)?\s*받|협찬|수수료/;
 
   // 건기식으로 답할 사안이 아닌 질환·치료 영역. 검색하지 않고 의료 상담으로 안내한다.
   const MEDICAL_REFERRAL = /우울증|우울|불안장애|공황|조현병|자살|암\s*(치료|환자)?|항암|당뇨병|갑상선|백신|코로나|독감|고열|응급|골절|임신중절|생리통|월경|처방|약\s*(을|좀)?\s*(먹|드시|복용)/;
@@ -238,7 +242,8 @@ export async function onRequest(context) {
 
     // ─── [3-b] 라우팅 확정 (제품 DB가 로드된 뒤) ────
     let productMatchRecord = null;
-    if (remainder.length >= 3) {
+    const _meta = META_QUERY.test(query) || SERVICE_QUERY.test(query);
+    if (!_meta && remainder.length >= 3) {
       const cand = detectProductName(query, pRecords || []);
       if (cand) {
         const qn = normEntity(query);
@@ -246,13 +251,17 @@ export async function onRequest(context) {
         if (qn.length >= 4 && nn.indexOf(qn) !== -1) { productMatchRecord = cand; matchedCategory = "omega3"; }
       }
     }
-    if (!productMatchRecord) {
+    if (!productMatchRecord && !_meta) {
       for (const cat in CATEGORY_KEYWORDS) {
         if (CATEGORY_KEYWORDS[cat].some(k => lowerQuery.indexOf(k) !== -1)) { matchedCategory = cat; break; }
       }
       if (!matchedCategory) for (const h of PRODUCT_HINTS) if (h.re.test(query)) { matchedCategory = h.cat; break; }
       if (!matchedCategory) for (const h of DOMAIN_HINTS) if (h.re.test(query)) { hintDomain = h.dom; break; }
-      if (!matchedCategory && !hintDomain) {
+      // 카테고리를 특정할 수 없는 제품선택 주제 (목넘김·제형·성분중복) → 성분 가이드
+      const CROSS_TOPIC = /목넘김|삼키|삼킴|캡슐\s*(못|크|작)|알약\s*(못|크)|제형\s*(차이|선택)|성분\s*중복|중복\s*섭취/;
+      if (!matchedCategory && !hintDomain && CROSS_TOPIC.test(query)) isGeneric = true;
+
+      if (!matchedCategory && !hintDomain && isGeneric !== true) {
         const hasGeneric = GENERIC_TERMS.some(t => lowerQuery.indexOf(t) !== -1);
         // 사람이 주어면 페르소나 가이드로 확정, 아니면 검색 투표에 맡긴다
         isGeneric = hasGeneric && PERSONA_WORDS.test(query);
@@ -262,6 +271,8 @@ export async function onRequest(context) {
     // 질환·치료 질문이되 우리 카테고리와 무관할 때만 의료 상담으로 회부한다.
     // ("항암치료 중인데 오메가3" 는 오메가3 답변 + 위험 경고가 맞다)
     const needsDoctor = !productMatchRecord && !matchedCategory && !hintDomain && MEDICAL_REFERRAL.test(query);
+    const isMeta = META_QUERY.test(query);
+    const isService = SERVICE_QUERY.test(query);
 
     // ─── [4] 문서 정규화 ───────────────────────────
     function docFromFaq(r) {
@@ -351,7 +362,9 @@ export async function onRequest(context) {
     let advisoryDomain = null;
     let ambiguousCats = null;
 
-    if (needsDoctor) {
+    if (isMeta || isService) {
+      mode = "none";      // 모델·운영 질문 → 검색 없이 고정 안내
+    } else if (needsDoctor) {
       mode = "none";      // 질환·치료 질문 → 카드 + 의료 상담 안내
     } else if (productMatchRecord) {
       mode = "counsel";   // 아래 [8]에서 isProductMode로 제품 리스트 모드가 됨
@@ -420,6 +433,12 @@ export async function onRequest(context) {
       if (mode === "category_select" && ambiguousCats) {
         reason = "ambiguous";
         answerText = `말씀하신 내용은 ${ambiguousCats.join("과 ")} 모두와 관련이 있어요.\n\n어느 쪽이 궁금하신지 골라주시면 ${forWhom}`;
+      } else if (isMeta) {
+        reason = "meta";
+        answerText = `저는 ingredi의 건강기능식품 정보 카운슬러예요. 제품 성분과 복용법에 대한 질문에 답해드려요.\n\ningredi는 광고를 받지 않고 공개된 제품 데이터로만 비교해드려요.\n\n${FOUR_CATS} 4개 카테고리 중 궁금한 것을 골라주세요.`;
+      } else if (isService) {
+        reason = "service";
+        answerText = `주문·배송·환불은 구매하신 판매처(쿠팡 등)에서 확인하셔야 해요. ingredi는 제품을 판매하지 않고 비교 정보만 제공해요.\n\n성분이나 복용법이 궁금하시면 아래에서 카테고리를 골라주세요.`;
       } else if (needsDoctor) {
         reason = "medical";
         answerText = `말씀하신 내용은 진단과 치료가 필요한 영역이라 ingredi가 답변드리기 어려워요.\n\n먼저 의사·약사와 상담하시는 것을 권해드려요. 건강기능식품은 의약품을 대신할 수 없어요.\n\ningredi는 현재 ${FOUR_CATS} 4개 카테고리의 제품 정보를 다루고 있어요.`;
