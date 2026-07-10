@@ -813,7 +813,7 @@ function renderResult(data, deferProducts) {
   const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
   const fCount = data.flags ? data.flags.faqCount || 0 : 0;
   document.getElementById('queryMeta').textContent =
-    data.mode === 'category_select' ? ({ ambiguous: '어느 쪽이 궁금하신가요?', not_found: '근거 데이터가 없어요' }[(data.flags || {}).reason] || '카테고리를 골라주세요')
+    data.mode === 'category_select' ? ({ ambiguous: '어느 쪽이 궁금하신가요?', not_found: '근거 데이터가 없어요', medical: '의사·약사와 상담해주세요', meta: 'ingredi 소개', service: '주문·배송 안내' }[(data.flags || {}).reason] || '카테고리를 골라주세요')
     : data.mode === 'advisory' ? `${data.healthDomain || ''} 정보 · 제품 비교는 미지원`.trim()
     : data.mode === 'guide' ? '성분 선택 가이드'
     : data.mode === 'product' ? '제품 검색 결과'
