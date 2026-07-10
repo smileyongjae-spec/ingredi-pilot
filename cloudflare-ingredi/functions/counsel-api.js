@@ -184,17 +184,30 @@ export async function onRequest(context) {
     for (const ing of INGREDIENTS) if (n === normEntity(ing.key)) return ing;
     return null;
   }
-  // 제품명 매칭: 통짜 부분일치 → 실패 시 모든 토큰이 제품명에 포함되는지
-  // ("GNM 조정석 오메가3" 는 실제 제품명 중간에 'rTG 알티지'가 끼어 통짜로는 안 걸린다)
+  // 제품명 매칭
+  //  1) 통짜 부분일치 ("담백하루 초임계")
+  //  2) 실패 시 토큰 전부 일치 ("GNM 조정석 오메가3" 는 제품명 중간에 'rTG 알티지'가 끼어 통짜로는 안 걸린다)
+  // 2)의 조건: 2자 이상 토큰이 "모두" 제품명에 있고, 그중 카테고리어가 아닌 3자 이상 토큰(=브랜드)이 하나 이상.
+  // 이 두 조건이 없으면 "rTG 오메가3 캡슐 크기" 나 "오메가3 하루 몇 알" 이 제품으로 오인된다.
+  // 토큰이 카테고리어인지: 완전 일치가 아니라 포함 관계로 본다.
+  // 키워드는 "오메가"인데 사용자는 "오메가3"라고 쓴다.
+  function isCategoryWord(t) {
+    for (const cat in CATEGORY_KEYWORDS) for (const k of CATEGORY_KEYWORDS[cat]) {
+      const nk = normEntity(k);
+      if (nk && (t === nk || t.indexOf(nk) !== -1 || nk.indexOf(t) !== -1)) return true;
+    }
+    return false;
+  }
   function detectProductName(q, records) {
     const qn = normEntity(q);
     if (qn.length < 3) return null;
-    const parts = String(q).split(/\s+/).map(normEntity).filter(t => t.length >= 3);
     for (const r of records || []) {
       const nm = normEntity(getField(r.fields || {}, "제품명", "name"));
       if (nm && nm.indexOf(qn) !== -1) return r;
     }
-    if (parts.length >= 2) {
+    const parts = String(q).split(/\s+/).map(normEntity).filter(t => t.length >= 2);
+    const hasBrand = parts.some(t => t.length >= 3 && !isCategoryWord(t));
+    if (parts.length >= 2 && hasBrand) {
       for (const r of records || []) {
         const nm = normEntity(getField(r.fields || {}, "제품명", "name"));
         if (nm && parts.every(p => nm.indexOf(p) !== -1)) return r;
