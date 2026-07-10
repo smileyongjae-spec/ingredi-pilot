@@ -35,7 +35,7 @@ export async function onRequest(context) {
     omega3:     ["오메가", "omega", "epa", "dha", "ala", "dpa", "rtg", "알티지", "어유", "fish oil", "크릴", "어류"],
     vitaminC:   ["비타민c", "비타민 c", "비타민씨", "vitamin c", "아스코르브산", "ascorbic", "메가도스", "리포좀"],
     eye:        ["루테인", "지아잔틴", "아스타잔틴", "황반", "시력", "안구", "눈건강", "lutein", "zeaxanthin", "마리골드"],
-    probiotics: ["프로바이오틱스", "유산균", "윤산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "보장균수", "cfu"]
+    probiotics: ["프로바이오틱스", "프리바이오틱스", "신바이오틱스", "포스트바이오틱스", "유산균", "윤산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "보장균수", "cfu"]
   };
   const CAT_KO    = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈", probiotics: "유산균" };
   const KO_CAT    = { "오메가3": "omega3", "비타민C": "vitaminC", "눈": "eye", "유산균": "probiotics" };
@@ -44,17 +44,17 @@ export async function onRequest(context) {
 
   // 증상·효능 표현 → 서비스 카테고리 (조사가 붙어도 잡히도록 정규식)
   const PRODUCT_HINTS = [
-    { cat: "probiotics", re: /장\s*(이|은|을|내|건강|기능)|배변|변비|설사|장트러블|장활동|장운동/ },
-    { cat: "eye",        re: /눈\s*(이|은|을|의|건강)|시력|황반|안구|눈피로|침침/ },
+    { cat: "probiotics", re: /장\s*(이|은|을|내|건강|기능|트러블|활동|운동)|배변|변비|설사|화장실|대변|묽은변|배\s*(가|를|에).{0,5}(아프|아파|불편|더부룩)/ },
+    { cat: "eye",        re: /눈\s*(이|은|을|의|건강|영양제|피로|시림)|시력|황반|안구|침침|뻑뻑/ },
     { cat: "omega3",     re: /혈행|중성지방|콜레스테롤|혈중지질|심혈관/ },
     { cat: "vitaminC",   re: /항산화|괴혈병/ }
   ];
   // 미서비스 건강도메인 힌트
   const DOMAIN_HINTS = [
-    { dom: "수면",       re: /수면|불면|잠\s*(이|을|못|안)|숙면|melatonin|테아닌/ },
+    { dom: "수면",       re: /수면|불면|잠\s*(이|을|못|안|설치)|숙면|멜라토닌|테아닌/ },
     { dom: "관절",       re: /관절|무릎|연골|글루코사민|보스웰리아/ },
-    { dom: "간",         re: /간\s*(이|은|을|에|수치|건강|기능)|숙취|밀크시슬|밀크씨슬|실리마린/ },
-    { dom: "피부",       re: /피부|여드름|주름|콜라겐|미백|기미/ },
+    { dom: "간",         re: /간\s*(이|은|을|에|수치|건강|기능)|숙취|밀크시슬|밀크씨슬|실리마린|음주|술\s*(을|자주|많이|마시)|알코올/ },
+    { dom: "피부",       re: /피부|여드름|뾰루지|주름|콜라겐|미백|기미/ },
     { dom: "다이어트",   re: /다이어트|체중|체지방|살\s*(을|이|빼)|가르시니아/ },
     { dom: "뼈",         re: /뼈|골다공증|골밀도|칼슘/ },
     { dom: "혈압",       re: /혈압/ },
@@ -63,6 +63,15 @@ export async function onRequest(context) {
     { dom: "글루타치온", re: /글루타치온|글루타티온/ },
     { dom: "면역",       re: /면역/ }
   ];
+
+  // 카테고리가 특정되지 않은 일반 요청 → 페르소나 가이드로
+  const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "뭐 먹", "무엇을 먹", "뭘 먹", "뭐가 좋", "뭐 사"];
+  // 사람을 가리키는 말이 있으면 페르소나 가이드로 확정
+  const PERSONA_WORDS = /남성|여성|남자|여자|아이|어린이|청소년|학생|부모님|시니어|노인|엄마|아빠|아내|남편|임산부|직장인|수험생|갱년기|출산|산후|운동|헬스|\d+\s*(대|살|세)|(이|삼|사|오|육)십\s*대/;
+  const MIN_ROUTE_SCORE = 5.0;   // 이보다 낮으면 우연 매칭으로 본다
+
+  // 건기식으로 답할 사안이 아닌 질환·치료 영역. 검색하지 않고 의료 상담으로 안내한다.
+  const MEDICAL_REFERRAL = /우울증|우울|불안장애|공황|조현병|자살|암\s*(치료|환자)?|항암|당뇨병|갑상선|백신|코로나|독감|고열|응급|골절|임신중절|생리통|월경|처방|약\s*(을|좀)?\s*(먹|드시|복용)/;
 
   const CROSS_DOMAINS = new Set(["페르소나", "카페질문"]);
   const DOMAIN_LABEL = {
@@ -97,6 +106,11 @@ export async function onRequest(context) {
     let age = null, gender = null;
     let m = text.match(/(\d{1,3})\s*(?:살|세)/);
     if (m) { const a = parseInt(m[1], 10); if (a >= 10 && a <= 120) age = a >= 60 ? "60" : String(Math.max(20, Math.floor(a / 10) * 10)); }
+    if (!age) {
+      const KO = { "이십": "20", "삼십": "30", "사십": "40", "오십": "50", "육십": "60" };
+      const km = text.match(/(이십|삼십|사십|오십|육십)\s*대/);
+      if (km) age = KO[km[1]];
+    }
     if (!age) {
       m = text.match(/(\d{1,2})\s*대/);
       if (m) { const d = parseInt(m[1], 10); if (d >= 60) age = "60"; else if (d >= 20) age = String(d); else if (d > 0) age = "20"; }
@@ -147,12 +161,21 @@ export async function onRequest(context) {
     for (const ing of INGREDIENTS) if (n === normEntity(ing.key)) return ing;
     return null;
   }
+  // 제품명 매칭: 통짜 부분일치 → 실패 시 모든 토큰이 제품명에 포함되는지
+  // ("GNM 조정석 오메가3" 는 실제 제품명 중간에 'rTG 알티지'가 끼어 통짜로는 안 걸린다)
   function detectProductName(q, records) {
     const qn = normEntity(q);
     if (qn.length < 3) return null;
+    const parts = String(q).split(/\s+/).map(normEntity).filter(t => t.length >= 3);
     for (const r of records || []) {
       const nm = normEntity(getField(r.fields || {}, "제품명", "name"));
-      if (nm && (nm.indexOf(qn) !== -1 || qn.indexOf(nm) !== -1)) return r;
+      if (nm && nm.indexOf(qn) !== -1) return r;
+    }
+    if (parts.length >= 2) {
+      for (const r of records || []) {
+        const nm = normEntity(getField(r.fields || {}, "제품명", "name"));
+        if (nm && parts.every(p => nm.indexOf(p) !== -1)) return r;
+      }
     }
     return null;
   }
@@ -190,18 +213,19 @@ export async function onRequest(context) {
     }
     const lowerTokens = [...tokenSet].filter(t => t.length > 1);
 
-    // ─── [2] 명시적 카테고리 → 증상 힌트 → (없으면) 검색 라우팅 ──
+    // ─── [2] 라우팅: 제품명 → 카테고리 → 증상 힌트 → 일반 요청 ──
     let matchedCategory = null;
     let hintDomain = null;
-    for (const cat in CATEGORY_KEYWORDS) {
-      if (CATEGORY_KEYWORDS[cat].some(k => lowerQuery.indexOf(k) !== -1)) { matchedCategory = cat; break; }
+    let isGeneric = false;
+
+    // 질문에서 카테고리 키워드를 뺀 나머지(브랜드명)가 3자 이상일 때만 제품명으로 본다.
+    // "오메가3" → 나머지 "" → 제품명 아님 / "프롬바이오 rTG 오메가3" → "프롬바이오" → 제품명
+    function brandRemainder(q) {
+      let t = normEntity(q);
+      for (const cat in CATEGORY_KEYWORDS) for (const k of CATEGORY_KEYWORDS[cat]) t = t.split(normEntity(k)).join("");
+      return t.replace(/[0-9]/g, "");
     }
-    if (!matchedCategory) {
-      for (const h of PRODUCT_HINTS) if (h.re.test(query)) { matchedCategory = h.cat; break; }
-    }
-    if (!matchedCategory) {
-      for (const h of DOMAIN_HINTS) if (h.re.test(query)) { hintDomain = h.dom; break; }
-    }
+    const remainder = brandRemainder(query);
 
     // ─── [3] 테이블 로드 ───────────────────────────
     async function safeGet(t) { try { return await getRecords(env, t); } catch (_) { return []; } }
@@ -211,6 +235,33 @@ export async function onRequest(context) {
       safeGet(FAQ_TABLE),
       needOmegaProducts ? safeGet("오메가3_쿠팡업데이트") : Promise.resolve([])
     ]);
+
+    // ─── [3-b] 라우팅 확정 (제품 DB가 로드된 뒤) ────
+    let productMatchRecord = null;
+    if (remainder.length >= 3) {
+      const cand = detectProductName(query, pRecords || []);
+      if (cand) {
+        const qn = normEntity(query);
+        const nn = normEntity(getField(cand.fields || {}, "제품명", "name"));
+        if (qn.length >= 4 && nn.indexOf(qn) !== -1) { productMatchRecord = cand; matchedCategory = "omega3"; }
+      }
+    }
+    if (!productMatchRecord) {
+      for (const cat in CATEGORY_KEYWORDS) {
+        if (CATEGORY_KEYWORDS[cat].some(k => lowerQuery.indexOf(k) !== -1)) { matchedCategory = cat; break; }
+      }
+      if (!matchedCategory) for (const h of PRODUCT_HINTS) if (h.re.test(query)) { matchedCategory = h.cat; break; }
+      if (!matchedCategory) for (const h of DOMAIN_HINTS) if (h.re.test(query)) { hintDomain = h.dom; break; }
+      if (!matchedCategory && !hintDomain) {
+        const hasGeneric = GENERIC_TERMS.some(t => lowerQuery.indexOf(t) !== -1);
+        // 사람이 주어면 페르소나 가이드로 확정, 아니면 검색 투표에 맡긴다
+        isGeneric = hasGeneric && PERSONA_WORDS.test(query);
+        if (hasGeneric) isGeneric = true;   // 주제어가 없으므로 성분 가이드로
+      }
+    }
+    // 질환·치료 질문이되 우리 카테고리와 무관할 때만 의료 상담으로 회부한다.
+    // ("항암치료 중인데 오메가3" 는 오메가3 답변 + 위험 경고가 맞다)
+    const needsDoctor = !productMatchRecord && !matchedCategory && !hintDomain && MEDICAL_REFERRAL.test(query);
 
     // ─── [4] 문서 정규화 ───────────────────────────
     function docFromFaq(r) {
@@ -282,24 +333,14 @@ export async function onRequest(context) {
     const isCross = d => CROSS_DOMAINS.has(d.domain);
     const inCategory = (d, catKo) => d.prodCat === catKo;
 
-    // 카테고리·도메인 힌트가 모두 없으면 제품명일 수 있다 (검색 라우팅보다 먼저 확인)
-    let productMatchRecord = null;
-    if (!matchedCategory && !hintDomain) {
-      const cand = detectProductName(query, pRecords || []);
-      // 오탐 방지: 질문이 짧고, 제품명이 질문을 포함하는 경우만 인정
-      if (cand) {
-        const qn = normEntity(query);
-        const nn = normEntity(getField(cand.fields || {}, "제품명", "name"));
-        if (qn.length >= 4 && nn.indexOf(qn) !== -1) { productMatchRecord = cand; matchedCategory = "omega3"; }
-      }
-    }
-
     let pool;
     if (matchedCategory) {
       const ko = CAT_KO[matchedCategory];
       pool = allDocs.filter(d => inCategory(d, ko) || isCross(d));
     } else if (hintDomain) {
       pool = allDocs.filter(d => d.domain === hintDomain || isCross(d));
+    } else if (isGeneric) {
+      pool = allDocs.filter(d => d.domain === "페르소나");
     } else {
       pool = allDocs;
     }
@@ -310,10 +351,14 @@ export async function onRequest(context) {
     let advisoryDomain = null;
     let ambiguousCats = null;
 
-    if (productMatchRecord) {
+    if (needsDoctor) {
+      mode = "none";      // 질환·치료 질문 → 카드 + 의료 상담 안내
+    } else if (productMatchRecord) {
       mode = "counsel";   // 아래 [8]에서 isProductMode로 제품 리스트 모드가 됨
+    } else if (isGeneric) {
+      mode = "guide";     // 근거가 안 잡혀도 페르소나 개요로 안내
     } else if (!matchedCategory && hintDomain) {
-      mode = scored.length ? "advisory" : "none";
+      mode = "advisory";          // 힌트가 곧 근거. 매칭이 얕으면 아래에서 도메인 문서로 채운다
       advisoryDomain = hintDomain;
     } else if (!matchedCategory) {
       const TOPN = scored.slice(0, 12);
@@ -330,7 +375,9 @@ export async function onRequest(context) {
       const bestServed = servedRank[0] ? servedRank[0][1] : 0;
       const bestAdv = advRank[0] ? advRank[0][1] : 0;
 
-      if (bestServed > 0 && bestServed >= bestAdv) {
+      if (bestServed < MIN_ROUTE_SCORE && bestAdv < MIN_ROUTE_SCORE && personaSum < MIN_ROUTE_SCORE) {
+        mode = "none";   // 우연 매칭 — 근거로 보지 않는다
+      } else if (bestServed > 0 && bestServed >= bestAdv) {
         // 서비스 카테고리 두 개가 근접하면 사용자에게 물어본다
         if (servedRank[1] && servedRank[1][1] >= servedRank[0][1] * 0.8) {
           ambiguousCats = [servedRank[0][0], servedRank[1][0]];
@@ -358,6 +405,12 @@ export async function onRequest(context) {
         scored = scored.filter(x => x.d.domain === "페르소나");
       }
     }
+    if (mode === "guide") {
+      scored = scored.filter(x => x.d.domain === "페르소나");
+      if (scored.length === 0) {
+        scored = allDocs.filter(d => d.domain === "페르소나").slice(0, 4).map(d => ({ d, s: 0.01 }));
+      }
+    }
 
     // ─── [7] 그래도 못 찾으면 카테고리 선택 카드 ────
     if (mode === "none" || mode === "category_select") {
@@ -367,6 +420,9 @@ export async function onRequest(context) {
       if (mode === "category_select" && ambiguousCats) {
         reason = "ambiguous";
         answerText = `말씀하신 내용은 ${ambiguousCats.join("과 ")} 모두와 관련이 있어요.\n\n어느 쪽이 궁금하신지 골라주시면 ${forWhom}`;
+      } else if (needsDoctor) {
+        reason = "medical";
+        answerText = `말씀하신 내용은 진단과 치료가 필요한 영역이라 ingredi가 답변드리기 어려워요.\n\n먼저 의사·약사와 상담하시는 것을 권해드려요. 건강기능식품은 의약품을 대신할 수 없어요.\n\ningredi는 현재 ${FOUR_CATS} 4개 카테고리의 제품 정보를 다루고 있어요.`;
       } else {
         reason = "not_found";
         answerText = `죄송해요. 말씀하신 내용은 ingredi가 근거 데이터로 확인해 드리기 어려운 내용이에요.\n\n증상이 계속되면 의사·약사와 상담해보세요.\n\ningredi는 현재 ${FOUR_CATS} 4개 카테고리를 다루고 있어요. 아래에서 필요한 것을 골라주시면 ${forWhom}`;
@@ -384,6 +440,21 @@ export async function onRequest(context) {
     // ─── [8] 컨텍스트 상위 8건 ─────────────────────
     // 근거가 빈약하면 해당 카테고리의 핵심 지식(효능·개념·성분)으로 채운다.
     // 이게 없으면 Claude가 "검색된 정보에 관련 내용이 없다"고 답해버린다.
+    // 힌트로 도메인이 확정됐는데 매칭이 얕으면 해당 도메인 문서로 채운다 ("골밀도 높이려면")
+    if (!matchedCategory && advisoryDomain) {
+      const own = scored.filter(x => x.d.domain === advisoryDomain);
+      if (own.length < 3) {
+        const have = new Set(scored.map(x => x.d.id));
+        const filler = allDocs.filter(d => d.domain === advisoryDomain && !have.has(d.id))
+          .slice(0, 3 - own.length).map(d => ({ d, s: 0.01 }));
+        scored = scored.concat(filler);
+        scored.sort((a, b) => {
+          const ao = a.d.domain === advisoryDomain ? 1 : 0, bo = b.d.domain === advisoryDomain ? 1 : 0;
+          return (bo - ao) || (b.s - a.s);
+        });
+      }
+    }
+
     const ownCount = matchedCategory ? scored.filter(x => x.d.prodCat === CAT_KO[matchedCategory]).length : 0;
     if (matchedCategory && ownCount < 3) {
       const ko = CAT_KO[matchedCategory];
