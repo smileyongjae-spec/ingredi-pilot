@@ -92,55 +92,15 @@
     .alert-icon { flex-shrink: 0; font-size: 18px; line-height: 1.3; }
 
     .recommend-head { font-size: 16px; font-weight: 700; color: var(--green-deep); margin-bottom: 12px; padding: 0 4px; }
-    .product-card { background: white; border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
-    .product-card.rank-1 { border: 1.5px solid var(--gold); background: linear-gradient(180deg, #FEFAF1 0%, white 60%); }
-    .product-card.rank-2 { border: 1.5px solid var(--silver); }
-    .product-card.rank-3 { border: 1.5px solid var(--bronze); }
-    .product-card-row { display: flex; gap: 10px; align-items: flex-start; }
-    .product-image-wrap { width: 76px; flex-shrink: 0; position: relative; }
-    .product-image { width: 76px; height: 96px; object-fit: cover; border-radius: 6px; background: var(--green-bg); display: block; border: 1px solid var(--line-soft); }
-    .product-rank-badge { position: absolute; top: -6px; left: -6px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: white; background: var(--green-mid); box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 2; }
     .rank-1 .product-rank-badge { background: var(--gold); }
     .rank-2 .product-rank-badge { background: var(--silver); }
     .rank-3 .product-rank-badge { background: var(--bronze); }
-    .product-info { flex: 1; min-width: 0; }
-    .product-info-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 5px; }
-    .product-grade { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid; flex-shrink: 0; }
-    .product-vscore-block { text-align: right; flex-shrink: 0; }
-    .product-vscore-num { font-size: 21px; font-weight: 800; color: var(--green-deep); line-height: 1; letter-spacing: -0.04em; }
-    .product-vscore-cap { font-size: 11px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0.06em; margin-top: 1px; }
-    .product-name { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1.3; margin-bottom: 6px; }
-    .product-meta { font-size: 13px; color: var(--ink-soft); margin-bottom: 6px; }
-    .product-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-    .product-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 100px; background: var(--green-light); color: var(--green-deep); border: none; font-family: inherit; }
-    .product-tag.tappable { cursor: pointer; }
-    .product-tag.tappable:active { background: var(--green-mid); color: white; }
     .product-tag .qb { width: 13px; height: 13px; border-radius: 50%; background: var(--green-primary); color: #fff; font-size: 8px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-    .product-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
-    .btn-mini { padding: 7px 8px; border: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; letter-spacing: -0.01em; text-decoration: none; text-align: center; display: flex; align-items: center; justify-content: center; }
-    .btn-mini.secondary { background: var(--green-light); color: var(--green-deep); }
-    .btn-mini.primary { background: var(--green-primary); color: white; }
     .btn-mini.primary:hover { background: var(--green-deep); }
     .btn-mini:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
-
-    .detail-panel { display: none; margin-top: 8px; padding-top: 2px; }
-    .detail-panel.active { display: block; animation: fadeIn 0.3s ease; }
-    .stat-bar { padding: 12px 0; border-top: 0.5px solid var(--line-soft); }
     .stat-bar:first-child { border-top: none; padding-top: 6px; }
-    .stat-bar-line { font-size: 15px; color: var(--ink); line-height: 1.4; margin-bottom: 6px; }
     .stat-bar-line .title { font-weight: 700; }
     .stat-bar-line .value { font-size: 17px; font-weight: 800; color: var(--green-deep); margin-left: 6px; letter-spacing: -0.02em; }
-    .stat-bar-graph { position: relative; height: 30px; }
-    .stat-bar-track { position: absolute; top: 8px; left: 0; right: 0; height: 4px; background: var(--line); border-radius: 2px; }
-    .stat-bar-fill { position: absolute; top: 8px; left: 0; height: 4px; background: var(--green-primary); border-radius: 2px; }
-    .stat-bar-dot { position: absolute; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--green-primary); border: 3px solid white; outline: 1.5px solid var(--green-primary); transform: translateX(-50%); z-index: 3; }
-    .stat-bar-endpoint { position: absolute; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: white; border: 2px solid var(--ink-faint); transform: translateX(-50%); z-index: 1; }
-    .stat-bar-endpoint.left { left: 0; }
-    .stat-bar-endpoint.right { left: 100%; }
-    .stat-bar-avg-dot { position: absolute; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); transform: translateX(-50%); z-index: 2; }
-    .stat-bar-avg-label { position: absolute; top: 18px; transform: translateX(-50%); font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
-    .stat-bar-ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-faint); margin-top: -2px; }
-    .q-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--green-light); color: var(--green-primary); font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; margin-left: 4px; vertical-align: middle; border: none; font-family: inherit; }
     .q-icon:hover { background: var(--green-mid); color: white; }
 
     .term-sheet-overlay { position: fixed; inset: 0; background: rgba(27,58,46,0.35); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
@@ -167,6 +127,50 @@
     .disclosure-text strong { color: var(--ink-soft); font-weight: 600; }
     .empty-box { text-align: center; padding: 24px 16px; background: var(--green-bg); border-radius: var(--radius-md); color: var(--ink-soft); font-size: 15px; }
     .error-box { text-align: center; padding: 40px 20px; color: var(--warn); }
+  
+    /* ── 문장형 카드 (app.html과 동일) ── */
+    .cv-card { background: #fff; border: 1px solid var(--line-soft); border-radius: 18px; padding: 15px 16px 14px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .cv-row { display: flex; align-items: center; gap: 13px; }
+    .cv-thumb { width: 58px; height: 58px; border-radius: 13px; object-fit: cover; flex-shrink: 0; background: var(--green-bg); border: 1px solid var(--line-soft); }
+    .ht { margin-bottom: 14px; }
+    .ht-btn { width:100%; display:flex; align-items:center; justify-content:space-between;
+              padding:13px 15px; background:var(--green-bg); border:1px solid var(--green-mid);
+              border-radius:11px; font-size:13.5px; font-weight:700; color:var(--green-primary);
+              cursor:pointer; font-family:inherit; }
+    .ht-btn:active { background: var(--green-light); }
+    .ht-chev { color: var(--green-primary); font-size: 17px; line-height:1; }
+    .ht-body { margin-top:8px; background:var(--paper); border:1px solid var(--line-soft);
+               border-radius:11px; padding:4px 14px; }
+    .ht-row { padding:11px 0; border-bottom:1px solid var(--line-soft); }
+    .ht-row:last-child { border-bottom:none; }
+    .ht-h { font-size:12px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+    .ht-b { font-size:12px; line-height:1.6; color:var(--ink-soft); word-break:keep-all; }
+    .cv-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+    .cv-rank { font-size:12px; font-weight:700; color:var(--ink-soft); }
+    .cv-gwrap { display:flex; align-items:center; gap:6px; }
+    .cv-gn { font-size:11px; color:var(--ink-faint); }
+    .cv-grade { width:28px; height:28px; border-radius:50%; border:1px solid; font-size:13px; font-weight:700;
+                display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+    .cv-lead { margin-top:12px; font-size:18px; line-height:1.5; color:var(--ink); letter-spacing:-.3px; word-break:keep-all; }
+    .cv-lead b { font-weight:800; }
+    .cl-block { margin-top:13px; padding-top:11px; border-top:1px solid var(--line-soft); }
+    .cl-head { font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
+    .cl-line { display:flex; align-items:flex-start; gap:9px; font-size:13.5px; line-height:1.45;
+               color:var(--ink-soft); padding:4px 0; }
+    .cl-tx { flex:1; min-width:0; }
+    .cl-line b { font-weight:700; color:var(--ink); }
+    .cl-ar { flex:none; margin-top:3px; }
+    .cl-ar.up { color:#2D5F3F; }
+    .cl-ar.dn { color:#A8ACB1; }
+    .cl-note { margin-top:10px; font-size:12px; line-height:1.5; color:var(--ink-soft);
+               background:var(--paper); border-radius:10px; padding:10px 12px; }
+    .cv-form { margin-top:7px; font-size:11px; color:var(--ink-faint); }
+    .cv-name { font-size: 15px; color: var(--green-deep); font-weight: 700; line-height: 1.4; letter-spacing: -0.02em; }
+    .cv-card { margin-bottom: 4px; box-shadow: none; border: none; padding: 12px 6px 4px; }
+    .cv-tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .cv-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--green-light); color: var(--green-deep); font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 100px; border: none; font-family: inherit; }
+    .cv-buybtn { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 13px; padding: 13px; background: var(--green-primary); color: #fff; border-radius: 12px; font-size: 15px; font-weight: 700; text-decoration: none; box-shadow: 0 3px 10px rgba(45,95,63,0.28); transition: background 0.15s ease; }
+    .cv-buybtn:active { transform: scale(0.99); }
   </style>
 </head>
 <body>
@@ -566,7 +570,8 @@ async function getRecommendation() {
     const ranked = population.slice().map((p,i)=>({p,i}))
       .sort((a,b)=>{ const d = vsOf(b.p) - vsOf(a.p); return d !== 0 ? d : a.i - b.i; })
       .map(o=>o.p);
-    renderResults(ranked, data.metrics, cat, summary, context);
+    const basis = buildBasis(all);   // 비교 기준은 대상 필터와 무관하게 카테고리 전체
+    renderResults(ranked, data.metrics, cat, summary, context, basis);
     showScreen('result');
   } catch (err) {
     document.getElementById('resultSummary').innerHTML = '';
@@ -576,79 +581,206 @@ async function getRecommendation() {
   }
 }
 
-function calcPos(value, min, max) { if (!value || max === min) return null; return Math.max(0, Math.min(100, Math.round((value - min) / (max - min) * 100))); }
-function statBar(opts) {
-  const { title, value, dist, unit, termKey } = opts;
-  if (!dist || !value || dist.max === dist.min) return '';
-  const pos = calcPos(value, dist.min, dist.max);
-  if (pos == null) return '';
-  const avgPos = calcPos(dist.avg, dist.min, dist.max);
-  const minLabel = opts.minLabel || '최소', maxLabel = opts.maxLabel || '최대';
-  const avgHtml = (dist.avg > 0 && avgPos != null)
-    ? `<div class="stat-bar-avg-dot" style="left:${avgPos}%"></div><div class="stat-bar-avg-label" style="left:${avgPos}%">평균 ${fmt(Math.round(dist.avg))}${unit}</div>` : '';
-  return `
-    <div class="stat-bar">
-      <div class="stat-bar-line"><span class="title">${escapeHtml(title)}</span><span class="value">${fmt(value)}${unit}</span>${termKey ? `<button class="q-icon" onclick="openTermSheet('${termKey}')">?</button>` : ''}</div>
-      <div class="stat-bar-graph">
-        <div class="stat-bar-track"></div>
-        <div class="stat-bar-fill" style="width:${pos}%"></div>
-        <div class="stat-bar-endpoint left"></div>
-        <div class="stat-bar-endpoint right"></div>
-        ${avgHtml}
-        <div class="stat-bar-dot" style="left:${pos}%"></div>
-      </div>
-      <div class="stat-bar-ends"><span>${minLabel} ${fmt(dist.min)}${unit}</span><span>${maxLabel} ${fmt(dist.max)}${unit}</span></div>
-    </div>`;
-}
-function renderStatBars(p, m, cat) {
-  let html = '';
-  if (m.primary && m.primary.dist) html += statBar({ title: m.primary.label + ' 함량', termKey: PRIMARY_TERM[cat], value: num(p.primaryValue), dist: m.primary.dist, unit: m.primary.unit });
-  if (m.cost && m.cost.dist && num(p.dailyCost) > 0) html += statBar({ title: '1일 비용', termKey: 'cost', value: num(p.dailyCost), dist: m.cost.dist, unit: '원', minLabel: '최저', maxLabel: '최고' });
-  if (m.capsule && m.capsule.dist && num(p.capsuleMg) > 0) html += statBar({ title: '캡슐 크기', termKey: 'capsule', value: num(p.capsuleMg), dist: m.capsule.dist, unit: 'mg' });
-  return html || '<div style="font-size:13px;color:var(--ink-faint);padding:8px 0;">표시할 상세 지표가 없어요.</div>';
+
+
+// 상위 백분위(작을수록 좋음/클수록 좋음은 호출부에서 배열 방향으로 결정)
+// ── 비교 기준: 서브필터와 무관하게 "카테고리 전체" 로 고정한다.
+// 부분집합으로 계산하면 탭을 옮길 때 같은 제품의 평가가 뒤집힌다.
+const MIN_CAP_N = 10;          // 캡슐 제품이 이보다 적으면 삼분위 판정을 하지 않는다
+const TERTILE_SNAP = 0.05;     // 경계 ±5% 안이면 위 등급으로 올린다
+function isKids(p){ return String(p.target||"").trim() === "키즈"; }
+
+function buildBasis(all){
+  // 키즈는 판정 대상이 아니므로 분포에서 제외한다 (아이용 캡슐이 작아 기준을 왜곡한다)
+  const pool = all.filter(p=>!isKids(p));
+  const prim = pool.map(p=>num(p.primaryValue)).filter(v=>v>0).sort((a,b)=>a-b);
+  const cost = pool.map(p=>num(p.dailyCost)).filter(v=>v>0).sort((a,b)=>a-b);
+  const cap  = pool.map(p=>num(p.capsuleMg)).filter(v=>v>0).sort((a,b)=>a-b);
+  const q = (arr, f) => arr.length ? arr[Math.min(arr.length-1, Math.floor(arr.length*f))] : 0;
+  return {
+    n: pool.length,
+    primArr: prim, costArr: cost, capArr: cap,
+    capOk: cap.length >= MIN_CAP_N,
+    capT1: q(cap, 1/3), capT2: q(cap, 2/3)
+  };
 }
 
-function productCardHtml(p, rank, m, cat) {
+// 상위 백분위(작을수록 좋음/클수록 좋음은 호출부에서 배열 방향으로 결정)
+function topPct(arr, v, higherIsBetter){
+  if (!arr.length) return null;
+  const better = higherIsBetter ? arr.filter(x=>x>v).length : arr.filter(x=>x<v).length;
+  return Math.max(1, Math.round((better / arr.length) * 100));
+}
+function rankOf(arr, v, higherIsBetter){
+  if (!arr.length) return null;
+  return (higherIsBetter ? arr.filter(x=>x>v).length : arr.filter(x=>x<v).length) + 1;
+}
+
+// 캡슐 삼분위: 경계에 붙어 있으면 위 등급으로 스냅
+function capTier(basis, cap){
+  if (!basis.capOk || !(cap>0)) return null;
+  if (cap <= basis.capT1 * (1+TERTILE_SNAP)) return "small";
+  if (cap <= basis.capT2 * (1+TERTILE_SNAP)) return "mid";
+  return "large";
+}
+
+// 상위 25%만 정확한 백분율을 쓴다. 나머지는 뭉갠다 ("상위 61%"는 정보가 없다)
+function tierWord(pct){ return pct<=25 ? "top" : pct<=75 ? "mid" : "low"; }
+
+// ── 비교 문장 3종 ────────────────────────────────
+const CAT_UNIT_NOUN = { "오메가3":"오메가3", "눈":"눈 영양제", "마이크로바이옴":"유산균", "비타민C":"비타민C" };
+const PRIMARY_NOUN  = { "오메가3":"EPA+DHA", "눈":"루테인·지아잔틴", "마이크로바이옴":"보장균수", "비타민C":"비타민C" };
+const UNDERLINED    = { "오메가3":true, "눈":true, "마이크로바이옴":true, "비타민C":false };
+
+const ARROW_UP   = '<svg class="cl-ar up" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+const ARROW_DOWN = '<svg class="cl-ar dn" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg>';
+const ARROW_FLAT = '<svg class="cl-ar fl" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+// 중간(보통)은 아무 표시도 하지 않는다. 빈 자리가 "특별할 것 없음"을 뜻한다.
+function clLine(text, arrow){
+  return `<div class="cl-line">${arrow || ARROW_FLAT}<span class="cl-tx">${text}</span></div>`;
+}
+
+// 카드에는 탭 타깃을 두지 않는다. 용어 설명은 목록 상단 "이 카드 읽는 법" 하나로 모은다.
+function termLink(cat, label){ return escapeHtml(label); }
+
+// 함량 줄. 리드 문장이 이미 값을 말했으면 값을 반복하지 않는다.
+function lineDose(cat, basis, p, m, showVal){
+  const v = num(p.primaryValue);
+  if (!(v>0) || !basis.primArr.length) return "";
+  const pct = topPct(basis.primArr, v, true);
+  const t = tierWord(pct);
+  const noun = termLink(cat, PRIMARY_NOUN[cat] || "함량");
+  const tail = showVal ? ` · ${fmt(v)}${escapeHtml(m.primary.unit)}` : "";
+  if (t==="top")  return clLine(`${noun} <b>상위 ${pct}%</b>${tail}`, ARROW_UP);
+  if (t==="mid")  return clLine(`${noun}은 <b>보통</b>${tail}`, ARROW_FLAT);
+  return clLine(`${noun}이 <b>낮은 편</b>${tail}`, ARROW_DOWN);
+}
+
+// 가격 줄. 1위 카드에서 비쌀 때만 순위를 덧붙인다 — "비싼데 왜 1위지?" 에 답한다.
+function linePrice(basis, p, isTop, showVal){
+  const c = num(p.dailyCost);
+  if (!(c>0) || !basis.costArr.length) return "";
+  const pct = topPct(basis.costArr, c, false);
+  const t = tierWord(pct);
+  const rk = rankOf(basis.costArr, c, false);
+  const tail = showVal ? ` · 하루 ${fmt(c)}원` : "";
+  if (t==="top") return clLine(`가격이 <b>저렴한 편</b>${tail}`, ARROW_UP);
+  if (t==="mid") return clLine(`가격은 <b>보통</b>${tail}`, ARROW_FLAT);
+  const why = (isTop && rk) ? ` · ${rk}번째로 저렴` : "";
+  return clLine(`가격이 <b>비싼 편</b>${tail || why}`, ARROW_DOWN);
+}
+
+// 캡슐 줄. 크기는 리드에 없으므로 항상 적는다.
+function lineCapsule(basis, p){
+  const cap = num(p.capsuleMg);
+  const form = String(p.form||"").trim();
+  const isPowder = !(cap>0) || /분말|스틱|가루|powder/i.test(form);
+  if (isPowder) return clLine(`가루 형태라 <b>목넘김 부담이 없어요</b>`, ARROW_UP);
+  const tier = capTier(basis, cap);
+  if (!tier) return clLine(`캡슐 ${fmt(cap)}mg`, ARROW_FLAT);
+  if (tier==="small") return clLine(`캡슐이 <b>작은 편</b> · ${fmt(cap)}mg`, ARROW_UP);
+  if (tier==="mid")   return clLine(`캡슐 ${fmt(cap)}mg으로 <b>보통</b>`, ARROW_FLAT);
+  return clLine(`캡슐이 <b>큰 편</b> · ${fmt(cap)}mg — 목넘김을 확인하세요`, ARROW_DOWN);
+}
+
+// 키즈 전용: 비교하지 않고 크기만 적는다. 아이 입 크기는 우리가 모른다.
+function kidsCapsuleNote(p){
+  const cap = num(p.capsuleMg);
+  const form = String(p.form||"").trim();
+  const isPowder = !(cap>0) || /분말|스틱|가루|powder/i.test(form);
+  if (isPowder) return `<div class="cl-note">가루 형태라 삼킬 필요가 없어요</div>`;
+  return `<div class="cl-note">캡슐 ${fmt(cap)}mg — 아이 목넘김을 확인하세요</div>`;
+}
+
+function compareBlock(cat, basis, p, m, isTop, hasLead){
+  const noun = CAT_UNIT_NOUN[cat] || cat;
+  const kids = isKids(p);
+  const sv = !hasLead;   // 리드 문장이 값을 말했으면 아래에서 반복하지 않는다
+  const lines = [ lineDose(cat, basis, p, m, sv), kids ? "" : lineCapsule(basis, p), linePrice(basis, p, isTop, sv) ]
+    .filter(Boolean).join("");
+  if (!lines) return "";
+  const head = `<div class="cl-head">${noun} ${basis.n}개와 비교하면</div>`;
+  return `<div class="cl-block">${head}${lines}</div>` + (kids ? kidsCapsuleNote(p) : "");
+}
+
+// ── "이 카드 읽는 법" ────────────────────────────
+// 문구를 카테고리마다 복사하지 않는다. 공통 항목 + PRIMARY_TERM 으로 성분 항목만 갈아 끼운다.
+const HOWTO_COMMON = [
+  ["순위와 등급", "1위는 정렬 순서, A는 품질대예요. 등급은 같은 카테고리 안에서의 상대적 위치를 뜻해요."],
+  ["비교 기준", "함량·캡슐·가격은 필터와 무관하게 카테고리 전체 제품과 비교해요. 탭을 옮겨도 평가는 달라지지 않아요."],
+  ["화살표", "↗ 좋은 편, ↘ 아쉬운 편이에요. 표시가 없으면 보통이에요."],
+  ["하루 비용", "판매가를 실제 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
+  ["캡슐 크기", "같은 카테고리 제품을 셋으로 나눠 작은·보통·큰 편으로 표시해요. 캡슐이 크면 삼키기 불편할 수 있어 따로 알려드려요. 가루 형태는 삼킬 필요가 없어요."],
+  ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니에요."]
+];
+
+function howToRead(cat){
+  const items = HOWTO_COMMON.slice();
+  const key = PRIMARY_TERM[cat];
+  const t = key && TERM_INFO[key];
+  // 비타민C처럼 설명할 것이 없으면 빈 항목을 억지로 만들지 않는다
+  if (t && t.title && t.body) items.splice(5, 0, [t.title, String(t.body).split("\n")[0]]);
+  const rows = items.map(([h, b]) =>
+    `<div class="ht-row"><div class="ht-h">${escapeHtml(h)}</div><div class="ht-b">${escapeHtml(b)}</div></div>`).join("");
+  return `<div class="ht">
+    <button class="ht-btn" onclick="toggleHowTo(this)" aria-expanded="false">
+      <span>이 카드 읽는 법</span><span class="ht-chev">▾</span>
+    </button>
+    <div class="ht-body" hidden>${rows}</div>
+  </div>`;
+}
+function toggleHowTo(btn){
+  const box = btn.parentNode.querySelector('.ht-body');
+  const open = box.hasAttribute('hidden');
+  if (open) box.removeAttribute('hidden'); else box.setAttribute('hidden','');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.querySelector('.ht-chev').textContent = open ? '▴' : '▾';
+}
+window.toggleHowTo = toggleHowTo;
+
+
+function productCardHtml(p, rank, m, cat, basis) {
   const gl = gradeFromScore(vsOf(p));
   const g = GRADE[gl] || GRADE.C;
-  const pid = escapeHtml(String(p.id || ('r' + rank)));
-  const tagList = [];
-  if (p.form) tagList.push(String(p.form));
-  String(p.certs||"").split(/[,\/·]/).map(s=>s.trim()).filter(Boolean).slice(0,2).forEach(c=>tagList.push(c));
-  const tags = tagList.map(t=>{
-    const k = termKeyFromTag(t);
-    return k ? `<button class="product-tag tappable" onclick="openTermFromTag('${escapeHtml(t)}')">${escapeHtml(t)} <span class="qb">?</span></button>`
-             : `<span class="product-tag">${escapeHtml(t)}</span>`;
-  }).join('');
+  const cost = num(p.dailyCost), pv = num(p.primaryValue);
+  const hasLead = cost > 0 && pv > 0;
+  const primNoun = PRIMARY_NOUN[cat] || m.primary.label;
+  const headline = `하루 <b>${fmt(cost)}원</b>에<br>${escapeHtml(primNoun)} <b>${fmt(pv)}${escapeHtml(m.primary.unit)}</b>.`;
+
+  const certs = String(p.certs||"").split(/[,\/·]/).map(x=>x.trim()).filter(Boolean).slice(0,4);
+  const tagsHtml = certs.map(t=>`<span class="cv-tag">${escapeHtml(t)}</span>`).join('');
+  const formChip = p.form ? `<div class="cv-form">${escapeHtml(String(p.form))}</div>` : '';
+
   const img = p.image
-    ? `<img class="product-image" src="${escapeHtml(p.image)}" alt="" onerror="this.style.display='none'">`
-    : `<div class="product-image" style="background:var(--green-bg)"></div>`;
-  const cost = num(p.dailyCost) > 0 ? ` · 1일 ${fmt(num(p.dailyCost))}원` : '';
+    ? `<img class="cv-thumb" src="${escapeHtml(p.image)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+    : `<div class="cv-thumb" style="background:var(--green-bg)"></div>`;
+
+  const buy = p.link
+    ? `<a class="cv-buybtn" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">구매하러 가기</a>`
+    : `<span class="cv-buybtn" style="opacity:.5">링크 없음</span>`;
+
   return `
-    <article class="product-card rank-${rank}">
-      <div class="product-card-row">
-        <div class="product-image-wrap">${img}<span class="product-rank-badge">${rank}</span></div>
-        <div class="product-info">
-          <div class="product-info-top">
-            <span class="product-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}등급</span>
-            <div class="product-vscore-block"><div class="product-vscore-num">${vsOf(p)}</div><div class="product-vscore-cap">V-SCORE</div></div>
-          </div>
-          <div class="product-name">${escapeHtml(p.name || '')}</div>
-          <div class="product-meta">${escapeHtml(m.primary.label)} ${fmt(num(p.primaryValue))}${escapeHtml(m.primary.unit)}${cost}</div>
-          <div class="product-tags">${tags}</div>
-        </div>
+    <article class="cv-card">
+      <div class="cv-top">
+        <span class="cv-rank">${rank}위</span>
+        <span class="cv-gwrap"><span class="cv-gn">${basis.n}개 중</span>
+          <span class="cv-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}</span></span>
       </div>
-      <div class="product-card-actions">
-        <button class="btn-mini secondary" onclick="toggleDetail('${pid}')">자세히 보기</button>
-        ${p.link ? `<a class="btn-mini primary" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">구매하러 가기</a>` : `<button class="btn-mini primary" disabled>링크 없음</button>`}
+      <div class="cv-row">
+        ${img}
+        <div style="flex:1;min-width:0"><div class="cv-name">${escapeHtml(p.name || '')}</div></div>
       </div>
-      <div class="detail-panel" id="detail-${pid}">${renderStatBars(p, m, cat)}</div>
+      ${hasLead ? `<div class="cv-lead">${headline}</div>` : ''}
+      ${compareBlock(cat, basis, p, m, rank === 1, hasLead)}
+      <div class="cv-tagrow">${tagsHtml}</div>
+      ${formChip}
+      ${buy}
     </article>`;
 }
-function toggleDetail(id) { const el = document.getElementById('detail-' + id); if (el) el.classList.toggle('active'); }
-window.toggleDetail = toggleDetail;
 
-function renderResults(products, m, cat, summary, context) {
+
+function renderResults(products, m, cat, summary, context, basis) {
   document.getElementById('resultSummary').innerHTML = `
     <div class="result-summary">
       <div class="result-summary-label">INGREDI 맞춤 추천</div>
@@ -667,7 +799,8 @@ function renderResults(products, m, cat, summary, context) {
   if (!top.length) { el.innerHTML = `<div class="empty-box">조건에 맞는 제품을 찾지 못했어요.<br>조건을 바꿔 다시 시도해보세요.</div>`; return; }
   el.innerHTML = `
     <div class="recommend-head">맞춤 Top ${top.length}</div>
-    ${top.map((p, i) => productCardHtml(p, i + 1, m, cat)).join('')}
+    ${howToRead(cat)}
+    ${top.map((p, i) => productCardHtml(p, i + 1, m, cat, basis)).join('')}
     <div class="compare-cta">
       <a class="compare-cta-btn primary" href="/compare.html?category=${encodeURIComponent(cat)}">제품 직접 비교</a>
       <a class="compare-cta-btn" href="/app.html?category=${encodeURIComponent(cat)}">전체 보기</a>
