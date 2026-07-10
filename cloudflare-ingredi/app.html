@@ -259,7 +259,7 @@
     .cv-card { background: #fff; border: 1px solid var(--line-soft); border-radius: 18px; padding: 18px 18px 15px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
     .cv-card.cv-focus { animation: cvFocusPulse 2.2s ease; }
     @keyframes cvFocusPulse { 0%,100% { box-shadow: var(--shadow-sm); } 12%,40% { box-shadow: 0 0 0 3px var(--green-primary), 0 8px 24px rgba(45,95,63,0.22); } }
-    .cv-row { display: flex; align-items: flex-start; gap: 13px; }
+    .cv-row { display: flex; align-items: center; gap: 13px; }
     .cv-thumb { width: 58px; height: 58px; border-radius: 13px; object-fit: cover; flex-shrink: 0; background: var(--green-bg); border: 1px solid var(--line-soft); }
     .cv-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
     .cv-rank { font-size:12px; font-weight:700; color:var(--ink-soft); }
@@ -268,31 +268,30 @@
     .cv-grade { width:28px; height:28px; border-radius:50%; border:1px solid; font-size:13px; font-weight:700;
                 display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
 
-    .cv-lead { margin-top:13px; font-size:17px; line-height:1.6; color:var(--ink); letter-spacing:-.2px; }
+    .cv-lead { margin-top:15px; font-size:16.5px; line-height:1.5; color:var(--ink); letter-spacing:-.3px; word-break:keep-all; }
     .cv-lead b { font-weight:800; }
 
-    .cl-block { margin-top:14px; }
-    .cl-head { display:block; background:none; border:none; padding:0 0 7px; cursor:pointer;
+    .cl-block { margin-top:18px; padding-top:15px; border-top:1px solid var(--line-soft); }
+    .cl-head { display:inline-block; background:none; border:none; padding:0; margin-bottom:4px; cursor:pointer;
                font-size:11.5px; color:var(--ink-faint); border-bottom:1px dotted var(--line); }
-    .cl-line { display:flex; gap:7px; align-items:flex-start; font-size:13px; line-height:1.5;
-               color:var(--ink-soft); padding-top:7px; }
+    .cl-line { display:flex; align-items:baseline; gap:5px; font-size:13.5px; line-height:1.5;
+               color:var(--ink-soft); padding:6px 0; }
+    .cl-tx { min-width:0; }
     .cl-line b { font-weight:700; color:var(--ink); }
-    .cl-ic { flex-shrink:0; margin-top:2px; }
-    .cl-ic.up { color:#2D5F3F; }
-    .cl-ic.dn { color:#9AA0A6; }
-    .cl-ic.md { color:#C4C7CC; }
+    .cl-ar { flex-shrink:0; align-self:center; }
+    .cl-ar.up { color:#2D5F3F; }
+    .cl-ar.dn { color:#A8ACB1; }
     .cl-term { background:none; border:none; padding:0; font:inherit; color:inherit; cursor:pointer;
                border-bottom:1px dotted var(--ink-faint); }
-    .cl-note { margin-top:10px; font-size:12.5px; line-height:1.5; color:var(--ink-soft);
-               background:var(--paper-2); border-radius:8px; padding:9px 11px; }
+    .cl-note { margin-top:11px; font-size:12.5px; line-height:1.5; color:var(--ink-soft);
+               background:var(--paper); border-radius:10px; padding:10px 12px; }
 
-    .cv-price { display:flex; align-items:baseline; justify-content:space-between; margin-top:14px;
-                padding-top:11px; border-top:1px solid var(--line); }
+    .cv-price { display:flex; align-items:baseline; justify-content:space-between; margin-top:18px;
+                padding-top:14px; border-top:1px solid var(--line-soft); }
     .cv-price .lbl { font-size:11.5px; color:var(--ink-faint); }
-    .cv-price .val { font-size:14px; font-weight:700; color:var(--ink); }
-    .cv-tagsp { flex:1; }
-    .cv-tag.muted { background:transparent; color:var(--ink-faint); border-color:transparent; }
-    .cv-name { font-size: 16px; color: var(--green-deep); font-weight: 700; line-height: 1.4; margin-top: 9px; letter-spacing: -0.02em; }
+    .cv-price .val { font-size:15px; font-weight:800; color:var(--ink); letter-spacing:-.2px; }
+    .cv-form { margin-top:8px; font-size:11.5px; color:var(--ink-faint); }
+    .cv-name { font-size: 15px; color: var(--green-deep); font-weight: 700; line-height: 1.4; letter-spacing: -0.02em; }
     #termSheetBody { white-space: pre-line; }
     /* ── 개선 소식 ── */
     .changelog { margin: 18px 8px 4px; }
@@ -313,8 +312,8 @@
     /* 함량 · 캡슐 크기 통합 패널 */
     .cv-mo { display: inline-block; background: #FBF3DD; color: #8A6A1F; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 12px; margin-left: 5px; vertical-align: 2px; white-space: nowrap; }
     .cv-rank { font-size: 12px; color: var(--green-primary); margin-top: 2px; font-weight: 600; }
-    .cv-voc { margin-top: 15px; padding: 12px 14px; background: var(--paper); border: 1px dashed var(--line); border-radius: 12px; }
-    .cv-voc-h { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+    .cv-voc { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+    .cv-voc-h { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
     .cv-voc-tag { font-size: 10px; color: #A8997A; background: #F0E9D8; padding: 1px 7px; border-radius: 10px; }
     .cv-vchip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 11px; border-radius: 20px; margin: 0 7px 7px 0; font-weight: 600; }
     .cv-vchips { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin-bottom: -7px; }
@@ -361,7 +360,7 @@
     .cat-compare-cta a { display: block; text-align: center; padding: 13px; border-radius: 11px; background: var(--green-primary); color: #fff; font-weight: 700; font-size: 14.5px; text-decoration: none; transition: 0.15s; }
     .cat-compare-cta a:hover { background: var(--green-deep); }
     .cv-q:active { background: var(--green-mid); color: #fff; }
-    .cv-tagrow { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
+    .cv-tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
     .cv-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--green-light); color: var(--green-deep); font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 100px; border: none; font-family: inherit; }
     .cv-tag.tappable { cursor: pointer; }
     .cv-tag.tappable:active { background: var(--green-mid); color: #fff; }
@@ -1014,9 +1013,13 @@ const CAT_UNIT_NOUN = { "오메가3":"오메가3", "눈":"눈 영양제", "마�
 const PRIMARY_NOUN  = { "오메가3":"EPA+DHA", "눈":"루테인·지아잔틴", "마이크로바이옴":"보장균수", "비타민C":"비타민C" };
 const UNDERLINED    = { "오메가3":true, "눈":true, "마이크로바이옴":true, "비타민C":false };
 
-const ARROW_UP   = '<svg class="cl-ic up" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>';
-const ARROW_DOWN = '<svg class="cl-ic dn" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg>';
-const ARROW_MID  = '<svg class="cl-ic md" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12"/></svg>';
+const ARROW_UP   = '<svg class="cl-ar up" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+const ARROW_DOWN = '<svg class="cl-ar dn" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg>';
+
+// 중간(보통)은 아무 표시도 하지 않는다. 빈 자리가 "특별할 것 없음"을 뜻한다.
+function clLine(text, arrow){
+  return `<div class="cl-line"><span class="cl-tx">${text}</span>${arrow || ""}</div>`;
+}
 
 function termLink(cat, label){
   const key = PRIMARY_TERM[cat];
@@ -1025,43 +1028,44 @@ function termLink(cat, label){
     : escapeHtml(label);
 }
 
-// 함량 줄
-function lineDose(cat, basis, p, m){
+// 함량 줄. 리드 문장이 이미 값을 말했으면 값을 반복하지 않는다.
+function lineDose(cat, basis, p, m, showVal){
   const v = num(p.primaryValue);
   if (!(v>0) || !basis.primArr.length) return "";
   const pct = topPct(basis.primArr, v, true);
   const t = tierWord(pct);
   const noun = termLink(cat, PRIMARY_NOUN[cat] || "함량");
-  const val = `${fmt(v)}${escapeHtml(m.primary.unit)}`;
-  if (t==="top")  return `<div class="cl-line">${ARROW_UP}<span>${noun} <b>상위 ${pct}%</b> · ${val}</span></div>`;
-  if (t==="mid")  return `<div class="cl-line">${ARROW_MID}<span>${noun}은 <b>보통</b> · ${val}</span></div>`;
-  return `<div class="cl-line">${ARROW_DOWN}<span>${noun}이 <b>낮은 편</b> · ${val}</span></div>`;
+  const tail = showVal ? ` · ${fmt(v)}${escapeHtml(m.primary.unit)}` : "";
+  if (t==="top")  return clLine(`${noun} <b>상위 ${pct}%</b>${tail}`, ARROW_UP);
+  if (t==="mid")  return clLine(`${noun}은 <b>보통</b>${tail}`, "");
+  return clLine(`${noun}이 <b>낮은 편</b>${tail}`, ARROW_DOWN);
 }
 
-// 가격 줄 (1위 카드에서만 순위를 덧붙인다 — "비싼데 왜 1위지?" 에 답한다)
-function linePrice(basis, p, isTop){
+// 가격 줄. 1위 카드에서 비쌀 때만 순위를 덧붙인다 — "비싼데 왜 1위지?" 에 답한다.
+function linePrice(basis, p, isTop, showVal){
   const c = num(p.dailyCost);
   if (!(c>0) || !basis.costArr.length) return "";
   const pct = topPct(basis.costArr, c, false);
   const t = tierWord(pct);
   const rk = rankOf(basis.costArr, c, false);
-  const tail = (isTop && t==="low" && rk) ? ` · ${rk}번째로 저렴` : "";
-  if (t==="top") return `<div class="cl-line">${ARROW_UP}<span>가격이 <b>저렴한 편</b> · 하루 ${fmt(c)}원</span></div>`;
-  if (t==="mid") return `<div class="cl-line">${ARROW_MID}<span>가격은 <b>보통</b> · 하루 ${fmt(c)}원</span></div>`;
-  return `<div class="cl-line">${ARROW_DOWN}<span>가격이 <b>비싼 편</b> · 하루 ${fmt(c)}원${tail}</span></div>`;
+  const tail = showVal ? ` · 하루 ${fmt(c)}원` : "";
+  if (t==="top") return clLine(`가격이 <b>저렴한 편</b>${tail}`, ARROW_UP);
+  if (t==="mid") return clLine(`가격은 <b>보통</b>${tail}`, "");
+  const why = (isTop && rk) ? ` · ${rk}번째로 저렴` : "";
+  return clLine(`가격이 <b>비싼 편</b>${tail || why}`, ARROW_DOWN);
 }
 
-// 캡슐 줄. 키즈는 비교 블록 밖으로 나가므로 여기서는 일반 제품만 다룬다.
+// 캡슐 줄. 크기는 리드에 없으므로 항상 적는다.
 function lineCapsule(basis, p){
   const cap = num(p.capsuleMg);
   const form = String(p.form||"").trim();
   const isPowder = !(cap>0) || /분말|스틱|가루|powder/i.test(form);
-  if (isPowder) return `<div class="cl-line">${ARROW_UP}<span>가루 형태라 <b>목넘김 부담이 없어요</b></span></div>`;
+  if (isPowder) return clLine(`가루 형태라 <b>목넘김 부담이 없어요</b>`, ARROW_UP);
   const tier = capTier(basis, cap);
-  if (!tier) return `<div class="cl-line">${ARROW_MID}<span>캡슐 ${fmt(cap)}mg</span></div>`;
-  if (tier==="small") return `<div class="cl-line">${ARROW_UP}<span>캡슐이 <b>작은 편</b> · ${fmt(cap)}mg</span></div>`;
-  if (tier==="mid")   return `<div class="cl-line">${ARROW_MID}<span>캡슐 ${fmt(cap)}mg으로 <b>보통</b></span></div>`;
-  return `<div class="cl-line">${ARROW_DOWN}<span>캡슐이 <b>큰 편</b> · ${fmt(cap)}mg — 목넘김을 확인하세요</span></div>`;
+  if (!tier) return clLine(`캡슐 ${fmt(cap)}mg`, "");
+  if (tier==="small") return clLine(`캡슐이 <b>작은 편</b> · ${fmt(cap)}mg`, ARROW_UP);
+  if (tier==="mid")   return clLine(`캡슐 ${fmt(cap)}mg으로 <b>보통</b>`, "");
+  return clLine(`캡슐이 <b>큰 편</b> · ${fmt(cap)}mg — 목넘김을 확인하세요`, ARROW_DOWN);
 }
 
 // 키즈 전용: 비교하지 않고 크기만 적는다. 아이 입 크기는 우리가 모른다.
@@ -1073,10 +1077,11 @@ function kidsCapsuleNote(p){
   return `<div class="cl-note">캡슐 ${fmt(cap)}mg — 아이 목넘김을 확인하세요</div>`;
 }
 
-function compareBlock(cat, basis, p, m, isTop){
+function compareBlock(cat, basis, p, m, isTop, hasLead){
   const noun = CAT_UNIT_NOUN[cat] || cat;
   const kids = isKids(p);
-  const lines = [ lineDose(cat, basis, p, m), kids ? "" : lineCapsule(basis, p), linePrice(basis, p, isTop) ]
+  const sv = !hasLead;   // 리드 문장이 값을 말했으면 아래에서 반복하지 않는다
+  const lines = [ lineDose(cat, basis, p, m, sv), kids ? "" : lineCapsule(basis, p), linePrice(basis, p, isTop, sv) ]
     .filter(Boolean).join("");
   if (!lines) return "";
   const head = `<button class="cl-head" onclick="openTermSheet('basis')">${noun} ${basis.n}개와 비교하면</button>`;
@@ -1117,7 +1122,7 @@ function renderCardV8(p, ctx){
 
   const tagList = [];
   String(p.certs||"").split(/[,\/·]/).map(s=>s.trim()).filter(Boolean).slice(0,4).forEach(c=>tagList.push(c));
-  const formChip = p.form ? `<span class="cv-tag muted">${escapeHtml(String(p.form))}</span>` : "";
+  const formChip = p.form ? `<div class="cv-form">${escapeHtml(String(p.form))}</div>` : "";
   const tagsHtml = tagList.map(t=>{
     const k = termKeyFromTag(t);
     return k
@@ -1149,7 +1154,8 @@ function renderCardV8(p, ctx){
   const isTop = (ctx.idx === 0);
   const rankLabel = `${(ctx.idx||0)+1}위`;
   const primNoun = PRIMARY_NOUN[cat] || m.primary.label;
-  const headline = `하루 <b>${fmt(cost)}원</b>에<br>${termLink(cat, primNoun)} <b>${fmt(pv)}${escapeHtml(m.primary.unit)}</b>.`;
+  const hasLead = cost>0 && pv>0;
+  const headline = `하루 <b>${fmt(cost)}원</b>에 ${termLink(cat, primNoun)} <b>${fmt(pv)}${escapeHtml(m.primary.unit)}</b>.`;
 
   return `<div class="cv-card" id="prod-${escapeHtml(String(p.id||''))}">
     <div class="cv-top">
@@ -1161,16 +1167,17 @@ function renderCardV8(p, ctx){
       <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div style="flex:1;min-width:0"><div class="cv-name">${escapeHtml(p.name)}</div></div>
     </div>
-    ${cost>0 && pv>0 ? `<div class="cv-lead">${headline}</div>` : ""}
+    ${hasLead ? `<div class="cv-lead">${headline}</div>` : ""}
     ${eyeSub}
-    ${compareBlock(cat, basis, p, m, isTop)}
+    ${compareBlock(cat, basis, p, m, isTop, hasLead)}
     ${belowPrimary}
     <div class="cv-voc">
       <div class="cv-voc-h"><span class="cv-reviewN">리뷰 ${fmt(num(p.reviewCount))}개 중</span>${vocTag}</div>
       <div class="cv-vchips">${vocChips}</div>
     </div>
     ${price>0 ? `<div class="cv-price"><span class="lbl">판매가</span><span class="val">${fmt(price)}원${monthBadge}</span></div>` : ""}
-    <div class="cv-tagrow">${tagsHtml}<span class="cv-tagsp"></span>${formChip}${coldBadge}</div>
+    <div class="cv-tagrow">${tagsHtml}${coldBadge}</div>
+    ${formChip}
     ${buyBtn}
   </div>`;
 }
