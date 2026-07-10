@@ -896,19 +896,11 @@ window.setSub = function(key){
 //   고품질 — 게이트(제형 최상급 + 인증 보유) 통과분만 품질점수순
 //   가성비 — 파레토 경계(이보다 싸면서 더 좋은 제품이 없음)만 가격순
 const PROFILES = [
-  { key:"balanced", label:"균형",   sub:"품질 순" },
-  { key:"premium",  label:"고품질", sub:"제형·인증 우수" },
-  { key:"budget",   label:"가성비", sub:"가격 대비 품질" }
+  { key:"balanced", label:"성분 우선",   sub:"근거 함량·제형·인증" },
+  { key:"budget",   label:"가성비 우선", sub:"가격 대비 최선만" }
 ];
 function profileOf(key){ return PROFILES.find(p=>p.key===key) || PROFILES[0]; }
 
-// 고품질 게이트: 근거로 설명 가능한 조건만 쓴다 ("왜 빠졌나" 에 답할 수 있어야 한다)
-function passPremiumGate(p){
-  const sc = p.scores || {};
-  if (sc.form != null && sc.cert != null) return sc.form >= 80 && sc.cert > 0;
-  if (sc.supplier != null) return sc.supplier >= 80;   // 눈·비타민C: 제형/인증 축이 없다
-  return false;
-}
 function qOf(p){ return (p && p.quality != null) ? p.quality : null; }
 
 // 프로필별 선별 + 정렬. 품질점수는 어디서도 다시 계산하지 않는다.
@@ -916,9 +908,7 @@ function applyProfile(products, key){
   const scored = products.filter(p => qOf(p) != null);
   const unscored = products.filter(p => qOf(p) == null);   // 평가 준비중은 항상 뒤로
   let list;
-  if (key === "premium") {
-    list = scored.filter(passPremiumGate).sort((a,b)=> qOf(b)-qOf(a) || num(a.dailyCost)-num(b.dailyCost));
-  } else if (key === "budget") {
+  if (key === "budget") {
     list = scored.filter(p => p.isPareto).sort((a,b)=> num(a.dailyCost)-num(b.dailyCost));
   } else {
     list = scored.sort((a,b)=> qOf(b)-qOf(a) || num(a.dailyCost)-num(b.dailyCost));
@@ -1008,7 +998,7 @@ function clLine(text, arrow){
   return `<div class="cl-line">${arrow || ARROW_FLAT}<span class="cl-tx">${text}</span></div>`;
 }
 
-// 카드에는 탭 타깃을 두지 않는다. 용어 설명은 목록 상단 "이 카드 읽는 법" 하나로 모은다.
+// 카드에는 탭 타깃을 두지 않는다. 용어 설명은 목록 상단 "등급과 비교, 이렇게 정해요" 아코디언 하나로 모은다.
 function termLink(cat, label){ return escapeHtml(label); }
 
 // 함량 줄. 리드 문장이 이미 값을 말했으면 값을 반복하지 않는다.
@@ -1075,10 +1065,11 @@ function kidsCapsuleNote(p){
   return `<div class="cl-note">캡슐 크기 ${fmt(cap)}mg — 아이 목넘김을 확인하세요</div>`;
 }
 
-// ── "이 카드 읽는 법" ────────────────────────────
+// ── "등급과 비교, 이렇게 정해요" 아코디언 ──────────
 // 문구를 카테고리마다 복사하지 않는다. 공통 항목 + PRIMARY_TERM 으로 성분 항목만 갈아 끼운다.
 const HOWTO_COMMON = [
   ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — 근거 용량을 채웠는지, 제형과 인증이 우수한지로 정해지고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
+  ["성분 우선 · 가성비 우선", "성분 우선은 품질점수(근거 함량·제형·인증)가 높은 순서예요. 가성비 우선은 같은 품질이면 가장 싼 제품, 같은 가격이면 가장 좋은 제품만 남겨 싼 가격순으로 보여드려요. 어느 쪽이든 품질을 재는 기준은 같아요."],
   ["비교 기준", "함량·캡슐·가격은 필터와 무관하게 카테고리 전체 제품과 비교해요. 탭을 옮겨도 평가는 달라지지 않아요."],
   ["화살표", "↗ 좋은 편, → 보통, ↘ 아쉬운 편이에요."],
   ["하루 비용", "판매가를 실제 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
@@ -1096,7 +1087,7 @@ function howToRead(cat){
     `<div class="ht-row"><div class="ht-h">${escapeHtml(h)}</div><div class="ht-b">${escapeHtml(b)}</div></div>`).join("");
   return `<div class="ht">
     <button class="ht-btn" onclick="toggleHowTo(this)" aria-expanded="false">
-      <span>이 카드 읽는 법</span><span class="ht-chev">▾</span>
+      <span>등급과 비교, 이렇게 정해요</span><span class="ht-chev">▾</span>
     </button>
     <div class="ht-body" hidden>${rows}</div>
   </div>`;
@@ -1116,7 +1107,7 @@ function compareBlock(cat, basis, p, m){
   const lines = [ lineDose(cat, basis, p, m), kids ? "" : lineCapsule(basis, p), linePrice(basis, p) ]
     .filter(Boolean).join("");
   if (!lines) return "";
-  const head = `<div class="cl-head">${noun} ${basis.n}개와 비교하면</div>`;
+  const head = `<div class="cl-head">${noun} ${basis.n}개 제품과 비교하면</div>`;
   return `<div class="cl-block">${head}${lines}</div>` + (kids ? kidsCapsuleNote(p) : "");
 }
 
