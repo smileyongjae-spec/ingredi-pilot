@@ -1,6 +1,10 @@
-// Cloudflare Pages Function: Unified category recommendation (v6)
-// [v6] 절대평가 재설계 1단계: 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다.
-//      컬럼이 Airtable에 없으면 해당 값은 null — "모름"을 0점으로 둔갑시키지 않는다.
+// Cloudflare Pages Function: Unified category recommendation (v7)
+// [v6] 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다. 없으면 null.
+// [v7] 품질점수(quality)·절대등급(qualityGrade)·가성비 경계(isPareto)를 서버에서 계산한다.
+//      - 품질점수 = 검증 가능한 축만 (가격·리뷰 제외)
+//      - 근거함량 = min(원값/임상앵커, 1)×100, 초과 가점 없음 (앵커: knowledge 테이블 근거 용량)
+//      - 등급 컷 = A≥85 B≥70 C≥55 D≥40 E — 절대평가, 모집단과 무관
+//      - 축 데이터가 없는 제품은 quality=null (평가 준비중) — 0점으로 둔갑시키지 않는다
 // File path: functions/recommend2.js
 // URL: /recommend2?category=<오메가3|눈|마이크로바이옴|비타민C>
 //
@@ -27,6 +31,20 @@ const CATEGORY_ALIASES = {
 };
 
 const RAW_COUPANG_FIELDS = ["쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크"];
+
+// [v7] 품질점수: 카테고리별 산식과 임상 앵커.
+//  - 오메가3/유산균: 근거함량 50 + 제형 30 + 인증 20
+//  - 눈:            근거함량 70 + 원료품질 30   (제형·인증 축이 원천 데이터에 없음)
+//  - 비타민C:        근거함량 60 + 원료품질 40
+const QUALITY_CFG = {
+  "오메가3":       { anchor: 1000, calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5*core + 0.3*sc.form + 0.2*sc.cert },
+  "눈":           { anchor: 20,   calc: (core, sc) => (sc.supplier == null) ? null : 0.7*core + 0.3*sc.supplier },
+  "마이크로바이옴": { anchor: 100,  calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5*core + 0.3*sc.form + 0.2*sc.cert },
+  "비타민C":       { anchor: 1000, calc: (core, sc) => (sc.supplier == null) ? null : 0.6*core + 0.4*sc.supplier }
+};
+function qualityGradeOf(q) {
+  return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E";
+}
 
 export async function onRequest(context) {
   const headers = {
@@ -161,6 +179,29 @@ export async function onRequest(context) {
     };
   }).filter(it => it.name);
 
+  // [v7] 품질점수 · 절대등급 · 가성비(파레토) 경계
+  const qcfg = QUALITY_CFG[catKey];
+  for (const it of items) {
+    // 근거 원값: 눈은 루테인+지아잔틴 합, 나머지는 primaryValue 그대로
+    const raw = (catKey === "눈")
+      ? it.primaryValue + num(it.extra && it.extra["지아잔틴_mg"])
+      : it.primaryValue;
+    const core = Math.min(raw / qcfg.anchor, 1) * 100;
+    const q = qcfg.calc(core, it.scores);
+    it.quality = (q == null) ? null : Math.round(q * 10) / 10;
+    it.qualityGrade = qualityGradeOf(it.quality);
+  }
+  // 파레토 경계: "이보다 싸면서 더 좋은 제품이 없는" 제품 (동률은 둘 다 경계에 남는다)
+  for (const it of items) {
+    it.isPareto = false;
+    if (it.quality == null || !(it.dailyCost > 0)) continue;
+    it.isPareto = !items.some(o =>
+      o !== it && o.quality != null && o.dailyCost > 0 &&
+      o.dailyCost <= it.dailyCost && o.quality >= it.quality &&
+      (o.dailyCost < it.dailyCost || o.quality > it.quality)
+    );
+  }
+
   items.sort((a, b) => b.vScore - a.vScore);
   items.forEach((it, i) => { it.rank = i + 1; });
 
@@ -208,6 +249,10 @@ export async function onRequest(context) {
       primary: { field: cfg.primary.field, label: cfg.primary.label, unit: cfg.primary.unit, higherBetter: true,  dist: distributions.primary },
       cost:    { label: "1일 비용", unit: "원", higherBetter: false, dist: distributions.cost },
       capsule: { label: "캡슐 크기", unit: "mg", higherBetter: false, dist: distributions.capsule }
+    },
+    qualityMeta: {
+      anchorLabel: { "오메가3":"EPA+DHA 1,000mg", "눈":"루테인+지아잔틴 20mg", "마이크로바이옴":"보장균수 100억", "비타민C":"비타민C 1,000mg" }[catKey],
+      cuts: { A: 85, B: 70, C: 55, D: 40 }
     },
     total: items.length,
     affiliateCount,
