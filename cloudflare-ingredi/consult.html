@@ -813,9 +813,10 @@ function renderResult(data, deferProducts) {
   const kCount = data.flags ? data.flags.knowledgeCount || 0 : 0;
   const fCount = data.flags ? data.flags.faqCount || 0 : 0;
   document.getElementById('queryMeta').textContent =
-    data.mode === 'category_select' ? ({ symptom: '아직 지원하지 않는 증상', unsupported: '아직 지원하지 않는 성분' }[(data.flags || {}).reason] || '카테고리를 골라주세요')
+    data.mode === 'category_select' ? ({ ambiguous: '어느 쪽이 궁금하신가요?', not_found: '근거 데이터가 없어요' }[(data.flags || {}).reason] || '카테고리를 골라주세요')
+    : data.mode === 'advisory' ? `${data.healthDomain || ''} 정보 · 제품 비교는 미지원`.trim()
+    : data.mode === 'guide' ? '성분 선택 가이드'
     : data.mode === 'product' ? '제품 검색 결과'
-    : data.category === 'out_of_scope' ? '지원하지 않는 카테고리'
     : `관련 정보 ${kCount + fCount}건 검색`;
 
   renderMedicalAlertFromFlags(data.flags);
@@ -893,6 +894,8 @@ function renderDemoCta(data) {
 // 제품 카드 렌더 (모드 분기) — 단독 호출 가능하도록 분리
 function renderProducts(data) {
   if (data.mode === 'category_select') { renderCategorySelect(data); return; }
+  // advisory(미서비스 도메인) · guide(페르소나): 답변은 하되 제품 추천 없이 카테고리 카드만
+  if (data.mode === 'advisory' || data.mode === 'guide') { renderCategorySelect(data); return; }
   if (data.mode === 'ingredient' || data.mode === 'product') {
     renderProductListMode(data);
   } else {
