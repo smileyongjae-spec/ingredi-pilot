@@ -230,9 +230,8 @@
     <div class="form-section">
       <div class="form-label">무엇을 더 중요하게 보세요?</div>
       <div class="seg-group cols-3" data-field="priority">
-        <button class="seg-btn" data-value="premium">최고 품질<span class="sub">비싸도 좋게</span></button>
-        <button class="seg-btn" data-value="budget">가성비<span class="sub">합리적 가격</span></button>
-        <button class="seg-btn" data-value="balanced">균형<span class="sub">고루고루</span></button>
+        <button class="seg-btn" data-value="balanced">성분 우선<span class="sub">근거 함량·제형·인증</span></button>
+        <button class="seg-btn" data-value="budget">가성비 우선<span class="sub">가격 대비 최선만</span></button>
       </div>
     </div>
 
@@ -318,19 +317,12 @@ const PRIMARY_TERM = { "오메가3":"epadha", "눈":"lutein", "마이크로바�
 // 시니어·임신은 가중치가 아니라 '맥락'(라벨·설명·의료 안내)으로만 반영 — 현재 scores 3축으로는
 // 제형·캡슐크기(시니어)·순도·인증(임산부)을 표현할 수 없어, 차별화하는 척하지 않는다.
 // [절대평가] 점수는 서버 quality 하나. 우선순위는 선별 방식만 다르다.
-function passPremiumGate(p){
-  const sc = p.scores || {};
-  if (sc.form != null && sc.cert != null) return sc.form >= 80 && sc.cert > 0;
-  if (sc.supplier != null) return sc.supplier >= 80;
-  return false;
-}
 function qOf(p){ return (p && p.quality != null) ? p.quality : null; }
 function applyProfile(products, key){
   const scored = products.filter(p => qOf(p) != null);
   const unscored = products.filter(p => qOf(p) == null);
   let list;
-  if (key === "premium") list = scored.filter(passPremiumGate).sort((a,b)=> qOf(b)-qOf(a) || num(a.dailyCost)-num(b.dailyCost));
-  else if (key === "budget") list = scored.filter(p => p.isPareto).sort((a,b)=> num(a.dailyCost)-num(b.dailyCost));
+  if (key === "budget") list = scored.filter(p => p.isPareto).sort((a,b)=> num(a.dailyCost)-num(b.dailyCost));
   else list = scored.sort((a,b)=> qOf(b)-qOf(a) || num(a.dailyCost)-num(b.dailyCost));
   return list.concat(key === "budget" ? [] : unscored);
 }
@@ -420,7 +412,7 @@ document.getElementById('submitBtn').addEventListener('click', getRecommendation
     category: ["오메가3","눈","마이크로바이옴","비타민C"],
     gender: ["male","female"],
     age: ["20","30","40","50","60"],
-    priority: ["premium","budget","balanced"],
+    priority: ["balanced","budget"],
     pregStatus: ["yes","no"]
   };
   function pick(field, value){
@@ -452,7 +444,7 @@ function isPregnant() { return state.gender === 'female' && state.pregStatus ===
 function isSenior() { return state.age === '50' || state.age === '60'; }
 // 정렬·표시 점수의 기준 = 사용자가 고른 우선순위 (시니어·임신이 덮어쓰지 않는다)
 function deriveWeightKey() {
-  return ["balanced","premium","budget"].includes(state.priority) ? state.priority : 'balanced';
+  return ["balanced","budget"].includes(state.priority) ? state.priority : 'balanced';
 }
 // 맥락: 안내 문구·의료 경고용
 function deriveContext() {
@@ -466,13 +458,12 @@ function buildSummary(weightKey, context) {
   const g = state.gender === 'female' ? '여성' : '남성';
   let title = `${catLabel} · ${ageMap[state.age]} ${g}`;
   if (isPregnant()) title += ' · 임신·수유';
-  const wLabel = { premium:'최고 품질', budget:'가성비', balanced:'균형형' }[weightKey];
+  const wLabel = { budget:'가성비 우선', balanced:'성분 우선' }[weightKey];
   title += ` · ${wLabel} 기준`;
 
   const base = {
-    premium:  '핵심 성분 비중을 높여, 성분·등급이 뛰어난 제품을 위로 올렸어요.',
-    budget:   '가격 비중을 높여, 1일 비용이 합리적인 제품을 위로 올렸어요.',
-    balanced: '핵심 성분·가격·신뢰도를 고루 반영한 균형 추천이에요.'
+    budget:   '같은 품질이면 가장 싼 제품, 같은 가격이면 가장 좋은 제품만 남겼어요. 싼 가격순으로 보여드려요.',
+    balanced: '품질점수(근거 함량·제형·인증)가 높은 순서예요. 가격과 리뷰는 점수에 넣지 않아요.'
   }[weightKey];
   const extra = {
     pregnancy: ' 임신·수유 중에는 안전성이 가장 중요해요. 복용 전 반드시 의사·약사와 상담하세요.',
@@ -598,7 +589,7 @@ function clLine(text, arrow){
   return `<div class="cl-line">${arrow || ARROW_FLAT}<span class="cl-tx">${text}</span></div>`;
 }
 
-// 카드에는 탭 타깃을 두지 않는다. 용어 설명은 목록 상단 "이 카드 읽는 법" 하나로 모은다.
+// 카드에는 탭 타깃을 두지 않는다. 용어 설명은 목록 상단 "등급과 비교, 이렇게 정해요" 아코디언 하나로 모은다.
 function termLink(cat, label){ return escapeHtml(label); }
 
 // 함량 줄. 리드 문장이 이미 값을 말했으면 값을 반복하지 않는다.
@@ -671,14 +662,15 @@ function compareBlock(cat, basis, p, m){
   const lines = [ lineDose(cat, basis, p, m), kids ? "" : lineCapsule(basis, p), linePrice(basis, p) ]
     .filter(Boolean).join("");
   if (!lines) return "";
-  const head = `<div class="cl-head">${noun} ${basis.n}개와 비교하면</div>`;
+  const head = `<div class="cl-head">${noun} ${basis.n}개 제품과 비교하면</div>`;
   return `<div class="cl-block">${head}${lines}</div>` + (kids ? kidsCapsuleNote(p) : "");
 }
 
-// ── "이 카드 읽는 법" ────────────────────────────
+// ── "등급과 비교, 이렇게 정해요" 아코디언 ──────────
 // 문구를 카테고리마다 복사하지 않는다. 공통 항목 + PRIMARY_TERM 으로 성분 항목만 갈아 끼운다.
 const HOWTO_COMMON = [
   ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — 근거 용량을 채웠는지, 제형과 인증이 우수한지로 정해지고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
+  ["성분 우선 · 가성비 우선", "성분 우선은 품질점수(근거 함량·제형·인증)가 높은 순서예요. 가성비 우선은 같은 품질이면 가장 싼 제품, 같은 가격이면 가장 좋은 제품만 남겨 싼 가격순으로 보여드려요. 어느 쪽이든 품질을 재는 기준은 같아요."],
   ["비교 기준", "함량·캡슐·가격은 필터와 무관하게 카테고리 전체 제품과 비교해요. 탭을 옮겨도 평가는 달라지지 않아요."],
   ["화살표", "↗ 좋은 편, → 보통, ↘ 아쉬운 편이에요."],
   ["하루 비용", "판매가를 실제 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
@@ -696,7 +688,7 @@ function howToRead(cat){
     `<div class="ht-row"><div class="ht-h">${escapeHtml(h)}</div><div class="ht-b">${escapeHtml(b)}</div></div>`).join("");
   return `<div class="ht">
     <button class="ht-btn" onclick="toggleHowTo(this)" aria-expanded="false">
-      <span>이 카드 읽는 법</span><span class="ht-chev">▾</span>
+      <span>등급과 비교, 이렇게 정해요</span><span class="ht-chev">▾</span>
     </button>
     <div class="ht-body" hidden>${rows}</div>
   </div>`;
