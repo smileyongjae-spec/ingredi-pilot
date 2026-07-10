@@ -282,6 +282,18 @@ export async function onRequest(context) {
     const isCross = d => CROSS_DOMAINS.has(d.domain);
     const inCategory = (d, catKo) => d.prodCat === catKo;
 
+    // 카테고리·도메인 힌트가 모두 없으면 제품명일 수 있다 (검색 라우팅보다 먼저 확인)
+    let productMatchRecord = null;
+    if (!matchedCategory && !hintDomain) {
+      const cand = detectProductName(query, pRecords || []);
+      // 오탐 방지: 질문이 짧고, 제품명이 질문을 포함하는 경우만 인정
+      if (cand) {
+        const qn = normEntity(query);
+        const nn = normEntity(getField(cand.fields || {}, "제품명", "name"));
+        if (qn.length >= 4 && nn.indexOf(qn) !== -1) { productMatchRecord = cand; matchedCategory = "omega3"; }
+      }
+    }
+
     let pool;
     if (matchedCategory) {
       const ko = CAT_KO[matchedCategory];
@@ -298,7 +310,9 @@ export async function onRequest(context) {
     let advisoryDomain = null;
     let ambiguousCats = null;
 
-    if (!matchedCategory && hintDomain) {
+    if (productMatchRecord) {
+      mode = "counsel";   // 아래 [8]에서 isProductMode로 제품 리스트 모드가 됨
+    } else if (!matchedCategory && hintDomain) {
       mode = scored.length ? "advisory" : "none";
       advisoryDomain = hintDomain;
     } else if (!matchedCategory) {
@@ -345,13 +359,6 @@ export async function onRequest(context) {
       }
     }
 
-    // 검색 0건 → 제품명일 수 있음 (오메가3 제품 DB 조회)
-    let productMatchRecord = null;
-    if (mode === "none") {
-      productMatchRecord = detectProductName(query, pRecords || []);
-      if (productMatchRecord) { matchedCategory = "omega3"; mode = "counsel"; }
-    }
-
     // ─── [7] 그래도 못 찾으면 카테고리 선택 카드 ────
     if (mode === "none" || mode === "category_select") {
       const who = demoLabel(demographics);
@@ -375,6 +382,27 @@ export async function onRequest(context) {
     }
 
     // ─── [8] 컨텍스트 상위 8건 ─────────────────────
+    // 근거가 빈약하면 해당 카테고리의 핵심 지식(효능·개념·성분)으로 채운다.
+    // 이게 없으면 Claude가 "검색된 정보에 관련 내용이 없다"고 답해버린다.
+    const ownCount = matchedCategory ? scored.filter(x => x.d.prodCat === CAT_KO[matchedCategory]).length : 0;
+    if (matchedCategory && ownCount < 3) {
+      const ko = CAT_KO[matchedCategory];
+      const ORDER = { "효능": 0, "성분정의": 1, "개념": 1, "성분": 2, "섭취상한": 3, "제형특징": 4, "제품선택기준": 5 };
+      const have = new Set(scored.map(x => x.d.id));
+      const filler = allDocs
+        .filter(d => d.prodCat === ko && !have.has(d.id))
+        .sort((a, b) => ((ORDER[a.topic] ?? 9) - (ORDER[b.topic] ?? 9)))
+        .slice(0, 3 - ownCount)
+        .map(d => ({ d, s: 0.01 }));
+      scored = scored.concat(filler);
+      // 카테고리 전용 문서를 앞으로 (카페·페르소나가 컨텍스트를 덮지 않도록)
+      const ko2 = CAT_KO[matchedCategory];
+      scored.sort((a, b) => {
+        const ao = a.d.prodCat === ko2 ? 1 : 0, bo = b.d.prodCat === ko2 ? 1 : 0;
+        return (bo - ao) || (b.s - a.s);
+      });
+    }
+
     const top = scored.slice(0, 8).map(x => x.d);
     const knowledgeMatched = top.filter(d => d.kind === "knowledge");
     const faqMatched = top.filter(d => d.kind === "faq");
@@ -402,8 +430,11 @@ export async function onRequest(context) {
 
     // ─── [10] Claude 프롬프트 ──────────────────────
     let answer = "", claudeReqBody = null;
-    if (!isProductMode) {
-      const systemPrompt = "당신은 ingredi의 건강기능식품 정보 카운슬러입니다.\n\n[핵심 원칙]\n1. 광고 없음 — 특정 제품·브랜드를 추천하지 않습니다\n2. 근거 기반 — 검색 결과의 사실만 답변합니다\n3. 엄격 모드 — 검색 결과에 없는 내용은 추측하지 않습니다\n\n[답변 스타일]\n- 한국어, 존댓말\n- 특정 제품명 언급 금지\n- 의학 자문 아님을 명시\n- 마크다운 헤더(#,##,###), 굵은체(**), 구분선(---), 인용(>), 이모지 사용 금지\n- 항목이 여러 개면 첫 문장 후 줄바꿈하고 각 항목을 '- ' 로 시작\n- 단순 질문은 한 단락으로 간결하게\n- 진단 금지, 위험 상황은 '의사·약사와 상담하세요'로 안내";
+    if (isProductMode) {
+      const pname = getField(productMatchRecord.fields || {}, "제품명", "name") || query;
+      answer = `찾으시는 제품이 이건가요?\n\n${pname}\n\n아래에서 성분·함량·1일 비용을 확인하실 수 있어요. ingredi는 광고 없이 공개된 제품 데이터로만 비교해드려요.`;
+    } else {
+      const systemPrompt = "당신은 ingredi의 건강기능식품 정보 카운슬러입니다.\n\n[핵심 원칙]\n1. 광고 없음 — 특정 제품·브랜드를 추천하지 않습니다\n2. 근거 기반 — 검색 결과의 사실만 답변합니다\n3. 엄격 모드 — 검색 결과에 없는 내용은 추측하지 않습니다\n\n[답변 스타일]\n- 한국어, 존댓말\n- 특정 제품명 언급 금지\n- 의학 자문 아님을 명시\n- 마크다운 헤더(#,##,###), 굵은체(**), 구분선(---), 인용(>), 이모지 사용 금지\n- 항목이 여러 개면 첫 문장 후 줄바꿈하고 각 항목을 '- ' 로 시작\n- 단순 질문은 한 단락으로 간결하게\n- 항목은 최대 5개, 각 항목 두 문장 이내\n- 문장을 끝맺지 못한 채 마무리하지 말 것\n- 진단 금지, 위험 상황은 '의사·약사와 상담하세요'로 안내";
 
       let contextBlock = "[검색된 지식]\n";
       knowledgeMatched.forEach((d, i) => {
@@ -417,6 +448,9 @@ export async function onRequest(context) {
       });
 
       let userPrompt = contextBlock + "\n\n[사용자 질문]\n" + query;
+      if (mode === "counsel" && matchedCategory) {
+        userPrompt += `\n\n[대상 카테고리] ${CAT_LABEL[matchedCategory]}\n사용자의 고민은 이 카테고리와 관련이 있습니다. 검색된 지식을 근거로 이 카테고리 관점에서 답변하세요. 정보가 부족하다는 말로 답변을 대신하지 말고, 확인된 내용만 간결히 안내하세요.`;
+      }
       if (requiresMedicalConsult) {
         userPrompt += `\n\n[내부 플래그] 의료 주의가 필요한 키워드 감지됨 (${detectedRisks.join(", ")}). 답변 끝에 "복용 전 의사·약사와 상담하세요"를 포함하세요.`;
       }
@@ -426,7 +460,7 @@ export async function onRequest(context) {
       } else if (mode === "guide") {
         userPrompt += `\n\n[내부 지시] 카테고리가 특정되지 않은 일반 조언 요청입니다. 성분 선택 기준을 중심으로 답변하고, 마지막 문단에 ingredi가 ${FOUR_CATS} 4개 카테고리를 비교 제공한다는 안내를 한 문장으로 덧붙이세요.`;
       }
-      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, stream: true, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
+      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, stream: true, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
     }
 
     // ─── [11] 제품 추천 (오메가3, counsel 모드에서만) ──
