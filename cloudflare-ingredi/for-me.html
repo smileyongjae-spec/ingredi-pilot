@@ -317,23 +317,22 @@ const PRIMARY_TERM = { "오메가3":"epadha", "눈":"lutein", "마이크로바�
 // 시니어·임신은 가중치가 아니라 '맥락'(라벨·설명·의료 안내)으로만 반영 — 현재 scores 3축으로는
 // 제형·캡슐크기(시니어)·순도·인증(임산부)을 표현할 수 없어, 차별화하는 척하지 않는다.
 // [절대평가] 점수는 서버 quality 하나. 우선순위는 선별 방식만 다르다.
-// 파레토 경계는 "지금 보고 있는 모집단" 안에서 계산한다.
-// 키즈 제품을 고르는 사람에게 성인용 제품은 대안이 아니므로,
-// 전체 기준 경계(서버 isPareto)를 쓰면 여성·키즈 탭에서 추천이 비게 된다.
-// 등급(절대 품질)은 모집단과 무관하지만, "대안 중 최선"은 모집단에 따라 달라지는 게 맞다.
-function paretoSet(list){
+// 가성비 순위: 각 제품을 "지배하는"(더 싸면서 품질이 더 좋은) 제품 수를 센다.
+// 0개 = 파레토 경계(가격 대비 최선). 수가 적을수록 가성비가 좋다.
+// 지금 보고 있는 모집단 안에서 계산한다 — 키즈 구매자에게 성인용은 대안이 아니므로.
+function paretoRank(list){
   const pool = list.filter(p => p.quality != null && num(p.dailyCost) > 0);
-  const s = new Set();
+  const rank = new Map();
   for (const a of pool){
-    let dominated = false;
+    let n = 0;
     for (const b of pool){
       if (b === a) continue;
       if (num(b.dailyCost) <= num(a.dailyCost) && b.quality >= a.quality &&
-          (num(b.dailyCost) < num(a.dailyCost) || b.quality > a.quality)) { dominated = true; break; }
+          (num(b.dailyCost) < num(a.dailyCost) || b.quality > a.quality)) n++;
     }
-    if (!dominated) s.add(a);
+    rank.set(a, n);
   }
-  return s;
+  return rank;
 }
 function qOf(p){ return (p && p.quality != null) ? p.quality : null; }
 function applyProfile(products, key){
@@ -341,11 +340,14 @@ function applyProfile(products, key){
   const unscored = products.filter(p => qOf(p) == null);
   let list;
   if (key === "budget") {
-    const ps = paretoSet(scored);
-    list = scored.filter(p => ps.has(p)).sort((a,b)=> num(a.dailyCost)-num(b.dailyCost));
+    const pr = paretoRank(scored);
+    const ranked = scored.filter(p => pr.has(p));
+    const unranked = scored.filter(p => !pr.has(p));   // 비용 미상: 가성비 판단 불가 → 뒤로
+    ranked.sort((a,b)=> (pr.get(a)-pr.get(b)) || (num(a.dailyCost)-num(b.dailyCost)));
+    list = ranked.concat(unranked);
   }
   else list = scored.sort((a,b)=> qOf(b)-qOf(a) || num(a.dailyCost)-num(b.dailyCost));
-  return list.concat(key === "budget" ? [] : unscored);
+  return list.concat(unscored);   // 평가 준비중은 항상 맨 뒤
 }
 
 const TERM_INFO = {
@@ -483,7 +485,7 @@ function buildSummary(weightKey, context) {
   title += ` · ${wLabel} 기준`;
 
   const base = {
-    budget:   '같은 품질이면 가장 싼 제품, 같은 가격이면 가장 좋은 제품만 남겼어요. 싼 가격순으로 보여드려요.',
+    budget:   '가격 대비 최선인 제품부터 보여드려요. 같은 품질이면 더 싼 쪽, 같은 가격이면 더 좋은 쪽이 위로 와요.',
     balanced: '품질점수(근거 함량·제형·인증)가 높은 순서예요. 가격과 리뷰는 점수에 넣지 않아요.'
   }[weightKey];
   const extra = {
@@ -691,7 +693,7 @@ function compareBlock(cat, basis, p, m){
 // 문구를 카테고리마다 복사하지 않는다. 공통 항목 + PRIMARY_TERM 으로 성분 항목만 갈아 끼운다.
 const HOWTO_COMMON = [
   ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — 근거 용량을 채웠는지, 제형과 인증이 우수한지로 정해지고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
-  ["성분 우선 · 가성비 우선", "성분 우선은 품질점수(근거 함량·제형·인증)가 높은 순서예요. 가성비 우선은 같은 품질이면 가장 싼 제품, 같은 가격이면 가장 좋은 제품만 남겨 싼 가격순으로 보여드려요. 어느 쪽이든 품질을 재는 기준은 같아요. 가성비 추천은 지금 보고 있는 목록(전체·여성·키즈 등) 안에서 고른 결과예요."],
+  ["성분 우선 · 가성비 우선", "성분 우선은 품질점수(근거 함량·제형·인증)가 높은 순서예요. 가성비 우선은 가격 대비 최선인 제품을 맨 위에 보여드려요. 아래로 갈수록 \"이보다 싸면서 더 좋은 제품\"이 많아지는 순서예요. 어느 쪽이든 품질을 재는 기준은 같고, 가성비 순서는 지금 보고 있는 목록(전체·여성·키즈 등) 안에서 계산해요."],
   ["비교 기준", "함량·캡슐·가격은 필터와 무관하게 카테고리 전체 제품과 비교해요. 탭을 옮겨도 평가는 달라지지 않아요."],
   ["화살표", "↗ 좋은 편, → 보통, ↘ 아쉬운 편이에요."],
   ["하루 비용", "판매가를 실제 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
