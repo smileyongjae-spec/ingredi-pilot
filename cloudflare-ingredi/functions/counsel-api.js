@@ -1,4 +1,4 @@
-// functions/counsel-api.js  (v7.2 — 비스트리밍 핫픽스 + debug 에러 노출)
+// functions/counsel-api.js  (v7.3 — 스트리밍 복구 + debug 에러 노출)
 //
 // v7.1 변경 (이것뿐, 나머지는 v7과 동일)
 //   - Claude 호출을 stream:true → 비스트리밍으로 전환.
@@ -609,8 +609,8 @@ export async function onRequest(context) {
       } else if (mode === "guide") {
         userPrompt += `\n\n[내부 지시] 카테고리가 특정되지 않은 일반 조언 요청입니다. 성분 선택 기준을 중심으로 답변하고, 마지막 문단에 ingredi가 ${FOUR_CATS} 4개 카테고리를 비교 제공한다는 안내를 한 문장으로 덧붙이세요.`;
       }
-      // v7.1: stream 제거 — AI Gateway 경유 시 SSE 변형으로 파싱이 깨지는 문제 회피
-      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
+      // v7.3: 스트리밍 복구 — 장애 진범은 하위요청 한도(데이터 급증)로 확정됨.
+      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, stream: true, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
     }
 
     // ─── [11] 제품 추천 (오메가3, counsel 모드에서만) ──
@@ -739,25 +739,39 @@ export async function onRequest(context) {
               if (resp.ok || RETRY_STATUS.indexOf(resp.status) === -1) break;
               await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
             }
-            if (!resp || !resp.ok) {
+            if (!resp || !resp.ok || !resp.body) {
               let detail = "";
               if (wantDebug && resp) {
                 let errBody = "";
                 try { errBody = (await resp.text()).slice(0, 300); } catch (_) {}
                 detail = `\n\n[debug] HTTP ${resp.status} — ${errBody}`;
-              } else if (wantDebug) {
-                detail = "\n\n[debug] fetch가 응답 없이 실패";
               }
               send("token", { text: ERR_MSG + detail });
             } else {
-              let text = "";
-              try {
-                const data = await resp.json();
-                text = (data.content || []).filter(b => b && b.type === "text").map(b => b.text).join("");
-              } catch (e2) {
-                if (wantDebug) text = ERR_MSG + `\n\n[debug] 응답 JSON 파싱 실패 — ${String(e2 && e2.message || e2).slice(0, 200)}`;
+              const reader = resp.body.getReader();
+              const dec = new TextDecoder();
+              let buf = "", gotText = false;
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buf += dec.decode(value, { stream: true });
+                let nl;
+                while ((nl = buf.indexOf("\n")) !== -1) {
+                  const line = buf.slice(0, nl).trim();
+                  buf = buf.slice(nl + 1);
+                  if (!line.startsWith("data:")) continue;
+                  const payload = line.slice(5).trim();
+                  if (!payload || payload === "[DONE]") continue;
+                  try {
+                    const evd = JSON.parse(payload);
+                    if (evd.type === "content_block_delta" && evd.delta && evd.delta.type === "text_delta" && evd.delta.text) {
+                      gotText = true;
+                      send("token", { text: evd.delta.text });
+                    }
+                  } catch (_) { /* 부분 라인 무시 */ }
+                }
               }
-              send("token", { text: text || ERR_MSG });
+              if (!gotText) send("token", { text: ERR_MSG + (wantDebug ? "\n\n[debug] 스트림에서 text_delta를 받지 못함" : "") });
             }
           }
         } catch (e) {
