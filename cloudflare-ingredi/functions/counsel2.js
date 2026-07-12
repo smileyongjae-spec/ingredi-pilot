@@ -612,7 +612,28 @@ export async function onRequest(context) {
           const p = byId.get(String(a.product_id));
           return !p || p.epa_dha_mg == null || p.epa_dha_mg >= 1000;
         });
+        // 백필: 자격(임상 용량 이상) 갖춘 대안이 2개 미만이면 점수순으로 채운다.
+        // 단일 추천은 "평가"가 아니라 "밀어주기"로 읽히므로 최소 2개를 보장.
+        // reason은 지어내지 않고 데이터로 조립한다.
+        if (payload.alternatives.length < 2) {
+          const have = new Set(payload.alternatives.map(a => String(a.product_id)));
+          const mentionedId = productMatchRecord
+            ? String(getField(productMatchRecord.fields || {}, "product_id", "productId") || productMatchRecord.id)
+            : null;
+          const fillers = productContext.filter(p =>
+            p.epa_dha_mg != null && p.epa_dha_mg >= 1000 &&
+            !have.has(String(p.product_id)) && String(p.product_id) !== mentionedId
+          ).slice(0, 3 - payload.alternatives.length);
+          for (const p of fillers) {
+            const bits = [`EPA+DHA ${p.epa_dha_mg.toLocaleString()}mg`];
+            if (p.daily_cost) bits.push(`하루 ${p.daily_cost.toLocaleString()}원`);
+            if (p.certs) bits.push(String(p.certs).split(",")[0].trim());
+            payload.alternatives.push({ product_id: p.product_id, name: p.name, reason: bits.join(" · ") });
+          }
+        }
+        if (payload.alternatives.length) payload.alternatives_note = "함량 1,000mg 이상 · 점수순";
       }
+      if (payload.alternatives_note === undefined) payload.alternatives_note = null;
       // negative인데 대안이 비면 비교 페이지 안내를 body에 보강
       if (payload.verdict_tone === "negative" && payload.alternatives.length === 0 && payload.body.indexOf("비교") === -1) {
         payload.body += "\n\n같은 카테고리의 상위 제품은 ingredi 비교 페이지에서 확인하실 수 있어요.";
