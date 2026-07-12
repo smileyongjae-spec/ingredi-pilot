@@ -1,4 +1,4 @@
-// functions/counsel-api.js  (v7.1 — 스트리밍 → 비스트리밍 핫픽스)
+// functions/counsel-api.js  (v7.2 — 비스트리밍 핫픽스 + debug 에러 노출)
 //
 // v7.1 변경 (이것뿐, 나머지는 v7과 동일)
 //   - Claude 호출을 stream:true → 비스트리밍으로 전환.
@@ -740,18 +740,29 @@ export async function onRequest(context) {
               await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
             }
             if (!resp || !resp.ok) {
-              send("token", { text: ERR_MSG });
+              let detail = "";
+              if (wantDebug && resp) {
+                let errBody = "";
+                try { errBody = (await resp.text()).slice(0, 300); } catch (_) {}
+                detail = `\n\n[debug] HTTP ${resp.status} — ${errBody}`;
+              } else if (wantDebug) {
+                detail = "\n\n[debug] fetch가 응답 없이 실패";
+              }
+              send("token", { text: ERR_MSG + detail });
             } else {
               let text = "";
               try {
                 const data = await resp.json();
                 text = (data.content || []).filter(b => b && b.type === "text").map(b => b.text).join("");
-              } catch (_) { text = ""; }
+              } catch (e2) {
+                if (wantDebug) text = ERR_MSG + `\n\n[debug] 응답 JSON 파싱 실패 — ${String(e2 && e2.message || e2).slice(0, 200)}`;
+              }
               send("token", { text: text || ERR_MSG });
             }
           }
         } catch (e) {
-          send("token", { text: ERR_MSG });
+          const detail = wantDebug ? `\n\n[debug] 예외 — ${String(e && e.message || e).slice(0, 200)}` : "";
+          send("token", { text: ERR_MSG + detail });
         }
         send("done", {});
         controller.close();
