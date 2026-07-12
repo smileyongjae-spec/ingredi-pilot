@@ -1,6 +1,12 @@
-// functions/counsel-api.js  (v7 — 단일 FAQ 테이블 + 검색 우선 라우팅)
+// functions/counsel-api.js  (v7.1 — 스트리밍 → 비스트리밍 핫픽스)
 //
-// 변경 요약
+// v7.1 변경 (이것뿐, 나머지는 v7과 동일)
+//   - Claude 호출을 stream:true → 비스트리밍으로 전환.
+//     AI Gateway 경유 시 SSE 스트림이 버퍼링/변형되어 v7 파서가 text_delta를 못 찾고
+//     "기술적 오류" 를 반환하던 문제 수정 (토큰은 과금되는데 화면은 에러였던 원인).
+//   - 프론트 호환을 위해 SSE 봉투(meta → token → done)는 유지. token은 1회에 전체 텍스트.
+//
+// v7 요약
 //   - FAQ_오메가3/비타민C/눈/마이크로바이옴 4개 테이블 → FAQ_전체상품 1개로 통합
 //   - 게이트 → 검색 순서를 뒤집음: 카테고리 키워드가 없으면 전 행을 검색해 데이터가 카테고리를 말하게 함
 //   - 제품카테고리 / 건강도메인 컬럼으로 스코프와 응답 모드를 결정
@@ -603,7 +609,8 @@ export async function onRequest(context) {
       } else if (mode === "guide") {
         userPrompt += `\n\n[내부 지시] 카테고리가 특정되지 않은 일반 조언 요청입니다. 성분 선택 기준을 중심으로 답변하고, 마지막 문단에 ingredi가 ${FOUR_CATS} 4개 카테고리를 비교 제공한다는 안내를 한 문장으로 덧붙이세요.`;
       }
-      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, stream: true, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
+      // v7.1: stream 제거 — AI Gateway 경유 시 SSE 변형으로 파싱이 깨지는 문제 회피
+      claudeReqBody = JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] });
     }
 
     // ─── [11] 제품 추천 (오메가3, counsel 모드에서만) ──
@@ -720,6 +727,7 @@ export async function onRequest(context) {
           if (!claudeReqBody) {
             if (answer) send("token", { text: answer });
           } else {
+            // v7.1: 비스트리밍 호출 — 전체 응답을 JSON으로 받아 한 번에 전송
             const RETRY_STATUS = [403, 429, 500, 502, 503, 504, 529];
             let resp = null;
             for (let attempt = 0; attempt < 3; attempt++) {
@@ -731,33 +739,15 @@ export async function onRequest(context) {
               if (resp.ok || RETRY_STATUS.indexOf(resp.status) === -1) break;
               await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
             }
-            if (!resp || !resp.ok || !resp.body) {
+            if (!resp || !resp.ok) {
               send("token", { text: ERR_MSG });
             } else {
-              const reader = resp.body.getReader();
-              const dec = new TextDecoder();
-              let buf = "", gotText = false;
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buf += dec.decode(value, { stream: true });
-                let nl;
-                while ((nl = buf.indexOf("\n")) !== -1) {
-                  const line = buf.slice(0, nl).trim();
-                  buf = buf.slice(nl + 1);
-                  if (!line.startsWith("data:")) continue;
-                  const payload = line.slice(5).trim();
-                  if (!payload || payload === "[DONE]") continue;
-                  try {
-                    const evd = JSON.parse(payload);
-                    if (evd.type === "content_block_delta" && evd.delta && evd.delta.type === "text_delta" && evd.delta.text) {
-                      gotText = true;
-                      send("token", { text: evd.delta.text });
-                    }
-                  } catch (_) { /* 부분 라인 무시 */ }
-                }
-              }
-              if (!gotText) send("token", { text: ERR_MSG });
+              let text = "";
+              try {
+                const data = await resp.json();
+                text = (data.content || []).filter(b => b && b.type === "text").map(b => b.text).join("");
+              } catch (_) { text = ""; }
+              send("token", { text: text || ERR_MSG });
             }
           }
         } catch (e) {
