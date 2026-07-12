@@ -151,6 +151,36 @@ export async function onRequest(context) {
     }
     return null;
   }
+
+  // 대화체 문장("뉴티지 ntg 오메가3 먹어도 되는 거야?")에서 제품 언급을 건진다.
+  // 원리: 제품명에 실제로 등장하는 토큰만 점수화 — 대화체 단어(먹어도·되는·거야)는
+  // 제품명에 없으니 자연히 0점. 많은 제품명에 흔한 범용 토큰(고함량·프리미엄 등)은
+  // 문서빈도 필터로 배제. 브랜드성 매칭 길이 3자 이상일 때만 확정.
+  function findProductMention(q, records) {
+    const recs = records || [];
+    if (!recs.length) return null;
+    const names = recs.map(r => normEntity(getField(r.fields || {}, "제품명", "name")));
+    const parts = [...new Set(String(q).split(/\s+/).map(normEntity)
+      .filter(t => t.length >= 2 && !isCategoryWord(t)))];
+    if (!parts.length) return null;
+    // 범용 토큰 배제: 전체 제품의 5% 초과(최소 3개 초과)에 등장하면 브랜드가 아님
+    const cap = Math.max(3, Math.floor(recs.length * 0.05));
+    const usable = parts.filter(t => {
+      let df = 0;
+      for (const nm of names) { if (nm && nm.indexOf(t) !== -1) { df++; if (df > cap) return false; } }
+      return df > 0;
+    });
+    if (!usable.length) return null;
+    let best = null, bestLen = 0;
+    for (let i = 0; i < recs.length; i++) {
+      const nm = names[i];
+      if (!nm) continue;
+      let hit = 0;
+      for (const t of usable) if (nm.indexOf(t) !== -1) hit += t.length;
+      if (hit > bestLen) { bestLen = hit; best = recs[i]; }
+    }
+    return bestLen >= 3 ? best : null;
+  }
   function parseDemographics(q) {
     const text = String(q || "");
     let age = null, gender = null;
@@ -257,7 +287,9 @@ export async function onRequest(context) {
 
     let productMatchRecord = null;
     if (!matchedCategory || matchedCategory === "omega3") {
-      productMatchRecord = detectProductName(query, pRecords || []);
+      productMatchRecord = detectProductName(query, pRecords || [])
+        || findProductMention(query, pRecords || [])
+        || (askedBefore ? findProductMention(convoText, pRecords || []) : null);
       if (productMatchRecord) matchedCategory = "omega3";
     }
 
@@ -505,6 +537,10 @@ export async function onRequest(context) {
     }
 
     let flagBlock = "";
+    if (productMatchRecord) {
+      const pmName = getField(productMatchRecord.fields || {}, "제품명", "name");
+      flagBlock += `\n\n[대상 제품] 사용자가 언급한 제품이 데이터에 있습니다: "${pmName}". [제품 데이터]에서 이 제품을 찾아 그 수치로 평결하세요. "데이터에 없다"고 말하지 마세요.`;
+    }
     if (detectedRisks.length) flagBlock += `\n\n[내부 플래그] 위험 페르소나 감지: ${detectedRisks.join(", ")} → W 플래그 적용, warning 필수.`;
     if (matchedCategory) flagBlock += `\n\n[대상 카테고리] ${CAT_LABEL[matchedCategory]}`;
     else if (hintDomain) flagBlock += `\n\n[내부 플래그] 4개 카테고리 밖 도메인(${hintDomain}) 질문 가능성 → X 정책 검토. 단, 병용 질문이면 답변.`;
