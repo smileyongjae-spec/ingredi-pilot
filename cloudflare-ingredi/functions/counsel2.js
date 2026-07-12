@@ -603,6 +603,16 @@ export async function onRequest(context) {
       // alternatives는 제품 컨텍스트에 실재하는 ID만 통과 (환각 차단)
       const validIds = new Set(productContext.map(p => String(p.product_id)));
       payload.alternatives = payload.alternatives.filter(a => a && validIds.has(String(a.product_id))).slice(0, 3);
+      // 부정 평결의 대안은 임상 용량 이상만 통과 — 프롬프트 규칙은 모델이 "인증이
+      // 좋아서" 같은 명분으로 협상하므로, 자격 게이트는 코드로 강제한다 (오메가3 기준
+      // EPA+DHA 1,000mg; 함량 데이터가 없는 항목은 판단 불가로 보존).
+      if (payload.verdict_tone === "negative" && matchedCategory === "omega3") {
+        const byId = new Map(productContext.map(p => [String(p.product_id), p]));
+        payload.alternatives = payload.alternatives.filter(a => {
+          const p = byId.get(String(a.product_id));
+          return !p || p.epa_dha_mg == null || p.epa_dha_mg >= 1000;
+        });
+      }
       // negative인데 대안이 비면 비교 페이지 안내를 body에 보강
       if (payload.verdict_tone === "negative" && payload.alternatives.length === 0 && payload.body.indexOf("비교") === -1) {
         payload.body += "\n\n같은 카테고리의 상위 제품은 ingredi 비교 페이지에서 확인하실 수 있어요.";
