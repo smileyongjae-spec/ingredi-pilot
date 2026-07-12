@@ -24,7 +24,7 @@ export async function onRequest(context) {
   }
 
   const url = new URL(request.url);
-  const query = (url.searchParams.get("q") || "").trim();
+  const query = (url.searchParams.get("q") || "").trim().slice(0, 500);   // 길이 제한: 입력 토큰 증폭 방지
   const wantDebug = url.searchParams.get("debug") === "1";
   if (!query) return new Response(JSON.stringify({ error: "missing_query" }), { status: 400, headers });
 
