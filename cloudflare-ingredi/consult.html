@@ -357,7 +357,10 @@ function addAssistantTurn(payload, meta) {
   }
   // 대안 카드 (부정 평결의 출구 — 그린은 여기에만)
   if (payload.alternatives && payload.alternatives.length) {
-    h += '<div class="alts">';
+    if (payload.alternatives_note) {
+      h += '<div class="block-label" style="margin-top:16px">대안 · ' + esc(payload.alternatives_note) + '</div>';
+    }
+    h += '<div class="alts"' + (payload.alternatives_note ? ' style="margin-top:0"' : '') + '>';
     var ids = [];
     for (var j = 0; j < payload.alternatives.length; j++) {
       var a = payload.alternatives[j];
