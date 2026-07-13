@@ -355,10 +355,10 @@ function addAssistantTurn(payload, meta) {
     h += '<div class="default-answer"><div class="block-label">고르지 않으셔도 됩니다</div>' +
          '<p class="voice">' + voiceHtml(payload.default_answer) + '</p></div>';
   }
-  // 대안 카드 (부정 평결의 출구 — 그린은 여기에만)
+  // 대안·추천 카드 (그린은 여기에만 — 출구 표시)
   if (payload.alternatives && payload.alternatives.length) {
     if (payload.alternatives_note) {
-      h += '<div class="block-label" style="margin-top:16px">대안 · ' + esc(payload.alternatives_note) + '</div>';
+      h += '<div class="block-label" style="margin-top:16px">' + esc(payload.alternatives_note) + '</div>';
     }
     h += '<div class="alts"' + (payload.alternatives_note ? ' style="margin-top:0"' : '') + '>';
     var ids = [];
@@ -369,12 +369,12 @@ function addAssistantTurn(payload, meta) {
       h += '<a class="alt-card" href="/app.html?category=' + encodeURIComponent(appCat) + '&focus=' + encodeURIComponent(a.product_id) + '">' +
            '<div class="alt-info"><div class="alt-name">' + esc(a.name) + '</div>' +
            (a.reason ? '<div class="alt-reason">' + esc(a.reason) + '</div>' : '') + '</div>' +
-           '<span class="alt-badge">대안 보기</span></a>';
+           '<span class="alt-badge">자세히 보기</span></a>';
     }
     h += '</div>';
     if (ids.length >= 2) {
       var cmpCat = CAT_APP_PARAM[lastCategory] || '오메가3';
-      h += '<div class="alt-cta"><a class="fu-link" href="/compare.html?category=' + encodeURIComponent(cmpCat) + '&ids=' + esc(ids.join(',')) + '">대안 ' + ids.length + '개 비교하기 ↗</a></div>';
+      h += '<div class="alt-cta"><a class="fu-link" href="/compare.html?category=' + encodeURIComponent(cmpCat) + '&ids=' + esc(ids.join(',')) + '">' + ids.length + '개 비교하기 ↗</a></div>';
     }
   }
   // 경고 (W 플래그) — 괘선 + 합쇼체
