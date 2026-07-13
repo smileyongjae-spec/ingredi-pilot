@@ -1,10 +1,12 @@
-// Cloudflare Pages Function: Unified category recommendation (v7)
+// Cloudflare Pages Function: Unified category recommendation (v7.1)
 // [v6] 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다. 없으면 null.
 // [v7] 품질점수(quality)·절대등급(qualityGrade)·가성비 경계(isPareto)를 서버에서 계산한다.
 //      - 품질점수 = 검증 가능한 축만 (가격·리뷰 제외)
 //      - 근거함량 = min(원값/임상앵커, 1)×100, 초과 가점 없음 (앵커: knowledge 테이블 근거 용량)
 //      - 등급 컷 = A≥85 B≥70 C≥55 D≥40 E — 절대평가, 모집단과 무관
 //      - 축 데이터가 없는 제품은 quality=null (평가 준비중) — 0점으로 둔갑시키지 않는다
+// [v7.1] 리뷰 인사이트에 마이크로바이옴 추가 — 마이크로바이옴_리뷰인사이트 테이블 실데이터
+//        업데이트 완료에 따라 예시 폴백 해제. 4개 카테고리 전체가 실리뷰.
 // File path: functions/recommend2.js
 // URL: /recommend2?category=<오메가3|눈|마이크로바이옴|비타민C>
 //
@@ -205,8 +207,9 @@ export async function onRequest(context) {
   items.sort((a, b) => b.vScore - a.vScore);
   items.forEach((it, i) => { it.rank = i + 1; });
 
-  // ── 리뷰 인사이트 조인 (오메가3/눈/비타민C만; 마이크로바이옴은 예시 유지) ──
-  const REVIEW_TABLE = { "오메가3": "오메가_리뷰인사이트", "눈": "눈_리뷰인사이트", "비타민C": "비타민C_리뷰인사이트" };
+  // ── 리뷰 인사이트 조인 (4개 카테고리 전체) ──
+  // [v7.1] 마이크로바이옴_리뷰인사이트 실데이터 업데이트로 예시 폴백 해제.
+  const REVIEW_TABLE = { "오메가3": "오메가_리뷰인사이트", "눈": "눈_리뷰인사이트", "비타민C": "비타민C_리뷰인사이트", "마이크로바이옴": "마이크로바이옴_리뷰인사이트" };
   const reviewsReady = !!REVIEW_TABLE[catKey];
   if (reviewsReady) {
     try {
