@@ -1,4 +1,4 @@
-// functions/_lib/airtable.js  (v3 — 필드 화이트리스트 + 서버측 필터)
+// functions/_lib/airtable.js  (v4 — 캐시 키 variant 분리)
 // 공용 Airtable 페치 + KV 캐시 헬퍼.
 // _lib 폴더는 밑줄(_)로 시작해서 Cloudflare 라우팅에서 제외됨(엔드포인트 아님).
 // 다른 Function들이 import 해서 씀:  import { getRecords } from './_lib/airtable.js';
@@ -7,37 +7,30 @@
 // v3 변경 배경 (2026-07 장애):
 //   파트너가 FAQ_전체상품에 미분류 행 4,307개를 머지 → 5,001행 = 51페이지
 //   → 이 테이블 하나가 Cloudflare 하위요청 한도(50)를 단독 초과 → 상담 전면 장애.
-//   해결 1) TABLE_FILTER: 분류 완료 행만 서버측(filterByFormula)에서 받아옴 (694행=7페이지).
-//          미분류 행은 counsel-api가 어차피 버리던 데이터라 서비스 영향 없음.
-//          앞으로 미분류 행이 수천 개 더 늘어도 안전.
+//   해결 1) TABLE_FILTER: 분류 완료 행만 서버측(filterByFormula)에서 받아옴.
 //   해결 2) TABLE_FIELDS: 서비스가 읽는 컬럼만 요청해 행당 페이로드 축소.
-//          ⚠ faq_id 컬럼은 임포트 시 BOM(보이지 않는 문자)이 붙었을 수 있어 목록에서 제외
-//            — counsel-api는 레코드 ID로 폴백하므로 무해.
-//   ⚠ 필드명이 실제 컬럼명과 다르면 Airtable이 422(UNKNOWN_FIELD_NAME)로 거절하며
-//     에러 본문에 어떤 필드가 틀렸는지 나온다 → 그 이름만 고치면 됨.
+//
+// v4 변경 배경 (제품명 직접 조회):
+//   같은 테이블을 서로 다른 필드셋으로 읽는 호출이 생김 —
+//   recommend2/counsel2는 제품 테이블 전체(30여 컬럼)를, counsel2 제품명 인덱스는
+//   3컬럼만 읽는다. 캐시 키가 테이블명뿐이면 둘이 충돌(먼저 캐싱한 쪽이 이겨
+//   recommend2가 3컬럼짜리를 받아 깨질 수 있음). → opts.variant 로 캐시 키를 분리.
+//   variant 없는 기존 호출은 캐시 키가 그대로(at:${table})라 무효화·cache-refresh 호환.
 
-const DEFAULT_TTL = 60 * 60 * 6; // 6시간(초). 데이터 수정은 최대 6시간 안에 반영, 즉시 반영은 /cache-refresh 사용.
+const DEFAULT_TTL = 60 * 60 * 6; // 6시간(초). 즉시 반영은 /cache-refresh 사용.
 
-// 필요한 컬럼만 받아올 테이블 목록. counsel-api.js가 읽는 컬럼과 일치해야 함.
-// (FAQ 컬럼명은 2026-07 CSV 실측: question, answer, keywords, 임상근거, 소분류,
-//  검수상태, 제품카테고리, 건강도메인 확인됨)
 const TABLE_FIELDS = {
   'FAQ_전체상품': [
     'question', 'answer', 'keywords', '소분류',
     '임상근거', '제품카테고리', '건강도메인', '검수상태'
   ]
-  // knowledge는 컬럼명 실측 전이라 필드 제한 미적용 (필터만 적용).
-  // knowledge CSV 확인 후 추가 예정.
 };
 
-// 서버측 필터: 분류 컬럼이 모두 채워진 행만 받아온다.
-// counsel-api의 "분류 없는 행은 스킵" 로직을 Airtable 단계로 앞당긴 것.
 const TABLE_FILTER = {
   'FAQ_전체상품': "AND({제품카테고리}!='',{건강도메인}!='')",
   'knowledge':    "AND({제품카테고리}!='',{건강도메인}!='')"
 };
 
-// 환경변수 이름이 셋업마다 다를 수 있어 폴백으로 여러 개 지원.
 function getToken(env) {
   return env.AIRTABLE_TOKEN || env.AIRTABLE_API_KEY || env.AIRTABLE_PAT || env.AIRTABLE_KEY;
 }
@@ -45,7 +38,6 @@ function getBaseId(env) {
   return env.AIRTABLE_BASE_ID || env.BASE_ID || env.AIRTABLE_BASE;
 }
 
-// Airtable 테이블 전체 레코드를 페이지네이션으로 모두 가져옴.
 async function fetchAll(env, table, fields, filter) {
   const base = getBaseId(env);
   const token = getToken(env);
@@ -74,18 +66,18 @@ async function fetchAll(env, table, fields, filter) {
 
 /**
  * 테이블 레코드를 캐시 우선으로 반환.
- * - KV(env.CACHE)가 바인딩돼 있으면: 캐시 히트 시 그대로 반환, 미스/만료 시 Airtable에서 가져와 캐시에 저장.
- * - KV가 없으면: 그냥 매번 Airtable 직접 호출(= 캐시 도입 전 동작). 그래서 바인딩 전에 배포해도 안전.
  * @param {object} env  Pages Functions env
- * @param {string} table  Airtable 테이블명 (예: '오메가3')
- * @param {object} opts  { ttl, force, fields, filter }  미지정 시 TABLE_FIELDS/TABLE_FILTER 기본값 사용
+ * @param {string} table  Airtable 테이블명
+ * @param {object} opts  { ttl, force, fields, filter, variant }
+ *   - variant: 같은 테이블을 다른 필드셋으로 읽을 때 캐시를 분리하는 태그(예: 'idx').
+ *              미지정 시 기존 키(at:${table}) 그대로 — cache-refresh·기존 호출 호환.
  */
 export async function getRecords(env, table, opts = {}) {
   const ttl = opts.ttl || DEFAULT_TTL;
   const force = !!opts.force;
   const fields = opts.fields || TABLE_FIELDS[table] || null;
   const filter = opts.filter !== undefined ? opts.filter : (TABLE_FILTER[table] || null);
-  const key = `at:${table}`;
+  const key = opts.variant ? `at:${table}:${opts.variant}` : `at:${table}`;
 
   if (env.CACHE && !force) {
     try {
@@ -99,25 +91,22 @@ export async function getRecords(env, table, opts = {}) {
   if (env.CACHE) {
     try {
       await env.CACHE.put(key, JSON.stringify(records), { expirationTtl: ttl });
-    } catch (_) { /* 캐시 쓰기 실패는 무시(데이터는 이미 확보) */ }
+    } catch (_) { /* 캐시 쓰기 실패는 무시 */ }
   }
   return records;
 }
 
-// 특정 테이블 캐시 삭제(수동 새로고침용).
+// 특정 테이블 캐시 삭제(수동 새로고침용). variant 캐시(idx)도 함께 지운다.
 export async function purge(env, table) {
   if (env.CACHE) {
-    try { await env.CACHE.delete(`at:${table}`); } catch (_) {}
+    for (const k of [`at:${table}`, `at:${table}:idx`]) {
+      try { await env.CACHE.delete(k); } catch (_) {}
+    }
   }
 }
 
 /**
  * 단일 레코드 생성(쓰기). 피드백 등 사용자 입력 저장용.
- * 읽기 캐시(getRecords)와 무관 — 쓰기는 항상 Airtable로 직접 POST.
- * @param {object} env  Pages Functions env
- * @param {string} table  Airtable 테이블명 (예: '피드백')
- * @param {object} fields  { 필드명: 값 }
- * @returns {Promise<{id: string, fields: object}>}
  */
 export async function createRecord(env, table, fields) {
   const base = getBaseId(env);
