@@ -588,7 +588,7 @@ export async function onRequest(context) {
 1. 평결 먼저. 첫 문장이 결론입니다.
 2. 근거는 숫자 2개까지 (함량 1 + 상대 위치 1). 세 번째 숫자부터는 설득이 됩니다.
 3. 부정 평결 3원칙: 사람이 아니라 제품·광고를 문제 삼는다 / "솔직히 말씀드리면"으로 예고한다 / 반드시 대안(alternatives)으로 끝낸다.
-4. 대안 자격 규칙: 대안은 평결에서 지적한 결함을 해결하는 제품이어야 합니다. 함량 부족을 지적했다면 대안은 임상 근거 용량 이상이어야 하고, 제형을 지적했다면 대안은 그 제형 문제가 없어야 합니다. 지적한 결함을 똑같이 가진 제품은 가격이 아무리 좋아도 대안이 될 수 없습니다. 자격을 갖춘 제품이 [제품 데이터]에 1~2개뿐이면 3개를 채우지 말고 1~2개만 제시하세요. 가격대: 대안은 가급적 언급된 제품의 1일비용 ±50% 안에서 고르고, 벗어나는 제품을 고를 땐 reason에 그 이유를 한 마디 밝히세요 — 깎아내리고 비싼 것을 파는 그림이 되면 안 됩니다.
+4. 대안 자격 규칙: 대안은 평결에서 지적한 결함을 해결하는 제품이어야 합니다. 함량 부족을 지적했다면 대안은 임상 근거 용량 이상이어야 하고, 제형을 지적했다면 대안은 그 제형 문제가 없어야 합니다. 지적한 결함을 똑같이 가진 제품은 가격이 아무리 좋아도 대안이 될 수 없습니다. 자격을 갖춘 제품이 [제품 데이터]에 1~2개뿐이면 3개를 채우지 말고 1~2개만 제시하세요. 대안은 별도 기준 요청이 없으면 성분 우선(품질점수) 순으로 고르고, 성분 우선 목록에 가성비 제품을 섞지 마세요 — 사용자가 "가성비 좋은 걸로"를 물으면 그때 가성비 순으로 바꿉니다.
 5. 좋은 제품에도 한계를 한 번 짚습니다 ("최고급은 아니지만") — 다음 "아니요"의 신용입니다.
 
 ## 등급과 상황에 따른 평결 (제품 평결 시)
@@ -777,12 +777,13 @@ export async function onRequest(context) {
       if (payload.verdict_tone === "conditional" && !payload.warning) payload.verdict_tone = "none";
       if (payload.policy !== "M") payload.handoff = null;
 
-      // 축 강제 재정렬: 명시적 축 키워드가 있고 화자가 목록(2개 이상)을 냈으면, 그 목록이
-      // 강제 축을 실제로 따르도록 코드에서 재정렬한다 (프롬프트가 직전 턴 문맥에 눌리는 경우 대비).
-      // 순위(rank_*)는 전체 모집단 기준이며 productContext는 각 축 상위 8을 포함하므로 상위 3은 정확.
-      if (forcedAxis && matchedCategory === "omega3" && productContext.length &&
+      // 대안 정렬 축 확정: 명시 축(forcedAxis)이 있으면 그 축, 없고 부정 평결이면 성분 우선을
+      // 기본 축으로 둔다. 화자가 부정 평결 대안에 가성비 제품을 섞지 못하게 코드가 순서를 확정.
+      // (rank_*는 전체 모집단 기준, productContext는 각 축 상위 8 포함 → 상위 3 정확.)
+      const effectiveAxis = forcedAxis || (payload.verdict_tone === "negative" ? AXIS_KEYWORDS[0] : null);
+      if (effectiveAxis && matchedCategory === "omega3" && productContext.length &&
           payload.policy === "V" && Array.isArray(payload.alternatives) && payload.alternatives.length >= 2) {
-        const rk = forcedAxis.axis;
+        const rk = effectiveAxis.axis;
         let ranked = productContext.filter(p => p[rk] != null);
         // 부정 평결이면 결함 해결(임상 용량 이상) 자격을 유지한다.
         if (payload.verdict_tone === "negative") ranked = ranked.filter(p => p.epa_dha_mg == null || p.epa_dha_mg >= 1000);
@@ -798,7 +799,9 @@ export async function onRequest(context) {
             if (p.certs) bits.push(String(p.certs).split(",")[0].trim());
             return { product_id: p.product_id, name: p.name, reason: bits.join(" · ") };
           });
-          payload.alternatives_note = `${forcedAxis.label} 상위 ${payload.alternatives.length}개`;
+          payload.alternatives_note = (payload.verdict_tone === "negative")
+            ? `결함 해결 · ${effectiveAxis.label} 상위 ${payload.alternatives.length}개`
+            : `${effectiveAxis.label} 상위 ${payload.alternatives.length}개`;
         }
       }
     }
