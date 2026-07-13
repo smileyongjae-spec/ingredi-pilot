@@ -6,6 +6,12 @@
 // 변경 요약
 //   - v9~v12: 통념 게이트 / 축 정합(성분우선·가성비) / recommend2 quality 산식 이식 / 4카테고리 확장
 //   - v13: 제품명 직접 조회(4개 경량 인덱스, Strict 발동+실재 매칭) / v14: 세그먼트(대상분류) 대안 필터
+//   - v15.5: 멀티턴 카테고리 라우팅 버그 수정 — 라우팅이 대화 전체(화자 인트로 포함)를 훑어
+//            화자가 나열한 4개 카테고리 중 첫 번째(오메가3)로 늘 오라우팅되던 문제. 칩 클릭·후속
+//            발화가 무시됨. 라우팅·인구통계·제품명 폴백을 사용자 발화(userText)만 보도록, 최신
+//            메시지(query) 우선으로 변경. 화자 발화는 라우팅 입력에서 제외.
+//   - v15.4: 프롬프트 캐싱 — 고정 시스템 프롬프트를 cache_control 블록으로. 멀티턴 상담에서
+//            2번째 턴부터 시스템 프롬프트 입력 단가 90%↓(0.1x). 발화·라우팅 로직 변화 없음(비용만).
 //   - v15.3: [비지목] 가드 — 사용자가 제품을 언급하지 않았는데 화자가 후보군(productContext)의
 //            한 제품을 골라 단수 부정 평결하던 문제("50살 남성 추천" 흐름에서 웰키커 어린이 오메가3를
 //            지목해 "권하지 않아요") 수정. productMatchRecord 부재 + 후보군 존재 시 플래그 주입.
@@ -60,6 +66,7 @@ export async function onRequest(context) {
   }
   const query = messages[messages.length - 1].content;
   const convoText = messages.map(m => m.content).join(" ");
+  const userText = messages.filter(m => m.role === "user").map(m => m.content).join(" ");  // [v15.5] 라우팅·인구통계용(화자 발화 제외)
   const lowerQuery = query.toLowerCase();
   const askedBefore = messages.filter(m => m.role === "assistant").length > 0;
 
@@ -341,7 +348,7 @@ export async function onRequest(context) {
   }
 
   try {
-    const demographics = parseDemographics(convoText);
+    const demographics = parseDemographics(userText);  // [v15.5] 화자 발화 제외
 
     // ─── [0] 코드 게이트: 검색·모델 호출 전 차단 ────
     if (META_QUERY.test(query)) {
@@ -413,12 +420,18 @@ export async function onRequest(context) {
     // ─── [2] 라우팅: 카테고리·도메인 (대화 전체 기준) ──
     let matchedCategory = null;
     let hintDomain = null;
-    const routeText = convoText.toLowerCase();
-    for (const cat in CATEGORY_KEYWORDS) {
-      if (CATEGORY_KEYWORDS[cat].some(k => routeText.indexOf(k) !== -1)) { matchedCategory = cat; break; }
+    // [v15.5] 카테고리 라우팅은 사용자 발화만 본다(userText, 상단 정의). 화자 인트로가
+    // "오메가3·눈·유산균·비타민C"를 모두 나열하므로 대화 전체로 매칭하면 객체 순서상 첫 카테고리
+    // (오메가3)가 늘 이겨, 2번째 턴의 칩 클릭·후속 발화가 무시되고 오메가3로 오라우팅된다(실측 재현).
+    // 최신 사용자 메시지(query = 방금 누른 칩)를 우선 매칭하고, 없을 때만 이전 사용자 발화로 폴백.
+    function catFrom(text) {
+      const t = String(text).toLowerCase();
+      for (const cat in CATEGORY_KEYWORDS) if (CATEGORY_KEYWORDS[cat].some(k => t.indexOf(k) !== -1)) return cat;
+      return null;
     }
-    if (!matchedCategory) for (const h of PRODUCT_HINTS) if (h.re.test(convoText)) { matchedCategory = h.cat; break; }
-    if (!matchedCategory) for (const h of DOMAIN_HINTS) if (h.re.test(convoText)) { hintDomain = h.dom; break; }
+    matchedCategory = catFrom(query) || catFrom(userText);
+    if (!matchedCategory) for (const h of PRODUCT_HINTS) if (h.re.test(query) || h.re.test(userText)) { matchedCategory = h.cat; break; }
+    if (!matchedCategory) for (const h of DOMAIN_HINTS) if (h.re.test(query) || h.re.test(userText)) { hintDomain = h.dom; break; }
 
     // ─── [3] 테이블 로드 ────────────────────────────
     async function safeGet(t, opts) { try { return await getRecords(env, t, opts); } catch (_) { return []; } }
@@ -477,7 +490,7 @@ export async function onRequest(context) {
     if (prodCat) {
       productMatchRecord = detectProductName(query, pRecords || [])
         || findProductMention(query, pRecords || [])
-        || (askedBefore ? findProductMention(convoText, pRecords || []) : null);
+        || (askedBefore ? findProductMention(userText, pRecords || []) : null);  // [v15.5] 화자 발화 제외
       if (productMatchRecord && !matchedCategory) matchedCategory = prodCat;
     }
 
@@ -852,7 +865,11 @@ export async function onRequest(context) {
       : "https://api.anthropic.com";
     const reqBody = JSON.stringify({
       model: "claude-sonnet-4-6", max_tokens: 1200,
-      system: systemPrompt, messages: claudeMessages
+      // 프롬프트 캐싱: 시스템 프롬프트(페르소나·5정책·산식 설명, ~2,800토큰)는 매 호출 100% 동일하다.
+      // 캐시 블록으로 표시하면 같은 프롬프트를 5분 내 재호출 시 이 부분 입력 단가가 0.1배로 떨어진다
+      // (첫 기록만 1.25배). 상담은 멀티턴이라 2번째 턴부터 바로 절감. 캐시 최소 길이(Sonnet 1,024토큰) 충족.
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+      messages: claudeMessages
     });
     const RETRY_STATUS = [429, 500, 502, 503, 504, 529];
     let resp = null;
