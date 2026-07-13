@@ -1,17 +1,14 @@
-// functions/counsel2.js  (v13 — 화자 상담: 5정책 + 통념 게이트 + 축 정합 + 4카테고리 + 제품명 직접조회)
+// functions/counsel2.js  (v14 — 화자 상담: +세그먼트(대상분류) 대안 필터)
 //
 // 기존 counsel-api.js(v7)와 병행 배포. 프론트 전환 완료 후 v7 폐기.
-// ※ v13은 _lib/airtable.js v4(캐시 키 variant 분리)와 함께 배포해야 함.
+// ※ _lib/airtable.js v4(캐시 키 variant 분리)와 함께 배포해야 함.
 //
 // 변경 요약
-//   - v9:  통념 도메인 게이트(면역 등) + 축 강제(명시 키워드 하나면 코드가 축 확정)
-//   - v10: 추천 축 2축(성분 우선·가성비), 순수 함량 축 제거·함량 요청은 통념 교정
-//   - v11: 품질 소스를 recommend2.js(v7) 산식으로 이식(오메가3). 부정 평결 대안도 성분 우선 고정.
-//   - v12: 4개 카테고리 전체 확장. QUALITY_CFG로 산식·앵커·필드 일반화. quality=null 제외.
-//   - v13: 제품명 직접 조회 — 카테고리 신호 없이 제품명만 물어도(예: "그린몬스터 녹차카테킨")
-//          4개 경량 인덱스(제품명·id, airtable variant='idx' 캐시)를 뒤져 실재 카테고리로 라우팅.
-//          발동은 Strict(브랜드성 토큰 존재) + 확정은 실재 매칭(bestLen>=3) 필수. 실패 시 도메인
-//          힌트 없으면 Q(카테고리 되묻기). 경계 제품(타목적 주력)은 제품 정체 밝히고 우리 축으로만 평결.
+//   - v9~v12: 통념 게이트 / 축 정합(성분우선·가성비) / recommend2 quality 산식 이식 / 4카테고리 확장
+//   - v13: 제품명 직접 조회 — 카테고리 신호 없이 제품명만 물어도 4개 경량 인덱스로 실재 카테고리 라우팅
+//   - v14: 세그먼트(대상분류) 대안 필터 — 특정 제품을 물었을 때, 그 제품과 같은 대상분류 안에서만
+//          순위·대안을 뽑는다. 유산균만 해당(대상분류: 일반·여성·키즈). "아기 유산균 어때?"에
+//          성인·여성 제품이 대안으로 섞이던 문제 해결. 오메가3·눈·비타민C는 세그먼트 컬럼 없어 기존 동작.
 
 import { getRecords } from "./_lib/airtable.js";
 
@@ -162,7 +159,7 @@ export async function onRequest(context) {
                   calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5 * core + 0.3 * sc.form + 0.2 * sc.cert },
     eye:        { table: "눈_쿠팡업데이트",           anchor: 20,   primaryFields: ["루테인_mg"],                addFields: ["지아잔틴_mg"], primaryLabel: "루테인+지아잔틴", unit: "mg", anchorLabel: "루테인+지아잔틴 20mg",
                   calc: (core, sc) => (sc.supplier == null) ? null : 0.7 * core + 0.3 * sc.supplier },
-    probiotics: { table: "마이크로바이옴_쿠팡업데이트", anchor: 100,  primaryFields: ["보장균수_억"],              addFields: [],            primaryLabel: "보장균수",    unit: "억", anchorLabel: "보장균수 100억",
+    probiotics: { table: "마이크로바이옴_쿠팡업데이트", anchor: 100,  primaryFields: ["보장균수_억"],              addFields: [],            primaryLabel: "보장균수",    unit: "억", anchorLabel: "보장균수 100억", segmentField: "대상분류",
                   calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5 * core + 0.3 * sc.form + 0.2 * sc.cert },
     vitaminC:   { table: "비타민C_쿠팡업데이트",       anchor: 1000, primaryFields: ["비타민C함량_mg"],           addFields: [],            primaryLabel: "비타민C",     unit: "mg", anchorLabel: "비타민C 1,000mg",
                   calc: (core, sc) => (sc.supplier == null) ? null : 0.6 * core + 0.4 * sc.supplier }
@@ -546,8 +543,16 @@ export async function onRequest(context) {
 
     // ─── [6] 제품 컨텍스트 (4개 카테고리 실데이터) ─────
     let productContext = [];
+    let targetSegment = null;
     if (matchedCategory && QUALITY_CFG[matchedCategory] && (pRecords || []).length) {
       const cfg = QUALITY_CFG[matchedCategory];
+      // 세그먼트(대상분류) 필터: 사용자가 특정 제품을 물었고 그 카테고리에 세그먼트 컬럼이 있으면,
+      // 순위·후보군·대안을 그 제품과 같은 세그먼트(예: 키즈) 안에서만 뽑는다. 유산균만 해당(대상분류).
+      // 이래야 "아기 유산균 어때?"에 성인·여성 제품이 대안으로 섞이지 않는다.
+      if (cfg.segmentField && productMatchRecord) {
+        const sv = getField(productMatchRecord.fields || {}, cfg.segmentField);
+        if (sv) targetSegment = String(sv).trim();
+      }
       const items = (pRecords || []).map(r => {
         const f = r.fields || {};
         const { primary } = rawPrimaryOf(f, cfg);
@@ -559,11 +564,12 @@ export async function onRequest(context) {
           daily_cost: Math.round(parseFloat(getField(f, "1일비용_원")) || 0) || null,
           form: getField(f, "제형") || null,
           certs: asText(getField(f, "인증")) || null,
+          segment: cfg.segmentField ? (String(getField(f, cfg.segmentField) || "").trim() || null) : null,
           grade: gradeFromQuality(q),
           score: q,
           pass: getField(f, "함량_Pass_Fail") || null
         };
-      }).filter(p => p.name && p.pass !== "Fail");
+      }).filter(p => p.name && p.pass !== "Fail" && (!targetSegment || p.segment === targetSegment));
 
       // 축별 순위 계산 (전체 모집단 기준). 축은 2개 — 성분 우선(품질점수순)·가성비(파레토).
       // 둘 다 app.html의 "성분 우선"·"가성비 우선" 탭과 동일 로직이라 순위가 일치한다.
@@ -610,6 +616,7 @@ export async function onRequest(context) {
               primary_mg: ppri,
               daily_cost: Math.round(parseFloat(getField(pf, "1일비용_원")) || 0) || null,
               form: getField(pf, "제형") || null, certs: asText(getField(pf, "인증")) || null,
+              segment: cfg.segmentField ? (String(getField(pf, cfg.segmentField) || "").trim() || null) : null,
               grade: gradeFromQuality(pq),
               score: pq,
               pass: getField(pf, "함량_Pass_Fail") || null
@@ -726,6 +733,7 @@ export async function onRequest(context) {
     if (productMatchRecord) {
       const pmName = getField(productMatchRecord.fields || {}, "제품명", "name");
       flagBlock += `\n\n[대상 제품] 사용자가 언급한 제품이 데이터에 있습니다: "${pmName}". [제품 데이터]에서 이 제품을 찾아 그 수치로 바로 평결하세요. "데이터에 없다"거나 "라벨을 알려달라"고 되묻지 마세요 — 수치는 이미 [제품 데이터]에 있습니다. 이 제품이 다른 카테고리 성분까지 포함한 복합제여도, 우리 카테고리 성분(예: 루테인+지아잔틴)의 표기된 수치로 평결하고, 범위 밖 성분(예: 전립선·쏘팔메토)은 "그 부분은 제 범위 밖이라 판단하지 않아요"라고만 밝히세요. 또한 이 제품의 주된 목적이 우리 카테고리가 아니어도(예: 다이어트 제품에 유산균이 함께 든 경우), 먼저 이 제품이 무엇인지(주된기능성) 밝히고 우리 축 수치로 평결하되, "좋다/나쁘다" 단정보다 사실 위주로 알려주세요.`;
+      if (targetSegment) flagBlock += ` 이 제품은 '${targetSegment}' 대상 제품이며, [제품 데이터]의 대안도 모두 같은 '${targetSegment}' 대상입니다 — 대안을 권할 때 "같은 ${targetSegment} 유산균 중에서" 같은 표현으로 대상을 맞춰 안내하세요.`;
     }
     if (detectedRisks.length) flagBlock += `\n\n[내부 플래그] 위험 페르소나 감지: ${detectedRisks.join(", ")} → W 플래그 적용, warning 필수.`;
     if (matchedCategory) flagBlock += `\n\n[대상 카테고리] ${CAT_LABEL[matchedCategory]}`;
