@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3.1)
+// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3.2)
 // File path: functions/coupang-convert.js
 // URL: /coupang-convert?secret=<CACHE_REFRESH_SECRET>[&dryRun=1][&limit=200][&table=비타민C_쿠팡업데이트]
 //
@@ -111,16 +111,34 @@ export async function onRequest(context) {
     let json = null; try { json = JSON.parse(text); } catch (_) {}
     return { status: res.status, json, text };
   }
-  // 응답 data 를 urlToDeep 에 흡수. 성공적으로 매핑된 URL 수를 반환.
-  function absorb(urlToDeep, urls, json) {
+  // [v3.2] 쿠팡 URL 정규화 — 사이트에서 복사한 URL엔 검색·광고 트래킹 파라미터(spec/ctag/lptag 등,
+  // lptag는 raw 파이프 포함)가 붙어 있고, Deeplink API가 이런 URL을 "url convert failed"로 거부한다.
+  // 상품 식별에 필요한 productId(경로)·itemId·vendorItemId 만 남긴다. Airtable 원본은 건드리지 않는다.
+  function cleanUrl(raw) {
+    try {
+      const u = new URL(raw);
+      if (!(u.hostname === "coupang.com" || u.hostname.endsWith(".coupang.com"))) return raw;
+      const keep = new URLSearchParams();
+      const itemId = u.searchParams.get("itemId");
+      const vendorItemId = u.searchParams.get("vendorItemId");
+      if (itemId) keep.set("itemId", itemId);
+      if (vendorItemId) keep.set("vendorItemId", vendorItemId);
+      const qs = keep.toString();
+      return u.origin + u.pathname + (qs ? "?" + qs : "");
+    } catch (_) { return raw; }
+  }
+  // 응답 data 를 urlToDeep 에 흡수. toOrig(클린→원본 맵)가 있으면 원본 URL 키로 저장.
+  function absorb(urlToDeep, sentUrls, json, toOrig) {
     const data = (json && json.data) || [];
     let n = 0;
+    const orig = s => (toOrig && toOrig[s]) || s;
     data.forEach((item, idx) => {
       const deep = item.shortenUrl || item.landingUrl || "";
       if (!deep) return;
-      const orig = item.originalUrl || urls[idx];
-      if (orig && !urlToDeep[orig]) { urlToDeep[orig] = deep; n++; }
-      if (urls[idx] && !urlToDeep[urls[idx]]) { urlToDeep[urls[idx]] = deep; n++; }
+      const a = orig(item.originalUrl || sentUrls[idx]);
+      if (a && !urlToDeep[a]) { urlToDeep[a] = deep; n++; }
+      const b = orig(sentUrls[idx]);
+      if (b && !urlToDeep[b]) { urlToDeep[b] = deep; n++; }
     });
     return n;
   }
@@ -195,43 +213,47 @@ export async function onRequest(context) {
 
     // ── [2] Deeplink 변환: 1차 청크 호출 ──
     const uniqUrls = [...new Set(targets.map(t => t.url))];
+    // [v3.2] API 호출은 클린 URL로, 저장 키는 원본 URL로.
+    const cleanToOrig = {};
+    for (const u of uniqUrls) { const c = cleanUrl(u); if (!cleanToOrig[c]) cleanToOrig[c] = u; }
+    const cleanUrls = Object.keys(cleanToOrig);
     const urlToDeep = {};
     const apiErrors = [];
     // 기록(PATCH) 몫을 남겨둔다: 확보할 딥링크를 쓰려면 최소 ceil(대상/10)회 필요. 보수적으로 8 예약.
     const RESERVE_FOR_WRITE = 8;
-    for (let i = 0; i < uniqUrls.length; i += CHUNK) {
+    for (let i = 0; i < cleanUrls.length; i += CHUNK) {
       if (budgetLeft() <= RESERVE_FOR_WRITE) break;
-      const urls = uniqUrls.slice(i, i + CHUNK);
+      const urls = cleanUrls.slice(i, i + CHUNK);
       const { status, json, text } = await callDeeplink(urls);
       if (status !== 200 || !json || (json.rCode && json.rCode !== "0")) {
         // 청크 통째 거부 — 이 청크의 URL들은 [2.5] 개별 재시도로 넘어간다.
         apiErrors.push({ chunk: i / CHUNK, status, rCode: json && json.rCode, rMessage: (json && json.rMessage) || text.slice(0, 200) });
         continue;
       }
-      absorb(urlToDeep, urls, json);
+      absorb(urlToDeep, urls, json, cleanToOrig);
       await sleep(400);
     }
 
     // ── [2.5] 개별 재시도 (v3) ──
     // 청크 거부분 + 성공 응답에서 누락된 URL을 1개씩 호출해 불량 URL만 격리한다.
     // [v3.1] 하위요청 예산 안에서만 진행 — 남으면 remaining 으로 반환, 재호출 시 이어서 처리(멱등).
-    const missed = uniqUrls.filter(u => !urlToDeep[u]);
-    const failedUrls = [];   // {url, rCode, rMessage}
+    const missedClean = cleanUrls.filter(c => !urlToDeep[cleanToOrig[c]]);
+    const failedUrls = [];   // {url, sentAs, rCode, rMessage}
     let retried = 0, retryConverted = 0;
-    for (const u of missed) {
+    for (const c of missedClean) {
       if (budgetLeft() <= RESERVE_FOR_WRITE) break;
       retried++;
-      const { status, json, text } = await callDeeplink([u]);
+      const { status, json, text } = await callDeeplink([c]);
       if (status === 200 && json && (!json.rCode || json.rCode === "0")) {
-        const n = absorb(urlToDeep, [u], json);
+        const n = absorb(urlToDeep, [c], json, cleanToOrig);
         if (n > 0) { retryConverted++; }
-        else failedUrls.push({ url: u, rCode: json.rCode || "0", rMessage: "응답에 딥링크 없음(shortenUrl 누락)" });
+        else failedUrls.push({ url: cleanToOrig[c], sentAs: c, rCode: json.rCode || "0", rMessage: "응답에 딥링크 없음(shortenUrl 누락)" });
       } else {
-        failedUrls.push({ url: u, rCode: json && json.rCode, rMessage: ((json && json.rMessage) || text || "").slice(0, 160) });
+        failedUrls.push({ url: cleanToOrig[c], sentAs: c, rCode: json && json.rCode, rMessage: ((json && json.rMessage) || text || "").slice(0, 160) });
       }
       await sleep(300);
     }
-    const retrySkipped = Math.max(0, missed.length - retried); // 예산 소진으로 이번에 못 돈 수 — 재호출 시 이어서 처리
+    const retrySkipped = Math.max(0, missedClean.length - retried); // 예산 소진으로 이번에 못 돈 수 — 재호출 시 이어서 처리
 
     // ── [3] Airtable 기록 (테이블별 batch) ──
     let written = 0, noMatch = 0, writeSkipped = 0;
