@@ -440,13 +440,29 @@ export async function onRequest(context) {
           pass: getField(f, "함량_Pass_Fail") || null
         };
       }).filter(p => p.name && p.pass !== "Fail");
-      items.sort((a, b) => (b.score || 0) - (a.score || 0));
-      const topProducts = items.slice(0, 12);
+
+      // 축별 순위 계산 (전체 모집단 기준) — 화자가 "함량 기준 몇 위"를 말할 수 있게
+      const byScore = [...items].sort((a, b) => (b.score || 0) - (a.score || 0));
+      const byDose  = [...items].sort((a, b) => (b.epa_dha_mg || 0) - (a.epa_dha_mg || 0));
+      const byValue = items.filter(p => (p.epa_dha_mg || 0) >= 1000 && p.daily_cost)
+                           .sort((a, b) => a.daily_cost - b.daily_cost);
+      byScore.forEach((p, i) => { p.rank_quality = i + 1; });
+      byDose.forEach((p, i) => { p.rank_dose = i + 1; });
+      byValue.forEach((p, i) => { p.rank_value = i + 1; });
+
+      // 후보군 = 세 축 상위 8의 합집합 (한 축만 잘 보이는 제품도 화자 시야에 들어오게)
+      const seen = new Set();
+      const topProducts = [];
+      for (const pool of [byScore.slice(0, 8), byDose.slice(0, 8), byValue.slice(0, 8)]) {
+        for (const p of pool) {
+          if (!seen.has(p.product_id)) { seen.add(p.product_id); topProducts.push(p); }
+        }
+      }
       // 유저가 특정 제품을 물었으면 그 제품을 반드시 포함
       if (productMatchRecord) {
         const pf = productMatchRecord.fields || {};
         const pid = getField(pf, "product_id", "productId") || productMatchRecord.id;
-        if (!topProducts.some(p => p.product_id === pid)) {
+        if (!seen.has(pid)) {
           const hit = items.find(p => p.product_id === pid);
           if (hit) topProducts.push(hit);
           else topProducts.push({
@@ -487,8 +503,24 @@ export async function onRequest(context) {
 1. 평결 먼저. 첫 문장이 결론입니다.
 2. 근거는 숫자 2개까지 (함량 1 + 상대 위치 1). 세 번째 숫자부터는 설득이 됩니다.
 3. 부정 평결 3원칙: 사람이 아니라 제품·광고를 문제 삼는다 / "솔직히 말씀드리면"으로 예고한다 / 반드시 대안(alternatives)으로 끝낸다.
-4. 대안 자격 규칙: 대안은 평결에서 지적한 결함을 해결하는 제품이어야 합니다. 함량 부족을 지적했다면 대안은 임상 근거 용량 이상이어야 하고, 제형을 지적했다면 대안은 그 제형 문제가 없어야 합니다. 지적한 결함을 똑같이 가진 제품은 가격이 아무리 좋아도 대안이 될 수 없습니다. 자격을 갖춘 제품이 [제품 데이터]에 1~2개뿐이면 3개를 채우지 말고 1~2개만 제시하세요.
+4. 대안 자격 규칙: 대안은 평결에서 지적한 결함을 해결하는 제품이어야 합니다. 함량 부족을 지적했다면 대안은 임상 근거 용량 이상이어야 하고, 제형을 지적했다면 대안은 그 제형 문제가 없어야 합니다. 지적한 결함을 똑같이 가진 제품은 가격이 아무리 좋아도 대안이 될 수 없습니다. 자격을 갖춘 제품이 [제품 데이터]에 1~2개뿐이면 3개를 채우지 말고 1~2개만 제시하세요. 가격대: 대안은 가급적 언급된 제품의 1일비용 ±50% 안에서 고르고, 벗어나는 제품을 고를 땐 reason에 그 이유를 한 마디 밝히세요 — 깎아내리고 비싼 것을 파는 그림이 되면 안 됩니다.
 5. 좋은 제품에도 한계를 한 번 짚습니다 ("최고급은 아니지만") — 다음 "아니요"의 신용입니다.
+
+## 등급과 상황에 따른 평결 (제품 평결 시)
+등급 매핑 — 부정은 D에만 씁니다. 부정이 흔해지면 부정이 싸집니다:
+- A: positive. "좋은 선택이에요."
+- B: positive + 한계 한 번. "드셔도 됩니다. 최고급은 아니지만 충분히 좋은 제품이에요."
+- C: conditional(무채색). "나쁘지 않아요"로 시작하되, 같은 값에 더 나은 선택이 있음을 말합니다. alternatives는 넣지 말고, chips에 "더 나은 대안 보기" 칩을 포함하세요.
+- D: negative. "솔직히 말씀드리면, 권하지 않아요." alternatives 필수.
+상황(TPO) 분기 — 같은 등급도 보유와 구매 예정은 다릅니다:
+- 이미 갖고 있거나 복용 중(선물·회사 지급 포함): B는 "바꿀 이유 없어요", C는 "드시던 건 마저 드시고, 재구매하실 때 대안을 보세요", D도 "드신다고 큰일 나는 건 아니지만" 재구매는 말립니다.
+- 구매를 고민 중: B는 "사도 됩니다. 다만 같은 가격대에 A등급도 있어요" 정도의 한 마디, C·D는 대안 쪽으로 무게를 둡니다.
+추천 억제 — 긍정 평결(A·B)에는 다른 제품 추천을 자동으로 붙이지 마세요. 안심을 주고 깔끔하게 끝냅니다. 사용자가 더 좋은 것을 물어올 때만 답합니다.
+
+## 추천 요청 ("뭐 사면 돼?", "추천해줘")
+1. 기준이 없으면 Q로 되묻습니다: "성분(함량) 우선" / "가성비 우선" / "잘 모르겠어요" 칩. default_answer는 품질점수(rank_quality) 기준 상위로.
+2. 기준이 정해지면 해당 축 순위(rank_dose/rank_value/rank_quality)로 상위 3개를 alternatives에 담고, alternatives_note에 기준을 명시합니다 (예: "함량 기준 상위 3개").
+3. 3개를 넘게 나열하지 마세요. 더 원하면 "전체 순위는 비교 페이지에서 보실 수 있어요"로 안내합니다.
 지식·용어 질문은 정의 나열 대신 "그래서 뭘 보고 고르면 되는지"로 끝냅니다.
 
 ## 문체
@@ -509,7 +541,7 @@ export async function onRequest(context) {
 - 같은 대화에서 판단을 번복하지 않습니다. 새 정보가 나오면 번복이 아니라 갱신임을 명시합니다.
 
 ## 출력 (반드시 이 JSON만, 코드펜스·인사말 금지)
-{"policy":"V|Q|M|X","verdict_tone":"positive|negative|conditional|none","verdict":"평결 한 문장(V 필수, 외 null)","body":"본문","warning":"경고(없으면 null)","question":"되묻기 질문(Q만)","chips":["..."],"chips_prompts":["칩을 눌렀을 때 사용자 발화로 보낼 자연어 문장"],"default_answer":"Q의 기본 답(Q만)","alternatives":[{"product_id":"...","name":"...","reason":"한 줄"}],"handoff":"M일 때 병원에서 물어볼 것(외 null)"}
+{"policy":"V|Q|M|X","verdict_tone":"positive|negative|conditional|none","verdict":"평결 한 문장(V 필수, 외 null)","body":"본문","warning":"경고(없으면 null)","question":"되묻기 질문(Q만)","chips":["..."],"chips_prompts":["칩을 눌렀을 때 사용자 발화로 보낼 자연어 문장"],"default_answer":"Q의 기본 답(Q만)","alternatives":[{"product_id":"...","name":"...","reason":"한 줄"}],"alternatives_note":"대안·추천 목록의 선정 기준 한 줄 (없으면 null)","handoff":"M일 때 병원에서 물어볼 것(외 null)"}
 - verdict_tone 규칙: positive=긍정 평결, negative=부정 평결(alternatives 필수), conditional=조건부(warning 필수), none=Q/M/X.
 - chips와 chips_prompts는 같은 길이. alternatives의 product_id는 [제품 데이터]에 있는 것만.`;
 
@@ -532,6 +564,9 @@ export async function onRequest(context) {
     if (productContext.length) {
       productBlock += "\n" + JSON.stringify(productContext);
       productBlock += "\n임상 도즈 앵커: EPA+DHA 1,000mg.";
+      productBlock += "\n후보군 설명: 품질점수(rank_quality)·함량(rank_dose)·가성비(rank_value, 함량 1,000mg 이상 중 1일비용 낮은 순) 세 기준 각 상위의 합집합입니다. 순위는 전체 제품 기준입니다.";
+      productBlock += "\n축 선택 규칙: 사용자가 성분·함량을 중시하면 rank_dose, 가격을 중시하면 rank_value, 기준 언급이 없으면 rank_quality 순으로 고르고, 어떤 기준으로 골랐는지 한 마디로 밝히세요 (예: \"함량 기준으로는 이게 1위예요\").";
+      productBlock += "\n반복 금지: 직전 턴에서 이미 제시한 대안을 습관처럼 반복하지 마세요. 새 질문의 기준이 다르면 그 기준으로 다시 고르세요.";
     } else {
       productBlock += "\n(이 카테고리의 제품 데이터가 이 요청에 로드되지 않았습니다. 특정 제품 평결이 필요하면 라벨 함량을 요청하고, 대안은 비교 페이지로 안내하세요.)";
       productBlock += "\n임상 도즈 앵커: 오메가3 EPA+DHA 1,000mg / 루테인+지아잔틴 20mg / 유산균 보장균수 100억 / 비타민C 1,000mg.";
@@ -606,6 +641,7 @@ export async function onRequest(context) {
       // 부정 평결의 대안은 임상 용량 이상만 통과 — 프롬프트 규칙은 모델이 "인증이
       // 좋아서" 같은 명분으로 협상하므로, 자격 게이트는 코드로 강제한다 (오메가3 기준
       // EPA+DHA 1,000mg; 함량 데이터가 없는 항목은 판단 불가로 보존).
+      if (typeof payload.alternatives_note !== "string" || !payload.alternatives_note.trim()) payload.alternatives_note = null;
       if (payload.verdict_tone === "negative" && matchedCategory === "omega3") {
         const byId = new Map(productContext.map(p => [String(p.product_id), p]));
         payload.alternatives = payload.alternatives.filter(a => {
@@ -631,9 +667,8 @@ export async function onRequest(context) {
             payload.alternatives.push({ product_id: p.product_id, name: p.name, reason: bits.join(" · ") });
           }
         }
-        if (payload.alternatives.length) payload.alternatives_note = "함량 1,000mg 이상 · 점수순";
+        if (payload.alternatives.length && !payload.alternatives_note) payload.alternatives_note = "함량 1,000mg 이상 · 품질점수순";
       }
-      if (payload.alternatives_note === undefined) payload.alternatives_note = null;
       // negative인데 대안이 비면 비교 페이지 안내를 body에 보강
       if (payload.verdict_tone === "negative" && payload.alternatives.length === 0 && payload.body.indexOf("비교") === -1) {
         payload.body += "\n\n같은 카테고리의 상위 제품은 ingredi 비교 페이지에서 확인하실 수 있어요.";
