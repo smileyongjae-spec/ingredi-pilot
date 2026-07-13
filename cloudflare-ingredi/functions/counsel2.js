@@ -1,14 +1,19 @@
-// functions/counsel2.js  (v14 — 화자 상담: +세그먼트(대상분류) 대안 필터)
+// functions/counsel2.js  (v15 — 자체점검(2,195문항) 기반 라우팅·게이트 수정)
 //
 // 기존 counsel-api.js(v7)와 병행 배포. 프론트 전환 완료 후 v7 폐기.
 // ※ _lib/airtable.js v4(캐시 키 variant 분리)와 함께 배포해야 함.
 //
 // 변경 요약
 //   - v9~v12: 통념 게이트 / 축 정합(성분우선·가성비) / recommend2 quality 산식 이식 / 4카테고리 확장
-//   - v13: 제품명 직접 조회 — 카테고리 신호 없이 제품명만 물어도 4개 경량 인덱스로 실재 카테고리 라우팅
-//   - v14: 세그먼트(대상분류) 대안 필터 — 특정 제품을 물었을 때, 그 제품과 같은 대상분류 안에서만
-//          순위·대안을 뽑는다. 유산균만 해당(대상분류: 일반·여성·키즈). "아기 유산균 어때?"에
-//          성인·여성 제품이 대안으로 섞이던 문제 해결. 오메가3·눈·비타민C는 세그먼트 컬럼 없어 기존 동작.
+//   - v13: 제품명 직접 조회(4개 경량 인덱스, Strict 발동+실재 매칭) / v14: 세그먼트(대상분류) 대안 필터
+//   - v15: 유형별 2,195문항 자체점검에서 드러난 결함 수정 —
+//     ① findProductMention 범용어 오탐: "영양제"·"좋은" 등 범용 토큰이 소수 제품명에 우연히 있어
+//        매칭 근거가 되던 버그(예: "다이어트에 좋은 영양제"→오메가써큐텐). NON_BRAND·숫자 토큰 배제.
+//     ② 다중 브랜드 토큰 확정 검증: 최고 매칭이 토큰 1개(5자 미만)만 물면 약한 우연 일치로 보고
+//        AND-폴백으로 — 엉뚱한 제품 평결 방지. ③ AND-폴백: 흔한 토큰 조합 제품명(df 상한 전부 걸림)도 매칭.
+//     ④ 크로스 카테고리 폴백: 복합제("루테인 오메가3")가 키워드 라우팅된 테이블에 없으면 타 카테고리
+//        인덱스 확인 후 검증 통과 시 전환. ⑤ detectProductName에 브랜드 토큰 가드("비타민C 1000" 오탐 차단).
+//     ⑥ 응급 게이트 확장(발진·숨쉬기 힘듦·구토+어지럼). ⑦ 메타 게이트 확장(이 서비스 뭐야·ingredi·너 AI야).
 
 import { getRecords } from "./_lib/airtable.js";
 
@@ -105,10 +110,10 @@ export async function onRequest(context) {
   const NON_BRAND_RE = /^(다이어트|체중|체지방|수면|불면|숙면|멜라토닌|관절|무릎|연골|피부|여드름|뾰루지|주름|기미|콜라겐|미백|뼈|골다공증|골밀도|칼슘|혈압|기억력|인지|집중력|치매|두뇌|면역|피로|활력|컨디션|무기력|간|숙취|커큐민|강황|울금|글루타치온|추천|추천해줘|좋은|좋아|좋을까|괜찮|괜찮아|어때|어떤|알려|알려줘|먹어|먹으면|복용|영양제|건강기능식품|건기식|보충제|제품|성분|효능|효과)$/;
   const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
 
-  const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐)|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|jailbreak|ignore\s+previous/i;
+  const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐|ai|에이아이)|\bai\s*(야|냐|니)\b|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|이\s*(서비스|사이트|앱)\s*(가|는|이)?\s*뭐|ingredi|인그레디|잉그레디|누가\s*만들|jailbreak|ignore\s+previous/i;
   const SERVICE_QUERY = /환불|반품|교환|배송|결제|쿠폰|주문|취소|배달|고객센터|광고|협찬|수수료|제휴|약국|직구|최저가|세일|할인|돈\s*(을)?\s*(벌|버는)|수익|어떻게\s*운영/;
   // 급성 이상 반응·사고 — 검색 없이 즉시 M
-  const ACUTE_EMERGENCY = /두드러기|호흡\s*(곤란|이\s*힘)|가슴\s*(이)?\s*(두근|답답|아프)|심장이\s*두근|쇼크|의식|한\s*(통|병)\s*(을)?\s*다\s*(먹|삼)|과다\s*복용\s*(했|한\s*것)/;
+  const ACUTE_EMERGENCY = /두드러기|발진|아나필락시스|호흡\s*(곤란|이\s*힘)|숨\s*(쉬기|이)\s*(가|이)?\s*(힘들|차|막|안\s*쉬)|가슴\s*(이)?\s*(두근|답답|아프)|심장이\s*두근|쇼크|의식|(토했|구토).{0,8}(어지|힘들)|어지러.{0,6}(토했|구토)|한\s*(통|병)\s*(을)?\s*다\s*(먹|삼)|과다\s*복용\s*(했|한\s*것)/;
 
   const SEED_TOKENS = {
     omega3:     ["오메가3", "epa", "dha"],
@@ -208,12 +213,17 @@ export async function onRequest(context) {
   function detectProductName(q, records) {
     const qn = normEntity(q);
     if (qn.length < 3) return null;
+    // 브랜드성 토큰이 하나는 있어야 제품 언급으로 본다 — "비타민C 1000"처럼
+    // 카테고리어+숫자뿐인 질의가 우연히 제품명의 부분문자열이어도 매칭하지 않는다(자체점검 오탐).
+    const allParts = String(q).split(/\s+/).map(normEntity).filter(t => t.length >= 2);
+    const brandish = t => !isCategoryWord(t) && !NON_BRAND_RE.test(t) && !/^\d+(mg|억|포|정|캡슐|개월|일분)?$/.test(t);
+    if (!allParts.some(brandish)) return null;
     for (const r of records || []) {
       const nm = normEntity(getField(r.fields || {}, "제품명", "name"));
       if (nm && nm.indexOf(qn) !== -1) return r;
     }
-    const parts = String(q).split(/\s+/).map(normEntity).filter(t => t.length >= 2);
-    const hasBrand = parts.some(t => t.length >= 3 && !isCategoryWord(t));
+    const parts = allParts;
+    const hasBrand = parts.some(t => t.length >= 3 && brandish(t));
     if (parts.length >= 2 && hasBrand) {
       for (const r of records || []) {
         const nm = normEntity(getField(r.fields || {}, "제품명", "name"));
@@ -231,8 +241,10 @@ export async function onRequest(context) {
     const recs = records || [];
     if (!recs.length) return null;
     const names = recs.map(r => normEntity(getField(r.fields || {}, "제품명", "name")));
+    // 브랜드성 토큰만: 카테고리어·범용어(NON_BRAND)·불용어·순수숫자 배제.
+    // "영양제"·"좋은" 같은 범용어가 소수 제품명에 우연히 들어 있어도 매칭 근거가 되면 안 된다(자체점검에서 오탐 확인).
     const parts = [...new Set(String(q).split(/\s+/).map(normEntity)
-      .filter(t => t.length >= 2 && !isCategoryWord(t)))];
+      .filter(t => t.length >= 2 && !isCategoryWord(t) && !NON_BRAND_RE.test(t) && !/^\d+(mg|억|포|정|캡슐|개월|일분)?$/.test(t)))];
     if (!parts.length) return null;
     // 범용 토큰 배제: 전체 제품의 5% 초과(최소 3개 초과)에 등장하면 브랜드가 아님
     const cap = Math.max(3, Math.floor(recs.length * 0.05));
@@ -241,16 +253,39 @@ export async function onRequest(context) {
       for (const nm of names) { if (nm && nm.indexOf(t) !== -1) { df++; if (df > cap) return false; } }
       return df > 0;
     });
-    if (!usable.length) return null;
     let best = null, bestLen = 0;
-    for (let i = 0; i < recs.length; i++) {
-      const nm = names[i];
-      if (!nm) continue;
-      let hit = 0;
-      for (const t of usable) if (nm.indexOf(t) !== -1) hit += t.length;
-      if (hit > bestLen) { bestLen = hit; best = recs[i]; }
+    if (usable.length) {
+      for (let i = 0; i < recs.length; i++) {
+        const nm = names[i];
+        if (!nm) continue;
+        let hit = 0;
+        for (const t of usable) if (nm.indexOf(t) !== -1) hit += t.length;
+        if (hit > bestLen) { bestLen = hit; best = recs[i]; }
+      }
     }
-    return bestLen >= 3 ? best : null;
+    // 확정 검증: 질의에 브랜드 토큰이 2개 이상 있는데 최고 매칭이 그중 1개(5자 미만)만 물었다면
+    // 약한 우연 일치일 수 있다("GNM 건조한 눈엔"이 다른 GNM 제품에 3자 매칭). AND-폴백으로 넘긴다.
+    const presentAll = parts.filter(t => names.some(nm => nm && nm.indexOf(t) !== -1));
+    if (best && bestLen >= 3) {
+      if (presentAll.length >= 2) {
+        const bn = normEntity(getField(best.fields || {}, "제품명", "name"));
+        const hitToks = presentAll.filter(t => bn.indexOf(t) !== -1);
+        if (hitToks.length >= 2 || hitToks.join("").length >= 5) return best;
+      } else return best;
+    }
+    // 폴백 AND-매칭: 흔한 토큰 조합으로 된 제품명("종근당 프로메가 알티지 듀얼" 등)은 df 상한에
+    // 전부 걸려 usable이 비는데, 실재 제품이면 "모든 토큰을 다 포함하는 이름"은 소수다.
+    // 조건: 2개 이상 토큰이 전부 한 이름에 들어 있고, 토큰 총길이 ≥5. 후보 여럿이면 가장 짧은 이름(가장 특정).
+    if (presentAll.length >= 2 && presentAll.join("").length >= 5) {
+      let cand = null, candLen = Infinity;
+      for (let i = 0; i < recs.length; i++) {
+        const nm = names[i];
+        if (!nm) continue;
+        if (presentAll.every(t => nm.indexOf(t) !== -1) && nm.length < candLen) { cand = recs[i]; candLen = nm.length; }
+      }
+      if (cand) return cand;
+    }
+    return null;
   }
   function parseDemographics(q) {
     const text = String(q || "");
@@ -368,36 +403,45 @@ export async function onRequest(context) {
     // ─── [3] 테이블 로드 ────────────────────────────
     async function safeGet(t, opts) { try { return await getRecords(env, t, opts); } catch (_) { return []; } }
 
+    // 브랜드성 토큰 추출 — 카테고리어·범용어·불용어·숫자 제외 (제품명 탐색 공용)
+    function makeBrandCands(text) {
+      return [...new Set(
+        String(text).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).map(w => normEntity(w))
+          .filter(t => t.length >= 2 && !isCategoryWord(t) && !STOPWORDS.has(t) && !NON_BRAND_RE.test(t) && !/^\d+(mg|억|포|정|캡슐|개월|일분)?$/.test(t))
+      )];
+    }
+    const ALL_CATS = ["omega3", "eye", "probiotics", "vitaminC"];
+    async function loadIdx(cat) { return safeGet(QUALITY_CFG[cat].table, { variant: "idx", fields: ["제품명", "product_id"] }); }
+    // 크로스 매칭 검증: 찾은 제품명에 브랜드 토큰이 2개 이상 또는 합계 5자 이상 들어가야 확정.
+    // (토큰 1개·짧은 우연 일치로 카테고리를 갈아타는 오전환 방지)
+    function crossVerified(rec, cands) {
+      const nm = normEntity(getField(rec.fields || {}, "제품명", "name"));
+      const hit = cands.filter(t => nm.indexOf(t) !== -1);
+      return hit.length >= 2 || hit.join("").length >= 5;
+    }
+
     // [2.5] 제품명 직접 조회 (Strict 발동 + 실재 매칭 필수):
     // 카테고리 미확정인데 질의에 브랜드성 토큰이 있으면, 4개 카테고리의 경량 인덱스(제품명·id만,
     // variant='idx' 캐시)를 뒤져 제품이 실재하는 카테고리를 찾는다. 실재하면 도메인 힌트보다 이긴다(P2).
     // 못 찾으면 productLookupFailed 플래그 — 도메인 힌트가 없을 때 Q(카테고리 되묻기)로 복구한다.
     let productLookupFailed = false;
-    if (!matchedCategory) {
-      const brandCands = [...new Set(
-        String(query).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).map(w => normEntity(w))
-          .filter(t => t.length >= 2 && !isCategoryWord(t) && !STOPWORDS.has(t) && !NON_BRAND_RE.test(t))
-      )];
-      if (brandCands.length) {
-        const cats = ["omega3", "eye", "probiotics", "vitaminC"];
-        const idxLists = await Promise.all(cats.map(c =>
-          safeGet(QUALITY_CFG[c].table, { variant: "idx", fields: ["제품명", "product_id"] })
-        ));
-        // 정제된 브랜드 후보만 매칭에 사용 — 원 질의를 넘기면 findProductMention이 도메인어
-        // (다이어트 등)를 다시 토큰화해 엉뚱한 제품명에 오매칭할 수 있다.
-        const brandQuery = brandCands.join(" ");
-        for (let i = 0; i < cats.length; i++) {
-          if (findProductMention(brandQuery, idxLists[i])) { matchedCategory = cats[i]; hintDomain = null; break; }
-        }
-        if (!matchedCategory) productLookupFailed = true;
+    const brandCands = makeBrandCands(query);
+    if (!matchedCategory && brandCands.length) {
+      const idxLists = await Promise.all(ALL_CATS.map(loadIdx));
+      // 정제된 브랜드 후보만 매칭에 사용 — 원 질의를 넘기면 findProductMention이 도메인어
+      // (다이어트 등)를 다시 토큰화해 엉뚱한 제품명에 오매칭할 수 있다.
+      const brandQuery = brandCands.join(" ");
+      for (let i = 0; i < ALL_CATS.length; i++) {
+        if (findProductMention(brandQuery, idxLists[i])) { matchedCategory = ALL_CATS[i]; hintDomain = null; break; }
       }
+      if (!matchedCategory) productLookupFailed = true;
     }
 
     // 제품 테이블은 매칭된 카테고리 1개만 전체 로드(하위요청 한도 안전). 카테고리 미확정이면
     // 자유 질문의 제품명 감지를 위해 오메가3를 기본 로드(기존 동작 유지).
     const prodCat = (matchedCategory && QUALITY_CFG[matchedCategory]) ? matchedCategory : (!matchedCategory ? "omega3" : null);
     const prodTable = prodCat ? QUALITY_CFG[prodCat].table : null;
-    const [kRecords, fRecords, pRecords] = await Promise.all([
+    let [kRecords, fRecords, pRecords] = await Promise.all([
       safeGet(KNOW_TABLE),
       safeGet(FAQ_TABLE),
       prodTable ? safeGet(prodTable) : Promise.resolve([])
@@ -409,6 +453,24 @@ export async function onRequest(context) {
         || findProductMention(query, pRecords || [])
         || (askedBefore ? findProductMention(convoText, pRecords || []) : null);
       if (productMatchRecord && !matchedCategory) matchedCategory = prodCat;
+    }
+
+    // [3.5] 크로스 카테고리 폴백: 카테고리 키워드로 라우팅됐지만 그 테이블에 제품이 없을 때,
+    // 브랜드 토큰이 있으면 다른 카테고리 인덱스를 확인한다. 복합제("루테인 오메가3" 등)는 이름에
+    // 두 카테고리 키워드가 다 있어 키워드 라우팅이 실제 소속 테이블을 못 맞출 수 있다.
+    // 오전환 방지: crossVerified(토큰 2개 이상 or 합계 5자 이상) 통과 시에만 전환.
+    if (matchedCategory && !productMatchRecord && brandCands.length) {
+      const brandQuery = brandCands.join(" ");
+      for (const cat of ALL_CATS) {
+        if (cat === matchedCategory) continue;
+        const hit = findProductMention(brandQuery, await loadIdx(cat));
+        if (hit && crossVerified(hit, brandCands)) {
+          matchedCategory = cat;
+          pRecords = await safeGet(QUALITY_CFG[cat].table);
+          productMatchRecord = detectProductName(query, pRecords || []) || findProductMention(query, pRecords || []);
+          break;
+        }
+      }
     }
 
     // ─── [4] 문서 정규화 + IDF 검색 (v7 계승, 축약 없이) ──
@@ -888,6 +950,8 @@ export async function onRequest(context) {
       tokens: lowerTokens, seedTokens,
       matchedDocs: top.map(d => `${d.kind === "faq" ? "F" : "K"}:${d.id}`),
       productMatch: productMatchRecord ? getField(productMatchRecord.fields || {}, "제품명", "name") : null,
+      matchedCategory, hintDomain, productLookupFailed, targetSegment,
+      forcedAxis: forcedAxis ? forcedAxis.axis : null, doseIntent,
       askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback
     };
     return respond(payload, meta);
