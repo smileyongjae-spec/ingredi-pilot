@@ -1,4 +1,4 @@
-// functions/counsel2.js  (v8 — 화자 상담: 5정책 분류 + JSON 계약 + 다중 턴)
+// functions/counsel2.js  (v9 — 화자 상담: 5정책 분류 + JSON 계약 + 다중 턴 + 통념 도메인 게이트)
 //
 // 기존 counsel-api.js(v7)와 병행 배포. 프론트 전환 완료 후 v7 폐기.
 //
@@ -11,6 +11,8 @@
 //   - 답변별 DISCLAIMER 제거 (서비스 차원 고지는 프론트 푸터에 1회)
 //   - 대안(alternatives)은 현재 오메가3만 실데이터, 타 카테고리는 비교 페이지 폴백
 //   - ?debug=1 로 라우팅·검색 근거 확인
+//   - v9: 통념 도메인 게이트 추가 — 식약처 미인정 기능(면역 등)은 통념을 승인하지 않고
+//         "인정 기능 아님"을 코드로 못박되, 관련해 언급되는 인접 카테고리는 안내(X + 칩).
 
 import { getRecords } from "./_lib/airtable.js";
 
@@ -87,6 +89,20 @@ export async function onRequest(context) {
     { dom: "면역",       re: /면역|immun/ }
   ];
 
+  // ─── 통념 도메인 (식약처 인정 기능 밖) ─────────────
+  // 소비자는 특정 성분과 연결짓지만, 식약처가 4개 카테고리 성분에 인정한 기능이 아닌 도메인.
+  // "인정 기능 아님"을 코드로 못박아 통념 승인을 차단하고, 관련해 언급되는 인접 카테고리만 안내한다.
+  // 이 게이트는 검색·모델 호출 전에 즉답하며, DOMAIN_HINTS의 동일 도메인보다 우선한다.
+  // 확장 원칙:
+  //   - 식약처 인정 기능과 관련된 통념이면 { key, re, cats } 한 줄 추가.
+  //   - 완전 범위 밖(관련 카테고리 없음)이면 여기 넣지 말 것 — 기존 X 처리로 간다.
+  //   - 인접 판정은 상상이 아니라 실제 유입 로그(검색로그·Clarity의 healthDomain)를 근거로 늘린다.
+  const DOMAIN_ADJACENCY = [
+    { key: "면역", re: /면역|immun/i, cats: ["비타민C", "유산균"] }
+  ];
+  // 통념 게이트가 삼키면 안 되는 의료 맥락 — 이 경우 게이트를 건너뛰고 Claude의 M 분류로 넘긴다.
+  const MEDICAL_DEFER = /항암|암\s|투석|이식|수술|시술|처방약|면역억제|당뇨|혈압약|간\s*(질환|염|경화|수치)|신부전|신장\s*(질환|병)|임신|임산부|수유|이상\s*반응|부작용|알레르기/;
+
   const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "뭐 먹", "무엇을 먹", "뭘 먹", "뭐가 좋", "뭐 사"];
   const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
 
@@ -118,6 +134,10 @@ export async function onRequest(context) {
 
   // ─── HELPERS (v7 계승) ───────────────────────────
   function normalizeKey(s) { return String(s).replace(/[\s_\-\(\)\[\]]/g, "").toLowerCase(); }
+  // 한글 조사 선택 (받침 유무). 통념 도메인 안내 문구를 도메인 이름에 맞춰 생성한다.
+  function hasJong(w) { const s = String(w || ""); if (!s) return false; const c = s.charCodeAt(s.length - 1); return (c >= 0xAC00 && c <= 0xD7A3) ? ((c - 0xAC00) % 28 !== 0) : false; }
+  function eunNeun(w) { return w + (hasJong(w) ? "은" : "는"); }
+  function gwaWa(w) { return w + (hasJong(w) ? "과" : "와"); }
   function getField(fields, ...candidates) {
     for (const c of candidates) if (fields[c] !== undefined && fields[c] !== null && fields[c] !== "") return fields[c];
     const norm = {};
@@ -235,6 +255,24 @@ export async function onRequest(context) {
         "이건 제가 답할 영역이 아니에요. 지금 겪고 계신 증상은 영양제 상담이 아니라 진료가 필요합니다. 복용 중인 제품이 있다면 지금 중단하시고, 증상이 심하면 바로 병원으로 가세요.",
         { handoff: "병원에 가실 때, 드시던 제품을 그대로 가져가서 보여주세요. 성분 확인이 빨라집니다." }
       ), { gate: "emergency", demographics });
+    }
+
+    // ─── [0.5] 통념 도메인 게이트: 식약처 인정 기능 밖 + 인접 카테고리 안내 ──
+    // 발동 조건 3개 동시 성립: 통념 키워드 O / 4개 카테고리 키워드 X(병용 질문 보호) / 의료 맥락 X(M 우선).
+    // 통념을 "좋다"고 승인하지 않는 판정이므로 LLM에 맡기지 않고 코드에서 즉답한다.
+    if (!/오메가|루테인|유산균|비타민|omega|epa|dha|프로바이오|마이크로바이옴/i.test(query) && !MEDICAL_DEFER.test(query)) {
+      for (const dom of DOMAIN_ADJACENCY) {
+        if (dom.re.test(query)) {
+          const catsText = dom.cats.join("·");
+          return respond(fixedPayload("X",
+            `${eunNeun(dom.key)} 식약처가 특정 성분에 인정한 기능이 아니에요. 그래서 '${dom.key}에 좋은 영양제'를 딱 집어드리진 않아요. 다만 ${gwaWa(dom.key)} 관련해 자주 언급되는 성분 중 ${eunNeun(catsText)} 저희가 깊게 봅니다. 어느 쪽을 보시겠어요?`,
+            {
+              chips: dom.cats.map(c => `${c} 보기`),
+              chips_prompts: dom.cats.map(c => `${c} 추천해줘`)
+            }
+          ), { gate: "adjacency", healthDomain: dom.key, demographics });
+        }
+      }
     }
 
     // ─── [1] 토큰 정제 (v7 계승) ────────────────────
@@ -535,6 +573,7 @@ export async function onRequest(context) {
 - 사용자가 말한 제품이 데이터에 없으면 솔직히 말하고, 라벨의 핵심 함량(예: EPA+DHA 합산)을 불러달라고 요청하세요. 불러주면 그 숫자로 판단합니다.
 - 미확인 데이터는 null이며 0이 아닙니다. 모르는 축은 "확인되지 않았다"고 말합니다.
 - [제품 데이터]가 비어 있는 카테고리에서는 특정 제품명을 만들지 말고, alternatives를 빈 배열로 두고 body에서 "상위 제품은 ingredi 비교 페이지에서 확인하실 수 있어요"로 안내합니다.
+- 식약처가 인정한 기능만 긍정합니다. 통념(면역·피로·활력 등)이 해당 카테고리의 식약처 인정 기능이 아니면 "그건 인정된 기능이 아니에요"라고 밝히고, 인정된 기능 범위 안에서만 판단하세요. "면역에 좋다"가 아니라 "면역 맥락에서 언급되는"으로 표현합니다. 통념을 카테고리의 효능으로 승인하지 마세요.
 
 ## 대화 원칙
 - 부정 평결에 반론이 오면 방어하지 말고 근거 하나를 더 엽니다. 두 번째 반론에는 판단은 유지하되 결정권을 돌려줍니다: "제 판단은 그대로예요. 다만 드신다고 큰일 나는 건 아니고, 기대한 효과를 보기 어렵다는 뜻이에요."
