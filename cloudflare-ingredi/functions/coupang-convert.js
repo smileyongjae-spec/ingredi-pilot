@@ -1,6 +1,6 @@
-// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3)
+// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3.1)
 // File path: functions/coupang-convert.js
-// URL: /coupang-convert?secret=<CACHE_REFRESH_SECRET>[&dryRun=1][&limit=200][&table=비타민C_쿠팡업데이트][&retryLimit=60]
+// URL: /coupang-convert?secret=<CACHE_REFRESH_SECRET>[&dryRun=1][&limit=200][&table=비타민C_쿠팡업데이트]
 //
 // 동작:
 //   1) 대상 테이블에서 "쿠팡 URL"(raw 쿠팡 링크)이 있고 coupang_deeplink 가 비어있는 레코드 수집
@@ -8,11 +8,14 @@
 //   3) [v3] 청크가 통째로 거부되거나(rCode 400 — 묶음에 불량 URL이 하나라도 있으면 전체 거부)
 //      성공 응답에서 일부 URL이 누락되면, 실패분을 1개씩 개별 재시도해 불량 URL만 격리한다.
 //      끝까지 실패한 URL은 failedUrls 로 사유와 함께 반환 → 상품 URL 교체 판단용.
-//   4) 반환된 딥링크(shortenUrl)를 coupang_deeplink 컬럼에 기록 (원본 "쿠팡 URL"·제품링크는 보존)
+//   4) [v3.1] Cloudflare 하위요청 한도(호출당 50) 대응 — 모든 외부 요청을 실측 카운트하고
+//      예산(45) 안에서만 진행. 예산이 차면 그 시점까지 확보한 딥링크를 Airtable에 기록하고
+//      remaining 으로 반환 → 같은 URL을 다시 호출하면 이어서 처리된다(멱등).
+//   5) 반환된 딥링크(shortenUrl)를 coupang_deeplink 컬럼에 기록 (원본 "쿠팡 URL"·제품링크는 보존)
 //   ※ 쿠팡 URL 이 비어 있는 제품은 건너뜀 → recommend2 에서 자동으로 네이버(제품링크)로 폴백
 //
 // 기본 대상 테이블: 4개 _쿠팡업데이트 테이블. ?table= 로 단일/복수(쉼표) 지정 가능.
-// retryLimit: 개별 재시도 최대 개수(기본 60). 실패분이 이보다 많으면 다음 호출에서 이어서 처리.
+// 대량 처리 팁: ?table=오메가3_쿠팡업데이트 처럼 테이블 하나씩 부르면 예산 여유가 커져 한 번에 더 많이 처리.
 //
 // 필요 환경변수 (Cloudflare):
 //   COUPANG_ACCESS_KEY, COUPANG_SECRET_KEY, CACHE_REFRESH_SECRET, AIRTABLE_TOKEN, AIRTABLE_BASE_ID
@@ -25,6 +28,7 @@ const RAW_FIELDS = ["쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크"]; //
 const F_DEEP = "coupang_deeplink";
 const CHUNK = 20;           // Deeplink API 1회 요청당 URL 수 (API 상한: 20)
 const AIRTABLE_BATCH = 10;   // Airtable PATCH 1회당 레코드 수(최대 10)
+const SUBREQ_BUDGET = 45;    // Cloudflare 하위요청 한도(50)에서 여유 5를 뺀 실행 예산
 
 export async function onRequest(context) {
   const headers = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" };
@@ -41,9 +45,13 @@ export async function onRequest(context) {
   const secret = url.searchParams.get("secret") || "";
   const dryRun = url.searchParams.get("dryRun") === "1";
   const limit = Math.max(1, Math.min(2000, parseInt(url.searchParams.get("limit") || "500", 10) || 500));
-  const retryLimit = Math.max(0, Math.min(120, parseInt(url.searchParams.get("retryLimit") || "60", 10) || 60));
   const tableParam = (url.searchParams.get("table") || "").trim();
   const tables = tableParam ? tableParam.split(",").map(s => s.trim()).filter(Boolean) : DEFAULT_TABLES;
+
+  // [v3.1] 하위요청 실측 카운터 — 모든 외부 fetch 는 cfetch 로만 호출한다.
+  let subreq = 0;
+  async function cfetch(u, opts) { subreq++; return fetch(u, opts); }
+  const budgetLeft = () => SUBREQ_BUDGET - subreq;
 
   if (!GUARD || secret !== GUARD) {
     // 안전 진단: ?debug=1 이면 값은 숨기고 길이/일치 여부만 반환 (원인 추적용)
@@ -94,7 +102,7 @@ export async function onRequest(context) {
     const message = datetime + "POST" + DEEPLINK_PATH; // query 없음
     const signature = await hmacHex(message);
     const auth = `CEA algorithm=HmacSHA256, access-key=${ACCESS}, signed-date=${datetime}, signature=${signature}`;
-    const res = await fetch(COUPANG_DOMAIN + DEEPLINK_PATH, {
+    const res = await cfetch(COUPANG_DOMAIN + DEEPLINK_PATH, {
       method: "POST",
       headers: { "Content-Type": "application/json;charset=UTF-8", "Authorization": auth },
       body: JSON.stringify({ coupangUrls: urls })
@@ -121,7 +129,7 @@ export async function onRequest(context) {
     do {
       let u = "https://api.airtable.com/v0/" + BASE_ID + "/" + encodeURIComponent(table) + "?pageSize=100";
       if (offset) u += "&offset=" + encodeURIComponent(offset);
-      const r = await fetch(u, { headers: { Authorization: "Bearer " + TOKEN } });
+      const r = await cfetch(u, { headers: { Authorization: "Bearer " + TOKEN } });
       if (!r.ok) throw new Error("read " + r.status + ": " + (await r.text()).slice(0, 200));
       const d = await r.json();
       records = records.concat(d.records || []);
@@ -131,7 +139,7 @@ export async function onRequest(context) {
   }
   async function airtablePatch(table, recs) {
     const u = "https://api.airtable.com/v0/" + BASE_ID + "/" + encodeURIComponent(table);
-    const r = await fetch(u, {
+    const r = await cfetch(u, {
       method: "PATCH",
       headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" },
       body: JSON.stringify({ records: recs })
@@ -189,7 +197,10 @@ export async function onRequest(context) {
     const uniqUrls = [...new Set(targets.map(t => t.url))];
     const urlToDeep = {};
     const apiErrors = [];
+    // 기록(PATCH) 몫을 남겨둔다: 확보할 딥링크를 쓰려면 최소 ceil(대상/10)회 필요. 보수적으로 8 예약.
+    const RESERVE_FOR_WRITE = 8;
     for (let i = 0; i < uniqUrls.length; i += CHUNK) {
+      if (budgetLeft() <= RESERVE_FOR_WRITE) break;
       const urls = uniqUrls.slice(i, i + CHUNK);
       const { status, json, text } = await callDeeplink(urls);
       if (status !== 200 || !json || (json.rCode && json.rCode !== "0")) {
@@ -203,12 +214,12 @@ export async function onRequest(context) {
 
     // ── [2.5] 개별 재시도 (v3) ──
     // 청크 거부분 + 성공 응답에서 누락된 URL을 1개씩 호출해 불량 URL만 격리한다.
-    // retryLimit 로 1회 실행량을 제한 — 남으면 같은 URL을 다시 호출하면 이어서 처리된다.
+    // [v3.1] 하위요청 예산 안에서만 진행 — 남으면 remaining 으로 반환, 재호출 시 이어서 처리(멱등).
     const missed = uniqUrls.filter(u => !urlToDeep[u]);
     const failedUrls = [];   // {url, rCode, rMessage}
     let retried = 0, retryConverted = 0;
     for (const u of missed) {
-      if (retried >= retryLimit) break;
+      if (budgetLeft() <= RESERVE_FOR_WRITE) break;
       retried++;
       const { status, json, text } = await callDeeplink([u]);
       if (status === 200 && json && (!json.rCode || json.rCode === "0")) {
@@ -220,10 +231,10 @@ export async function onRequest(context) {
       }
       await sleep(300);
     }
-    const retrySkipped = Math.max(0, missed.length - retried); // retryLimit 초과로 이번에 못 돈 수
+    const retrySkipped = Math.max(0, missed.length - retried); // 예산 소진으로 이번에 못 돈 수 — 재호출 시 이어서 처리
 
     // ── [3] Airtable 기록 (테이블별 batch) ──
-    let written = 0, noMatch = 0;
+    let written = 0, noMatch = 0, writeSkipped = 0;
     for (const table of tables) {
       const writes = [];
       for (const t of targets.filter(x => x.table === table)) {
@@ -232,6 +243,7 @@ export async function onRequest(context) {
         else noMatch++;
       }
       for (let i = 0; i < writes.length; i += AIRTABLE_BATCH) {
+        if (budgetLeft() <= 1) { writeSkipped += writes.length - i; break; }
         const batch = writes.slice(i, i + AIRTABLE_BATCH);
         await airtablePatch(table, batch);
         written += batch.length;
@@ -249,10 +261,12 @@ export async function onRequest(context) {
       converted: Object.keys(urlToDeep).length,
       retried,
       retryConverted,
-      retrySkipped,           // retryLimit 초과로 이번 호출에서 재시도 못 한 수 — 다시 호출하면 이어서 처리
+      retrySkipped,           // 하위요청 예산 소진으로 이번 호출에서 재시도 못 한 수 — 다시 호출하면 이어서 처리
       written,
+      writeSkipped,           // 예산 소진으로 기록 못 한 수(변환은 됐으나 미기록 — 재호출 시 재변환·기록됨)
       failedToConvert: noMatch,
       failedUrls: failedUrls.slice(0, 30),   // 개별 재시도까지 실패한 URL과 사유 — 상품 URL 교체 판단용
+      subrequestsUsed: subreq, // 이번 호출이 쓴 하위요청 수 (예산 45)
       apiErrors,
       readErrors,
       sampleDeeplinks: Object.entries(urlToDeep).slice(0, 3).map(([u, d]) => ({ from: u, to: d }))
