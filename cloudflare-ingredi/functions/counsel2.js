@@ -1,20 +1,20 @@
-// functions/counsel2.js  (v11 — 화자 상담: 5정책 + 통념 게이트 + 축 정합)
+// functions/counsel2.js  (v12 — 화자 상담: 5정책 + 통념 게이트 + 축 정합 + 4카테고리)
 //
 // 기존 counsel-api.js(v7)와 병행 배포. 프론트 전환 완료 후 v7 폐기.
 //
 // 변경 요약
 //   - POST { messages: [{role, content}...] } 다중 턴 입력 (GET ?q= 도 단발 호환)
-//   - 시스템 프롬프트: "정보 카운슬러" → 화자 v1 (평결을 내리는 약사)
-//   - 응답: 단일 JSON (policy / verdict_tone / chips / alternatives ...)
-//   - 정책 분류: 코드 게이트(meta·service·급성 이상반응) + Claude 분류(M/X/W/V/Q) 이중 구조
-//   - riskKeywords → W 플래그로 프롬프트에 주입 / DISCLAIMER는 프론트 푸터 1회
-//   - 대안(alternatives)은 현재 오메가3만 실데이터, 타 카테고리는 비교 페이지 폴백
+//   - 시스템 프롬프트: 화자 v1 (평결을 내리는 약사) / 응답 단일 JSON
+//   - 정책 분류: 코드 게이트(meta·service·급성 이상반응·통념 도메인) + Claude 분류(M/X/W/V/Q)
 //   - v9:  통념 도메인 게이트(면역 등) + 축 강제(명시 키워드 하나면 코드가 축 확정)
-//   - v10: 추천 축을 목록과 정합 시도 — 용어 "성분 우선" 통일, 순수 함량 축 제거(2축)
-//   - v11: 품질 소스를 recommend2.js(v7) 산식으로 이식. CSV의 등급·최종점수·V_Score 컬럼은
-//          구 V-Score 값이거나 앵커 미반영이라 소스가 아님 — quality를 런타임 계산해야
-//          app.html "성분 우선" 순위와 일치(동점 시 1일비용 오름차순 포함). 가성비도 파레토
-//          경계(recommend2 isPareto)로 이식. 등급은 quality에서 파생(S 원천 배제).
+//   - v10: 추천 축 2축(성분 우선·가성비), 순수 함량 축 제거·함량 요청은 통념 교정
+//   - v11: 품질 소스를 recommend2.js(v7) 산식으로 이식(오메가3). CSV 등급·최종점수·V_Score는
+//          소스 아님 — quality 런타임 계산해야 app.html "성분 우선" 순위와 일치. 부정 평결 대안도
+//          성분 우선 고정(축 혼합 방지).
+//   - v12: 4개 카테고리 전체 확장. QUALITY_CFG(recommend2 이식)로 오메가3/눈/유산균/비타민C
+//          산식·앵커·입력필드 일반화. 테이블 로드·productContext·결함 게이트가 매칭 카테고리로
+//          동작. quality=null(평가 준비중, 비타민C 결측 다수)은 순위·추천·대안에서 제외.
+//          눈 core=루테인+지아잔틴 합. 앵커: 오메가3 EPA+DHA 1,000mg / 눈 20mg / 유산균 100억 / 비타민C 1,000mg.
 
 import { getRecords } from "./_lib/airtable.js";
 
@@ -151,17 +151,44 @@ export async function onRequest(context) {
   function hasJong(w) { const s = String(w || ""); if (!s) return false; const c = s.charCodeAt(s.length - 1); return (c >= 0xAC00 && c <= 0xD7A3) ? ((c - 0xAC00) % 28 !== 0) : false; }
   function eunNeun(w) { return w + (hasJong(w) ? "은" : "는"); }
   function gwaWa(w) { return w + (hasJong(w) ? "과" : "와"); }
-  // ── 품질점수: recommend2.js(v7)의 산식을 그대로 이식한다 ──
-  // CSV의 등급·최종점수·V_Score 컬럼은 구 V-Score 시절 값이거나 앵커 미반영이라 소스가 아니다.
+  // ── 품질점수: recommend2.js(v7)의 QUALITY_CFG 산식을 그대로 이식한다 ──
+  // CSV의 등급·최종점수·V_Score 컬럼은 구 V-Score 값이거나 앵커 미반영이라 소스가 아니다.
   // app.html "성분 우선" 탭과 순위를 맞추려면 계산을 공유해야 한다(문서 3.3 공용 core 과제).
-  // 오메가3: 근거함량(EPA+DHA, 앵커 1,000mg, 초과 가점 없음)×0.5 + 제형점수×0.3 + 인증점수×0.2.
-  // 제형·인증 점수가 하나라도 없으면 null(평가 준비중) — 0점으로 둔갑시키지 않는다.
+  // 근거함량 = min(원값/앵커, 1)×100 (초과분 가점 없음). 축 점수가 하나라도 없으면
+  // quality=null(평가 준비중) — 0점으로 둔갑시키지 않는다. 비타민C는 원료사점수 결측 다수.
   function numOrNull(v) { if (v === "" || v == null) return null; const n = parseFloat(String(v).replace(/,/g, "")); return isNaN(n) ? null : n; }
-  const OMEGA_ANCHOR = 1000;
-  function omegaQuality(epa, form, cert) {
-    if (form == null || cert == null) return null;
-    const core = Math.min((epa || 0) / OMEGA_ANCHOR, 1) * 100;
-    return Math.round((0.5 * core + 0.3 * form + 0.2 * cert) * 10) / 10;
+  const QUALITY_CFG = {
+    omega3:     { table: "오메가3_쿠팡업데이트",       anchor: 1000, primaryFields: ["EPA_DHA_mg", "EPA_DHA_합계_mg"], addFields: [],            primaryLabel: "EPA+DHA",     unit: "mg", anchorLabel: "EPA+DHA 1,000mg",
+                  calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5 * core + 0.3 * sc.form + 0.2 * sc.cert },
+    eye:        { table: "눈_쿠팡업데이트",           anchor: 20,   primaryFields: ["루테인_mg"],                addFields: ["지아잔틴_mg"], primaryLabel: "루테인+지아잔틴", unit: "mg", anchorLabel: "루테인+지아잔틴 20mg",
+                  calc: (core, sc) => (sc.supplier == null) ? null : 0.7 * core + 0.3 * sc.supplier },
+    probiotics: { table: "마이크로바이옴_쿠팡업데이트", anchor: 100,  primaryFields: ["보장균수_억"],              addFields: [],            primaryLabel: "보장균수",    unit: "억", anchorLabel: "보장균수 100억",
+                  calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5 * core + 0.3 * sc.form + 0.2 * sc.cert },
+    vitaminC:   { table: "비타민C_쿠팡업데이트",       anchor: 1000, primaryFields: ["비타민C함량_mg"],           addFields: [],            primaryLabel: "비타민C",     unit: "mg", anchorLabel: "비타민C 1,000mg",
+                  calc: (core, sc) => (sc.supplier == null) ? null : 0.6 * core + 0.4 * sc.supplier }
+  };
+  // 대표 성분 원값(코어·게이트용) = primaryFields 첫 유효값 + addFields 합 (눈: 루테인+지아잔틴).
+  function rawPrimaryOf(f, cfg) {
+    let base = null;
+    for (const k of cfg.primaryFields) { const n = numOrNull(getField(f, k)); if (n != null) { base = n; break; } }
+    let raw = base || 0;
+    for (const k of (cfg.addFields || [])) { const n = numOrNull(getField(f, k)); if (n != null) raw += n; }
+    return { primary: (base == null && !(cfg.addFields || []).length) ? null : raw, base };
+  }
+  function scoresOf(f) {
+    return {
+      form:     numOrNull(getField(f, "제형점수", "제형편의점수", "리포좀중성점수")),
+      supplier: numOrNull(getField(f, "원료사점수", "원료사균주점수", "원료품질점수")),
+      cert:     numOrNull(getField(f, "인증점수", "인증근거점수", "부형제안전점수"))
+    };
+  }
+  // 카테고리별 품질점수. recommend2 파이프라인과 동일: core = min(raw/anchor,1)*100 → calc → 반올림.
+  function qualityFor(cat, rawPrimary, sc) {
+    const cfg = QUALITY_CFG[cat];
+    if (!cfg) return null;
+    const core = Math.min((rawPrimary || 0) / cfg.anchor, 1) * 100;
+    const q = cfg.calc(core, sc);
+    return q == null ? null : Math.round(q * 10) / 10;
   }
   // 등급 컷 — recommend2 qualityGradeOf 와 동일 (절대평가, 모집단 무관). S는 이 산식에 없다.
   function gradeFromQuality(q) { return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E"; }
@@ -343,19 +370,22 @@ export async function onRequest(context) {
 
     // ─── [3] 테이블 로드 ────────────────────────────
     async function safeGet(t) { try { return await getRecords(env, t); } catch (_) { return []; } }
-    const needOmegaProducts = !matchedCategory || matchedCategory === "omega3";
+    // 제품 테이블은 매칭된 카테고리 1개만 로드(하위요청 한도 안전). 카테고리 미확정이면
+    // 자유 질문의 제품명 감지를 위해 오메가3를 기본 로드(기존 동작 유지).
+    const prodCat = (matchedCategory && QUALITY_CFG[matchedCategory]) ? matchedCategory : (!matchedCategory ? "omega3" : null);
+    const prodTable = prodCat ? QUALITY_CFG[prodCat].table : null;
     const [kRecords, fRecords, pRecords] = await Promise.all([
       safeGet(KNOW_TABLE),
       safeGet(FAQ_TABLE),
-      needOmegaProducts ? safeGet("오메가3_쿠팡업데이트") : Promise.resolve([])
+      prodTable ? safeGet(prodTable) : Promise.resolve([])
     ]);
 
     let productMatchRecord = null;
-    if (!matchedCategory || matchedCategory === "omega3") {
+    if (prodCat) {
       productMatchRecord = detectProductName(query, pRecords || [])
         || findProductMention(query, pRecords || [])
         || (askedBefore ? findProductMention(convoText, pRecords || []) : null);
-      if (productMatchRecord) matchedCategory = "omega3";
+      if (productMatchRecord && !matchedCategory) matchedCategory = prodCat;
     }
 
     // ─── [4] 문서 정규화 + IDF 검색 (v7 계승, 축약 없이) ──
@@ -488,19 +518,18 @@ export async function onRequest(context) {
     const detectedRisks = [];
     for (const t in riskKeywords) for (const kw of riskKeywords[t]) { if (lowerConvo.indexOf(kw.toLowerCase()) !== -1) { detectedRisks.push(t); break; } }
 
-    // ─── [6] 제품 컨텍스트 (오메가3만 실데이터) ─────
+    // ─── [6] 제품 컨텍스트 (4개 카테고리 실데이터) ─────
     let productContext = [];
-    if (matchedCategory === "omega3" && (pRecords || []).length) {
+    if (matchedCategory && QUALITY_CFG[matchedCategory] && (pRecords || []).length) {
+      const cfg = QUALITY_CFG[matchedCategory];
       const items = (pRecords || []).map(r => {
         const f = r.fields || {};
-        const epa = parseFloat(getField(f, "EPA_DHA_mg", "EPA_DHA_합계_mg")) || null;
-        const formPt = numOrNull(getField(f, "제형점수"));
-        const certPt = numOrNull(getField(f, "인증점수"));
-        const q = omegaQuality(epa, formPt, certPt);
+        const { primary } = rawPrimaryOf(f, cfg);
+        const q = qualityFor(matchedCategory, primary, scoresOf(f));
         return {
           product_id: getField(f, "product_id", "productId") || r.id,
           name: getField(f, "제품명", "name") || "",
-          epa_dha_mg: epa,
+          primary_mg: primary,
           daily_cost: Math.round(parseFloat(getField(f, "1일비용_원")) || 0) || null,
           form: getField(f, "제형") || null,
           certs: asText(getField(f, "인증")) || null,
@@ -513,6 +542,7 @@ export async function onRequest(context) {
       // 축별 순위 계산 (전체 모집단 기준). 축은 2개 — 성분 우선(품질점수순)·가성비(파레토).
       // 둘 다 app.html의 "성분 우선"·"가성비 우선" 탭과 동일 로직이라 순위가 일치한다.
       // 성분 우선: 품질점수 내림차순, 동점이면 1일비용 오름차순 (app.html applyProfile 균형).
+      // quality=null(평가 준비중)은 순위에서 제외 — 추천·대안에 오르지 않는다(비타민C 결측 다수).
       const scoredItems = items.filter(p => p.score != null);
       const byScore = [...scoredItems].sort((a, b) => (b.score - a.score) || ((a.daily_cost || 9e9) - (b.daily_cost || 9e9)));
       byScore.forEach((p, i) => { p.rank_quality = i + 1; });
@@ -547,11 +577,11 @@ export async function onRequest(context) {
           const hit = items.find(p => p.product_id === pid);
           if (hit) topProducts.push(hit);
           else {
-            const pepa = parseFloat(getField(pf, "EPA_DHA_mg", "EPA_DHA_합계_mg")) || null;
-            const pq = omegaQuality(pepa, numOrNull(getField(pf, "제형점수")), numOrNull(getField(pf, "인증점수")));
+            const { primary: ppri } = rawPrimaryOf(pf, cfg);
+            const pq = qualityFor(matchedCategory, ppri, scoresOf(pf));
             topProducts.push({
               product_id: pid, name: getField(pf, "제품명", "name") || "",
-              epa_dha_mg: pepa,
+              primary_mg: ppri,
               daily_cost: Math.round(parseFloat(getField(pf, "1일비용_원")) || 0) || null,
               form: getField(pf, "제형") || null, certs: asText(getField(pf, "인증")) || null,
               grade: gradeFromQuality(pq),
@@ -650,7 +680,7 @@ export async function onRequest(context) {
     let productBlock = "\n\n[제품 데이터]";
     if (productContext.length) {
       productBlock += "\n" + JSON.stringify(productContext);
-      productBlock += "\n임상 도즈 앵커: EPA+DHA 1,000mg.";
+      productBlock += "\n임상 도즈 앵커: " + (QUALITY_CFG[matchedCategory] ? QUALITY_CFG[matchedCategory].anchorLabel : "카테고리별 근거 용량") + ".";
       productBlock += "\n후보군 설명: 성분 우선(rank_quality, 품질점수 높은 순)·가성비(rank_value, 파레토 경계 = 이보다 싸면서 더 좋은 제품이 없는 순) 두 기준 각 상위의 합집합입니다. 순위는 전체 제품 기준이며, 목록 페이지의 '성분 우선'·'가성비 우선' 탭과 동일합니다.";
       productBlock += "\n축 선택 규칙: 가격을 중시하면 rank_value(가성비), 그 외에는 rank_quality(성분 우선) 순으로 고르고, 어떤 기준으로 골랐는지 한 마디로 밝히세요 (예: \"성분 우선으로는 이게 1위예요\"). 순수 함량순은 제공하지 않습니다.";
       productBlock += "\n반복 금지: 직전 턴에서 이미 제시한 대안을 습관처럼 반복하지 마세요. 새 질문의 기준이 다르면 그 기준으로 다시 고르세요.";
@@ -676,10 +706,10 @@ export async function onRequest(context) {
     else if (hintDomain) flagBlock += `\n\n[내부 플래그] 4개 카테고리 밖 도메인(${hintDomain}) 질문 가능성 → X 정책 검토. 단, 병용 질문이면 답변.`;
     else if (ambiguousCats) flagBlock += `\n\n[내부 플래그] 카테고리 모호(${ambiguousCats.join(" vs ")}) → Q 정책으로 칩 되묻기 권장. 칩은 해당 카테고리들 + "잘 모르겠어요".`;
     if (demographics.age || demographics.gender) flagBlock += `\n\n[사용자 정보] ${demographics.age ? demographics.age + "대" : ""} ${demographics.gender === "female" ? "여성" : demographics.gender === "male" ? "남성" : ""}`.trim();
-    if (forcedAxis && matchedCategory === "omega3" && productContext.length) {
+    if (forcedAxis && matchedCategory && QUALITY_CFG[matchedCategory] && productContext.length) {
       flagBlock += `\n\n[축 강제] 사용자가 '${forcedAxis.label}' 기준을 명시했습니다. 직전 턴에서 어떤 기준을 썼든 계승하지 말고, 이번 추천은 반드시 ${forcedAxis.axis} 순으로 고르세요. 목록을 제시하면 alternatives_note에 "${forcedAxis.label}"임을 밝히세요.`;
       if (doseIntent && forcedAxis.axis === "rank_quality") {
-        flagBlock += `\n\n[함량 통념 교정] 사용자가 함량을 언급했지만 순수 함량순은 제공하지 않습니다. 근거 용량(EPA+DHA 1,000mg)을 넘으면 함량 차이는 의미 없다는 점을 한 마디로 짚고, 성분 우선(품질점수)으로 안내하세요. 함량만 높고 품질이 처지는 제품을 1위로 올리지 마세요.`;
+        flagBlock += `\n\n[함량 통념 교정] 사용자가 함량을 언급했지만 순수 함량순은 제공하지 않습니다. 근거 용량(${QUALITY_CFG[matchedCategory].anchorLabel})을 넘으면 함량 차이는 의미 없다는 점을 한 마디로 짚고, 성분 우선(품질점수)으로 안내하세요. 함량만 높고 품질이 처지는 제품을 1위로 올리지 마세요.`;
       }
     }
 
@@ -742,32 +772,35 @@ export async function onRequest(context) {
       // 좋아서" 같은 명분으로 협상하므로, 자격 게이트는 코드로 강제한다 (오메가3 기준
       // EPA+DHA 1,000mg; 함량 데이터가 없는 항목은 판단 불가로 보존).
       if (typeof payload.alternatives_note !== "string" || !payload.alternatives_note.trim()) payload.alternatives_note = null;
-      if (payload.verdict_tone === "negative" && matchedCategory === "omega3") {
+      // 카테고리별 결함 게이트·대안 재정렬에 쓸 설정과 reason 빌더 (recommend2 앵커 기준).
+      const cfg2 = matchedCategory ? QUALITY_CFG[matchedCategory] : null;
+      const buildReason = (p) => {
+        const bits = [];
+        if (cfg2 && p.primary_mg != null) bits.push(`${cfg2.primaryLabel} ${p.primary_mg.toLocaleString()}${cfg2.unit}`);
+        if (p.daily_cost) bits.push(`하루 ${p.daily_cost.toLocaleString()}원`);
+        if (p.certs) bits.push(String(p.certs).split(",")[0].trim());
+        return bits.join(" · ");
+      };
+      if (payload.verdict_tone === "negative" && cfg2) {
+        const anchor = cfg2.anchor;
         const byId = new Map(productContext.map(p => [String(p.product_id), p]));
         payload.alternatives = payload.alternatives.filter(a => {
           const p = byId.get(String(a.product_id));
-          return !p || p.epa_dha_mg == null || p.epa_dha_mg >= 1000;
+          return !p || p.primary_mg == null || p.primary_mg >= anchor;
         });
-        // 백필: 자격(임상 용량 이상) 갖춘 대안이 2개 미만이면 점수순으로 채운다.
-        // 단일 추천은 "평가"가 아니라 "밀어주기"로 읽히므로 최소 2개를 보장.
-        // reason은 지어내지 않고 데이터로 조립한다.
+        // 백필: 자격(임상 앵커 이상) 갖춘 대안이 2개 미만이면 채운다(최소 2개 보장).
         if (payload.alternatives.length < 2) {
           const have = new Set(payload.alternatives.map(a => String(a.product_id)));
           const mentionedId = productMatchRecord
             ? String(getField(productMatchRecord.fields || {}, "product_id", "productId") || productMatchRecord.id)
             : null;
           const fillers = productContext.filter(p =>
-            p.epa_dha_mg != null && p.epa_dha_mg >= 1000 &&
+            p.primary_mg != null && p.primary_mg >= anchor &&
             !have.has(String(p.product_id)) && String(p.product_id) !== mentionedId
           ).slice(0, 3 - payload.alternatives.length);
-          for (const p of fillers) {
-            const bits = [`EPA+DHA ${p.epa_dha_mg.toLocaleString()}mg`];
-            if (p.daily_cost) bits.push(`하루 ${p.daily_cost.toLocaleString()}원`);
-            if (p.certs) bits.push(String(p.certs).split(",")[0].trim());
-            payload.alternatives.push({ product_id: p.product_id, name: p.name, reason: bits.join(" · ") });
-          }
+          for (const p of fillers) payload.alternatives.push({ product_id: p.product_id, name: p.name, reason: buildReason(p) });
         }
-        if (payload.alternatives.length && !payload.alternatives_note) payload.alternatives_note = "함량 1,000mg 이상 · 성분 우선순";
+        if (payload.alternatives.length && !payload.alternatives_note) payload.alternatives_note = `${cfg2.anchorLabel} 이상 · 성분 우선순`;
       }
       // negative인데 대안이 비면 비교 페이지 안내를 body에 보강
       if (payload.verdict_tone === "negative" && payload.alternatives.length === 0 && payload.body.indexOf("비교") === -1) {
@@ -781,23 +814,19 @@ export async function onRequest(context) {
       // 기본 축으로 둔다. 화자가 부정 평결 대안에 가성비 제품을 섞지 못하게 코드가 순서를 확정.
       // (rank_*는 전체 모집단 기준, productContext는 각 축 상위 8 포함 → 상위 3 정확.)
       const effectiveAxis = forcedAxis || (payload.verdict_tone === "negative" ? AXIS_KEYWORDS[0] : null);
-      if (effectiveAxis && matchedCategory === "omega3" && productContext.length &&
+      if (effectiveAxis && cfg2 && productContext.length &&
           payload.policy === "V" && Array.isArray(payload.alternatives) && payload.alternatives.length >= 2) {
         const rk = effectiveAxis.axis;
         let ranked = productContext.filter(p => p[rk] != null);
-        // 부정 평결이면 결함 해결(임상 용량 이상) 자격을 유지한다.
-        if (payload.verdict_tone === "negative") ranked = ranked.filter(p => p.epa_dha_mg == null || p.epa_dha_mg >= 1000);
+        // 부정 평결이면 결함 해결(임상 앵커 이상) 자격을 유지한다.
+        if (payload.verdict_tone === "negative") ranked = ranked.filter(p => p.primary_mg == null || p.primary_mg >= cfg2.anchor);
         ranked = ranked.sort((a, b) => a[rk] - b[rk]).slice(0, 3);
         if (ranked.length >= 2) {
           const prior = new Map(payload.alternatives.map(a => [String(a.product_id), a]));
           payload.alternatives = ranked.map(p => {
             const had = prior.get(String(p.product_id));
             if (had && had.reason) return { product_id: p.product_id, name: p.name, reason: had.reason };
-            const bits = [];
-            if (p.epa_dha_mg != null) bits.push(`EPA+DHA ${p.epa_dha_mg.toLocaleString()}mg`);
-            if (p.daily_cost) bits.push(`하루 ${p.daily_cost.toLocaleString()}원`);
-            if (p.certs) bits.push(String(p.certs).split(",")[0].trim());
-            return { product_id: p.product_id, name: p.name, reason: bits.join(" · ") };
+            return { product_id: p.product_id, name: p.name, reason: buildReason(p) };
           });
           payload.alternatives_note = (payload.verdict_tone === "negative")
             ? `결함 해결 · ${effectiveAxis.label} 상위 ${payload.alternatives.length}개`
