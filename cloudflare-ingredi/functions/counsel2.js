@@ -1,20 +1,17 @@
-// functions/counsel2.js  (v12 — 화자 상담: 5정책 + 통념 게이트 + 축 정합 + 4카테고리)
+// functions/counsel2.js  (v13 — 화자 상담: 5정책 + 통념 게이트 + 축 정합 + 4카테고리 + 제품명 직접조회)
 //
 // 기존 counsel-api.js(v7)와 병행 배포. 프론트 전환 완료 후 v7 폐기.
+// ※ v13은 _lib/airtable.js v4(캐시 키 variant 분리)와 함께 배포해야 함.
 //
 // 변경 요약
-//   - POST { messages: [{role, content}...] } 다중 턴 입력 (GET ?q= 도 단발 호환)
-//   - 시스템 프롬프트: 화자 v1 (평결을 내리는 약사) / 응답 단일 JSON
-//   - 정책 분류: 코드 게이트(meta·service·급성 이상반응·통념 도메인) + Claude 분류(M/X/W/V/Q)
 //   - v9:  통념 도메인 게이트(면역 등) + 축 강제(명시 키워드 하나면 코드가 축 확정)
 //   - v10: 추천 축 2축(성분 우선·가성비), 순수 함량 축 제거·함량 요청은 통념 교정
-//   - v11: 품질 소스를 recommend2.js(v7) 산식으로 이식(오메가3). CSV 등급·최종점수·V_Score는
-//          소스 아님 — quality 런타임 계산해야 app.html "성분 우선" 순위와 일치. 부정 평결 대안도
-//          성분 우선 고정(축 혼합 방지).
-//   - v12: 4개 카테고리 전체 확장. QUALITY_CFG(recommend2 이식)로 오메가3/눈/유산균/비타민C
-//          산식·앵커·입력필드 일반화. 테이블 로드·productContext·결함 게이트가 매칭 카테고리로
-//          동작. quality=null(평가 준비중, 비타민C 결측 다수)은 순위·추천·대안에서 제외.
-//          눈 core=루테인+지아잔틴 합. 앵커: 오메가3 EPA+DHA 1,000mg / 눈 20mg / 유산균 100억 / 비타민C 1,000mg.
+//   - v11: 품질 소스를 recommend2.js(v7) 산식으로 이식(오메가3). 부정 평결 대안도 성분 우선 고정.
+//   - v12: 4개 카테고리 전체 확장. QUALITY_CFG로 산식·앵커·필드 일반화. quality=null 제외.
+//   - v13: 제품명 직접 조회 — 카테고리 신호 없이 제품명만 물어도(예: "그린몬스터 녹차카테킨")
+//          4개 경량 인덱스(제품명·id, airtable variant='idx' 캐시)를 뒤져 실재 카테고리로 라우팅.
+//          발동은 Strict(브랜드성 토큰 존재) + 확정은 실재 매칭(bestLen>=3) 필수. 실패 시 도메인
+//          힌트 없으면 Q(카테고리 되묻기). 경계 제품(타목적 주력)은 제품 정체 밝히고 우리 축으로만 평결.
 
 import { getRecords } from "./_lib/airtable.js";
 
@@ -106,6 +103,9 @@ export async function onRequest(context) {
   const MEDICAL_DEFER = /항암|암\s|투석|이식|수술|시술|처방약|면역억제|당뇨|혈압약|간\s*(질환|염|경화|수치)|신부전|신장\s*(질환|병)|임신|임산부|수유|이상\s*반응|부작용|알레르기/;
 
   const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "뭐 먹", "무엇을 먹", "뭘 먹", "뭐가 좋", "뭐 사"];
+  // 제품명 직접 조회 발동 시, 브랜드성 토큰이 아닌 것(도메인·증상·범용어)을 배제하는 목록.
+  // 정규화(소문자·공백제거)된 토큰과 정확히 일치할 때만 제외 — 조사 붙은 형태는 실재 매칭(bestLen>=3)이 거른다.
+  const NON_BRAND_RE = /^(다이어트|체중|체지방|수면|불면|숙면|멜라토닌|관절|무릎|연골|피부|여드름|뾰루지|주름|기미|콜라겐|미백|뼈|골다공증|골밀도|칼슘|혈압|기억력|인지|집중력|치매|두뇌|면역|피로|활력|컨디션|무기력|간|숙취|커큐민|강황|울금|글루타치온|추천|추천해줘|좋은|좋아|좋을까|괜찮|괜찮아|어때|어떤|알려|알려줘|먹어|먹으면|복용|영양제|건강기능식품|건기식|보충제|제품|성분|효능|효과)$/;
   const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
 
   const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐)|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|jailbreak|ignore\s+previous/i;
@@ -369,8 +369,34 @@ export async function onRequest(context) {
     if (!matchedCategory) for (const h of DOMAIN_HINTS) if (h.re.test(convoText)) { hintDomain = h.dom; break; }
 
     // ─── [3] 테이블 로드 ────────────────────────────
-    async function safeGet(t) { try { return await getRecords(env, t); } catch (_) { return []; } }
-    // 제품 테이블은 매칭된 카테고리 1개만 로드(하위요청 한도 안전). 카테고리 미확정이면
+    async function safeGet(t, opts) { try { return await getRecords(env, t, opts); } catch (_) { return []; } }
+
+    // [2.5] 제품명 직접 조회 (Strict 발동 + 실재 매칭 필수):
+    // 카테고리 미확정인데 질의에 브랜드성 토큰이 있으면, 4개 카테고리의 경량 인덱스(제품명·id만,
+    // variant='idx' 캐시)를 뒤져 제품이 실재하는 카테고리를 찾는다. 실재하면 도메인 힌트보다 이긴다(P2).
+    // 못 찾으면 productLookupFailed 플래그 — 도메인 힌트가 없을 때 Q(카테고리 되묻기)로 복구한다.
+    let productLookupFailed = false;
+    if (!matchedCategory) {
+      const brandCands = [...new Set(
+        String(query).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).map(w => normEntity(w))
+          .filter(t => t.length >= 2 && !isCategoryWord(t) && !STOPWORDS.has(t) && !NON_BRAND_RE.test(t))
+      )];
+      if (brandCands.length) {
+        const cats = ["omega3", "eye", "probiotics", "vitaminC"];
+        const idxLists = await Promise.all(cats.map(c =>
+          safeGet(QUALITY_CFG[c].table, { variant: "idx", fields: ["제품명", "product_id"] })
+        ));
+        // 정제된 브랜드 후보만 매칭에 사용 — 원 질의를 넘기면 findProductMention이 도메인어
+        // (다이어트 등)를 다시 토큰화해 엉뚱한 제품명에 오매칭할 수 있다.
+        const brandQuery = brandCands.join(" ");
+        for (let i = 0; i < cats.length; i++) {
+          if (findProductMention(brandQuery, idxLists[i])) { matchedCategory = cats[i]; hintDomain = null; break; }
+        }
+        if (!matchedCategory) productLookupFailed = true;
+      }
+    }
+
+    // 제품 테이블은 매칭된 카테고리 1개만 전체 로드(하위요청 한도 안전). 카테고리 미확정이면
     // 자유 질문의 제품명 감지를 위해 오메가3를 기본 로드(기존 동작 유지).
     const prodCat = (matchedCategory && QUALITY_CFG[matchedCategory]) ? matchedCategory : (!matchedCategory ? "omega3" : null);
     const prodTable = prodCat ? QUALITY_CFG[prodCat].table : null;
@@ -699,11 +725,12 @@ export async function onRequest(context) {
     let flagBlock = "";
     if (productMatchRecord) {
       const pmName = getField(productMatchRecord.fields || {}, "제품명", "name");
-      flagBlock += `\n\n[대상 제품] 사용자가 언급한 제품이 데이터에 있습니다: "${pmName}". [제품 데이터]에서 이 제품을 찾아 그 수치로 바로 평결하세요. "데이터에 없다"거나 "라벨을 알려달라"고 되묻지 마세요 — 수치는 이미 [제품 데이터]에 있습니다. 이 제품이 다른 카테고리 성분까지 포함한 복합제여도, 우리 카테고리 성분(예: 루테인+지아잔틴)의 표기된 수치로 평결하고, 범위 밖 성분(예: 전립선·쏘팔메토)은 "그 부분은 제 범위 밖이라 판단하지 않아요"라고만 밝히세요.`;
+      flagBlock += `\n\n[대상 제품] 사용자가 언급한 제품이 데이터에 있습니다: "${pmName}". [제품 데이터]에서 이 제품을 찾아 그 수치로 바로 평결하세요. "데이터에 없다"거나 "라벨을 알려달라"고 되묻지 마세요 — 수치는 이미 [제품 데이터]에 있습니다. 이 제품이 다른 카테고리 성분까지 포함한 복합제여도, 우리 카테고리 성분(예: 루테인+지아잔틴)의 표기된 수치로 평결하고, 범위 밖 성분(예: 전립선·쏘팔메토)은 "그 부분은 제 범위 밖이라 판단하지 않아요"라고만 밝히세요. 또한 이 제품의 주된 목적이 우리 카테고리가 아니어도(예: 다이어트 제품에 유산균이 함께 든 경우), 먼저 이 제품이 무엇인지(주된기능성) 밝히고 우리 축 수치로 평결하되, "좋다/나쁘다" 단정보다 사실 위주로 알려주세요.`;
     }
     if (detectedRisks.length) flagBlock += `\n\n[내부 플래그] 위험 페르소나 감지: ${detectedRisks.join(", ")} → W 플래그 적용, warning 필수.`;
     if (matchedCategory) flagBlock += `\n\n[대상 카테고리] ${CAT_LABEL[matchedCategory]}`;
     else if (hintDomain) flagBlock += `\n\n[내부 플래그] 4개 카테고리 밖 도메인(${hintDomain}) 질문 가능성 → X 정책 검토. 단, 병용 질문이면 답변.`;
+    else if (productLookupFailed) flagBlock += `\n\n[제품 미발견] 사용자가 특정 제품을 언급한 것 같으나 오메가3·눈·유산균·비타민C 데이터에서 찾지 못했습니다. Q 정책으로 "혹시 어느 카테고리 제품인가요?"라고 되물으세요. 칩: 오메가3·눈 건강·유산균·비타민C + "잘 모르겠어요". 범위 밖(X)으로 단정하지 마세요.`;
     else if (ambiguousCats) flagBlock += `\n\n[내부 플래그] 카테고리 모호(${ambiguousCats.join(" vs ")}) → Q 정책으로 칩 되묻기 권장. 칩은 해당 카테고리들 + "잘 모르겠어요".`;
     if (demographics.age || demographics.gender) flagBlock += `\n\n[사용자 정보] ${demographics.age ? demographics.age + "대" : ""} ${demographics.gender === "female" ? "여성" : demographics.gender === "male" ? "남성" : ""}`.trim();
     if (forcedAxis && matchedCategory && QUALITY_CFG[matchedCategory] && productContext.length) {
