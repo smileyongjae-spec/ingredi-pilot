@@ -6,6 +6,14 @@
 // 변경 요약
 //   - v9~v12: 통념 게이트 / 축 정합(성분우선·가성비) / recommend2 quality 산식 이식 / 4카테고리 확장
 //   - v13: 제품명 직접 조회(4개 경량 인덱스, Strict 발동+실재 매칭) / v14: 세그먼트(대상분류) 대안 필터
+//   - v15.3: [비지목] 가드 — 사용자가 제품을 언급하지 않았는데 화자가 후보군(productContext)의
+//            한 제품을 골라 단수 부정 평결하던 문제("50살 남성 추천" 흐름에서 웰키커 어린이 오메가3를
+//            지목해 "권하지 않아요") 수정. productMatchRecord 부재 + 후보군 존재 시 플래그 주입.
+//   - v15.2: 10K 자체점검이 잡은 오매칭 수정 — ①숫자 시작 토큰("3개"·"60포,") 매칭 배제
+//            ②동일 usable 점수 시 전체 토큰(배제된 흔한 토큰 포함) 커버리지 타이브레이크
+//            ("듀오락 베이비"→골드 오매칭 수정) ③크로스 카테고리 탐색을 첫 매칭이 아니라
+//            4개 카테고리 스코어 비교로("락토핏 키즈"→오메가3 오라우팅 수정) ④메타(약사야·사람이야)·
+//            서비스(회원가입·재입고)·응급(부었·가려워) 게이트 확장 ⑤축 키워드 "성분 기준" 추가
 //   - v15.1: 약사 자칭 전면 제거(약사법·의료법 리스크) — 메타 응답·페르소나를 "AI 상담 +
 //            식약처 인정 기능성(고시형·개별인정형)·성분·함량·인증 데이터 기준 판단"으로 교체.
 //            면허 직군 자칭·암시 금지 규칙 추가. "의사(약사)와 확인하세요"류 권유 표현은 유지.
@@ -113,10 +121,11 @@ export async function onRequest(context) {
   const NON_BRAND_RE = /^(다이어트|체중|체지방|수면|불면|숙면|멜라토닌|관절|무릎|연골|피부|여드름|뾰루지|주름|기미|콜라겐|미백|뼈|골다공증|골밀도|칼슘|혈압|기억력|인지|집중력|치매|두뇌|면역|피로|활력|컨디션|무기력|간|숙취|커큐민|강황|울금|글루타치온|추천|추천해줘|좋은|좋아|좋을까|괜찮|괜찮아|어때|어떤|알려|알려줘|먹어|먹으면|복용|영양제|건강기능식품|건기식|보충제|제품|성분|효능|효과)$/;
   const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
 
-  const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐|ai|에이아이)|\bai\s*(야|냐|니)\b|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|이\s*(서비스|사이트|앱)\s*(가|는|이)?\s*뭐|ingredi|인그레디|잉그레디|누가\s*만들|jailbreak|ignore\s+previous/i;
-  const SERVICE_QUERY = /환불|반품|교환|배송|결제|쿠폰|주문|취소|배달|고객센터|광고|협찬|수수료|제휴|약국|직구|최저가|세일|할인|돈\s*(을)?\s*(벌|버는)|수익|어떻게\s*운영/;
+  const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐|ai|에이아이|약사|의사|영양사|전문가|사람|로봇|봇|진짜)|\bai\s*(야|냐|니)\b|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|이\s*(서비스|사이트|앱)\s*(가|는|이)?\s*뭐|ingredi|인그레디|잉그레디|누가\s*만들|챗\s*봇|챗봇|무슨\s*기준으로\s*(판단|평가)|왜\s*(너를|널)\s*믿|jailbreak|ignore\s+previous/i;
+  const SERVICE_QUERY = /환불|반품|교환|배송|결제|쿠폰|주문|취소|배달|고객센터|광고\s*(받|비|료|협찬|수익|아니야|냐|인가|맞죠|이지)|협찬|수수료|제휴|약국|직구|최저가|세일|할인|돈\s*(을)?\s*(벌|버는)|수익|어떻게\s*운영|회원\s*가입|로그인|탈퇴|재입고|품절|가격이?\s*왜/;
   // 급성 이상 반응·사고 — 검색 없이 즉시 M
-  const ACUTE_EMERGENCY = /두드러기|발진|아나필락시스|호흡\s*(곤란|이\s*힘)|숨\s*(쉬기|이)\s*(가|이)?\s*(힘들|차|막|안\s*쉬)|가슴\s*(이)?\s*(두근|답답|아프)|심장이\s*두근|쇼크|의식|(토했|구토).{0,8}(어지|힘들)|어지러.{0,6}(토했|구토)|한\s*(통|병)\s*(을)?\s*다\s*(먹|삼)|과다\s*복용\s*(했|한\s*것)/;
+  // v15.2: 부종·가려움(알레르기 신호) 추가 — "얼굴이 부었어요 가려워요"류 미커버 수정.
+  const ACUTE_EMERGENCY = /두드러기|발진|아나필락시스|부었|부어서|붓는|붓고|가려워|가렵|호흡\s*(곤란|이\s*힘)|숨\s*(쉬기|이)\s*(가|이)?\s*(힘들|차|막|안\s*쉬)|가슴\s*(이)?\s*(두근|답답|아프)|심장이\s*두근|쇼크|의식|(토했|구토).{0,8}(어지|힘들)|어지러.{0,6}(토했|구토)|한\s*(통|병)\s*(을)?\s*다\s*(먹|삼)|과다\s*복용\s*(했|한\s*것)/;
 
   const SEED_TOKENS = {
     omega3:     ["오메가3", "epa", "dha"],
@@ -136,7 +145,7 @@ export async function onRequest(context) {
   // 정확히 하나의 축만 매칭될 때만 강제(복수·부재 시 화자 판단에 맡김).
   // 축은 목록(app.html)과 동일하게 2개: 성분 우선(품질점수순) · 가성비(파레토 경계).
   const AXIS_KEYWORDS = [
-    { axis: "rank_quality", label: "성분 우선", re: /성분\s*우선|품질|인증|등급|프리미엄|핵심\s*성분/ },
+    { axis: "rank_quality", label: "성분 우선", re: /성분\s*(우선|기준|위주|중심)|품질|인증|등급|프리미엄|핵심\s*성분/ },
     { axis: "rank_value",   label: "가성비",   re: /가성비|가격|저렴|싸게|싸고|경제적|1일\s*비용|저가/ }
   ];
   // 순수 함량(용량) 의도 — 별도 함량 축을 두지 않는다. 근거 용량을 넘으면 함량 차이는
@@ -240,15 +249,17 @@ export async function onRequest(context) {
   // 원리: 제품명에 실제로 등장하는 토큰만 점수화 — 대화체 단어(먹어도·되는·거야)는
   // 제품명에 없으니 자연히 0점. 많은 제품명에 흔한 범용 토큰(고함량·프리미엄 등)은
   // 문서빈도 필터로 배제. 브랜드성 매칭 길이 3자 이상일 때만 확정.
-  function findProductMention(q, records) {
+  function findProductMention(q, records, withScore) {
     const recs = records || [];
     if (!recs.length) return null;
     const names = recs.map(r => normEntity(getField(r.fields || {}, "제품명", "name")));
-    // 브랜드성 토큰만: 카테고리어·범용어(NON_BRAND)·불용어·순수숫자 배제.
+    // 브랜드성 토큰만: 카테고리어·범용어(NON_BRAND)·불용어·숫자 시작 토큰 배제.
     // "영양제"·"좋은" 같은 범용어가 소수 제품명에 우연히 들어 있어도 매칭 근거가 되면 안 된다(자체점검에서 오탐 확인).
+    // 숫자 시작("3개"·"60포,"·"1000mg")은 수량 표기라 브랜드가 아니다 — v15.2: "3개"가 확정 검증의
+    // 두 번째 토큰으로 잡혀 타 카테고리 오확정("락토핏 키즈 60포, 3개"→오메가3)을 일으킨 결함 수정.
     const parts = [...new Set(String(q).split(/\s+/).map(normEntity)
-      .filter(t => t.length >= 2 && !isCategoryWord(t) && !NON_BRAND_RE.test(t) && !/^\d+(mg|억|포|정|캡슐|개월|일분)?$/.test(t)))];
-    if (!parts.length) return null;
+      .filter(t => t.length >= 2 && !isCategoryWord(t) && !NON_BRAND_RE.test(t) && !/^\d/.test(t)))];
+    if (!parts.length) return withScore ? null : null;
     // 범용 토큰 배제: 전체 제품의 5% 초과(최소 3개 초과)에 등장하면 브랜드가 아님
     const cap = Math.max(3, Math.floor(recs.length * 0.05));
     const usable = parts.filter(t => {
@@ -256,14 +267,20 @@ export async function onRequest(context) {
       for (const nm of names) { if (nm && nm.indexOf(t) !== -1) { df++; if (df > cap) return false; } }
       return df > 0;
     });
-    let best = null, bestLen = 0;
+    // v15.2: 최고 매칭 선정을 (usable 길이합, 전체 토큰 길이합) 사전식으로.
+    // usable 동점일 때 배제됐던 흔한 토큰("키즈"·"베이비")까지 커버하는 제품이 이긴다 —
+    // "듀오락 베이비"가 듀오락 골드(일반)에, "영롱 키즈"가 영롱 센서티브(일반)에 붙던 오매칭 수정.
+    function allHitOf(nm) { let h = 0; for (const t of parts) if (nm.indexOf(t) !== -1) h += t.length; return h; }
+    let best = null, bestLen = 0, bestAll = 0;
     if (usable.length) {
       for (let i = 0; i < recs.length; i++) {
         const nm = names[i];
         if (!nm) continue;
         let hit = 0;
         for (const t of usable) if (nm.indexOf(t) !== -1) hit += t.length;
-        if (hit > bestLen) { bestLen = hit; best = recs[i]; }
+        if (!hit) continue;
+        const all = allHitOf(nm);
+        if (hit > bestLen || (hit === bestLen && all > bestAll)) { bestLen = hit; bestAll = all; best = recs[i]; }
       }
     }
     // 확정 검증: 질의에 브랜드 토큰이 2개 이상 있는데 최고 매칭이 그중 1개(5자 미만)만 물었다면
@@ -273,8 +290,8 @@ export async function onRequest(context) {
       if (presentAll.length >= 2) {
         const bn = normEntity(getField(best.fields || {}, "제품명", "name"));
         const hitToks = presentAll.filter(t => bn.indexOf(t) !== -1);
-        if (hitToks.length >= 2 || hitToks.join("").length >= 5) return best;
-      } else return best;
+        if (hitToks.length >= 2 || hitToks.join("").length >= 5) return withScore ? { rec: best, score: bestAll } : best;
+      } else return withScore ? { rec: best, score: bestAll } : best;
     }
     // 폴백 AND-매칭: 흔한 토큰 조합으로 된 제품명("종근당 프로메가 알티지 듀얼" 등)은 df 상한에
     // 전부 걸려 usable이 비는데, 실재 제품이면 "모든 토큰을 다 포함하는 이름"은 소수다.
@@ -286,7 +303,7 @@ export async function onRequest(context) {
         if (!nm) continue;
         if (presentAll.every(t => nm.indexOf(t) !== -1) && nm.length < candLen) { cand = recs[i]; candLen = nm.length; }
       }
-      if (cand) return cand;
+      if (cand) return withScore ? { rec: cand, score: allHitOf(normEntity(getField(cand.fields || {}, "제품명", "name"))) } : cand;
     }
     return null;
   }
@@ -433,10 +450,16 @@ export async function onRequest(context) {
       const idxLists = await Promise.all(ALL_CATS.map(loadIdx));
       // 정제된 브랜드 후보만 매칭에 사용 — 원 질의를 넘기면 findProductMention이 도메인어
       // (다이어트 등)를 다시 토큰화해 엉뚱한 제품명에 오매칭할 수 있다.
+      // v15.2: 첫 매칭에서 멈추지 않고 4개 카테고리 전부의 매칭 강도(전체 토큰 커버 길이)를 비교해
+      // 가장 강한 카테고리를 택한다 — "종근당건강 락토핏 키즈"가 순회 순서상 앞인 오메가3(종근당건강만
+      // 커버)에서 확정돼 정답 유산균(락토핏·키즈까지 커버)을 못 보던 오라우팅 수정.
       const brandQuery = brandCands.join(" ");
+      let bestIdx = -1, bestScore = 0;
       for (let i = 0; i < ALL_CATS.length; i++) {
-        if (findProductMention(brandQuery, idxLists[i])) { matchedCategory = ALL_CATS[i]; hintDomain = null; break; }
+        const r = findProductMention(brandQuery, idxLists[i], true);
+        if (r && r.score > bestScore) { bestScore = r.score; bestIdx = i; }
       }
+      if (bestIdx >= 0) { matchedCategory = ALL_CATS[bestIdx]; hintDomain = null; }
       if (!matchedCategory) productLookupFailed = true;
     }
 
@@ -464,15 +487,17 @@ export async function onRequest(context) {
     // 오전환 방지: crossVerified(토큰 2개 이상 or 합계 5자 이상) 통과 시에만 전환.
     if (matchedCategory && !productMatchRecord && brandCands.length) {
       const brandQuery = brandCands.join(" ");
+      // v15.2: 여기도 첫 매칭이 아니라 최고 스코어 카테고리로 전환.
+      let bestCat = null, bestScore = 0;
       for (const cat of ALL_CATS) {
         if (cat === matchedCategory) continue;
-        const hit = findProductMention(brandQuery, await loadIdx(cat));
-        if (hit && crossVerified(hit, brandCands)) {
-          matchedCategory = cat;
-          pRecords = await safeGet(QUALITY_CFG[cat].table);
-          productMatchRecord = detectProductName(query, pRecords || []) || findProductMention(query, pRecords || []);
-          break;
-        }
+        const r = findProductMention(brandQuery, await loadIdx(cat), true);
+        if (r && crossVerified(r.rec, brandCands) && r.score > bestScore) { bestScore = r.score; bestCat = cat; }
+      }
+      if (bestCat) {
+        matchedCategory = bestCat;
+        pRecords = await safeGet(QUALITY_CFG[bestCat].table);
+        productMatchRecord = detectProductName(query, pRecords || []) || findProductMention(query, pRecords || []);
       }
     }
 
@@ -800,6 +825,8 @@ export async function onRequest(context) {
       const pmName = getField(productMatchRecord.fields || {}, "제품명", "name");
       flagBlock += `\n\n[대상 제품] 사용자가 언급한 제품이 데이터에 있습니다: "${pmName}". [제품 데이터]에서 이 제품을 찾아 그 수치로 바로 평결하세요. "데이터에 없다"거나 "라벨을 알려달라"고 되묻지 마세요 — 수치는 이미 [제품 데이터]에 있습니다. 이 제품이 다른 카테고리 성분까지 포함한 복합제여도, 우리 카테고리 성분(예: 루테인+지아잔틴)의 표기된 수치로 평결하고, 범위 밖 성분(예: 전립선·쏘팔메토)은 "그 부분은 제 범위 밖이라 판단하지 않아요"라고만 밝히세요. 또한 이 제품의 주된 목적이 우리 카테고리가 아니어도(예: 다이어트 제품에 유산균이 함께 든 경우), 먼저 이 제품이 무엇인지(주된기능성) 밝히고 우리 축 수치로 평결하되, "좋다/나쁘다" 단정보다 사실 위주로 알려주세요.`;
       if (targetSegment) flagBlock += ` 이 제품은 '${targetSegment}' 대상 제품이며, [제품 데이터]의 대안도 모두 같은 '${targetSegment}' 대상입니다 — 대안을 권할 때 "같은 ${targetSegment} 유산균 중에서" 같은 표현으로 대상을 맞춰 안내하세요.`;
+    } else if (productContext.length) {
+      flagBlock += `\n\n[비지목] 사용자는 특정 제품을 언급하지 않았습니다. [제품 데이터]의 후보 중 하나를 골라 "이 제품은 권하지 않아요" 식의 단수 평결을 하지 마세요 — 추천 질의에는 추천(성분 우선 상위)으로 답합니다. 후보군에 사용자 상황과 안 맞는 제품(예: 어린이용)이 섞여 있어도 그것을 평결 대상으로 삼지 말고 조용히 제외하세요.`;
     }
     if (detectedRisks.length) flagBlock += `\n\n[내부 플래그] 위험 페르소나 감지: ${detectedRisks.join(", ")} → W 플래그 적용, warning 필수.`;
     if (matchedCategory) flagBlock += `\n\n[대상 카테고리] ${CAT_LABEL[matchedCategory]}`;
