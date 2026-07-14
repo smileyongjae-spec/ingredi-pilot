@@ -448,9 +448,24 @@ export async function onRequest(context) {
       for (const cat in CATEGORY_KEYWORDS) if (CATEGORY_KEYWORDS[cat].some(k => t.indexOf(k) !== -1)) return cat;
       return null;
     }
-    matchedCategory = catFrom(query) || catFrom(userText);
-    if (!matchedCategory) for (const h of PRODUCT_HINTS) if (h.re.test(query) || h.re.test(userText)) { matchedCategory = h.cat; break; }
-    if (!matchedCategory) for (const h of DOMAIN_HINTS) if (h.re.test(query) || h.re.test(userText)) { hintDomain = h.dom; break; }
+    // [v15.9] 최신 메시지에 서로 다른 카테고리어가 2개 이상이면(예: "유산균과 오메가3 추천")
+    // 하나로 확정하지 말고 Q로 되묻는다(A안). 이전 catFrom은 객체 순서상 첫 카테고리만 잡아
+    // 나머지를 버렸다. 명시 복수만 감지 — query(방금 발화) 기준.
+    function allCatsFrom(text) {
+      const t = String(text).toLowerCase();
+      const out = [];
+      for (const cat in CATEGORY_KEYWORDS) if (CATEGORY_KEYWORDS[cat].some(k => t.indexOf(k) !== -1)) out.push(cat);
+      return out;
+    }
+    let explicitMultiCats = null;
+    const qCats = allCatsFrom(query);
+    if (qCats.length >= 2) {
+      explicitMultiCats = qCats.map(c => CAT_KO[c]);   // 되묻기용 라벨
+    } else {
+      matchedCategory = catFrom(query) || catFrom(userText);
+      if (!matchedCategory) for (const h of PRODUCT_HINTS) if (h.re.test(query) || h.re.test(userText)) { matchedCategory = h.cat; break; }
+      if (!matchedCategory) for (const h of DOMAIN_HINTS) if (h.re.test(query) || h.re.test(userText)) { hintDomain = h.dom; break; }
+    }
 
     // ─── [3] 테이블 로드 ────────────────────────────
     async function safeGet(t, opts) { try { return await getRecords(env, t, opts); } catch (_) { return []; } }
@@ -494,6 +509,9 @@ export async function onRequest(context) {
       if (bestIdx >= 0) { matchedCategory = ALL_CATS[bestIdx]; hintDomain = null; }
       if (!matchedCategory) productLookupFailed = true;
     }
+    // [v15.9] 제품이 실제로 매칭됐으면 복수 카테고리가 아니다 — 제품명에 카테고리어가 2개 든
+    // 복합제("닥터스베스트 루테인 오메가3")를 복수 질의로 오인하지 않도록 여기서 해제.
+    if (matchedCategory && explicitMultiCats) explicitMultiCats = null;
 
     // 제품 테이블은 매칭된 카테고리 1개만 전체 로드(하위요청 한도 안전). 카테고리 미확정이면
     // 자유 질문의 제품명 감지를 위해 오메가3를 기본 로드(기존 동작 유지).
@@ -617,7 +635,7 @@ export async function onRequest(context) {
 
     // 카테고리 미확정이면 검색 투표로 (v7 계승, 근접하면 카테고리 미지정 유지 → Q로 유도)
     let ambiguousCats = null;
-    if (!matchedCategory && !hintDomain) {
+    if (!matchedCategory && !hintDomain && !explicitMultiCats) {
       const TOPN = scored.slice(0, 12);
       const served = {};
       for (const { d, s } of TOPN) if (d.prodCat !== "해당없음") served[d.prodCat] = (served[d.prodCat] || 0) + s;
@@ -890,6 +908,7 @@ export async function onRequest(context) {
     }
     if (detectedRisks.length) flagBlock += `\n\n[내부 플래그] 위험 페르소나 감지: ${detectedRisks.join(", ")} → W 플래그 적용, warning 필수.`;
     if (matchedCategory) flagBlock += `\n\n[대상 카테고리] ${CAT_LABEL[matchedCategory]}`;
+    else if (explicitMultiCats) flagBlock += `\n\n[복수 카테고리] 사용자가 여러 카테고리(${explicitMultiCats.join(", ")})를 한 번에 물었습니다. 한 응답에 다 담지 말고 Q 정책으로 "어느 쪽부터 볼까요?"라고 하나만 되물으세요. chips는 ${explicitMultiCats.map(c => `"${c}"`).join(", ")}와 "다 궁금해요"로, chips_prompts는 각 카테고리의 추천 요청 문장(예: "${explicitMultiCats[0]} 추천해줘")으로 두세요. 카운셀링은 한 번에 한 카테고리를 깊게 봅니다 — 사과하지 말고 자연스럽게 하나씩 안내하세요.`;
     else if (hintDomain) flagBlock += `\n\n[내부 플래그] 4개 카테고리 밖 도메인(${hintDomain}) 질문 가능성 → X 정책 검토. 단, 병용 질문이면 답변.`;
     else if (productLookupFailed) flagBlock += `\n\n[제품 미발견] 사용자가 특정 제품을 언급한 것 같으나 오메가3·눈·유산균·비타민C 데이터에서 찾지 못했습니다. Q 정책으로 "혹시 어느 카테고리 제품인가요?"라고 되물으세요. 칩: 오메가3·눈 건강·유산균·비타민C + "잘 모르겠어요". 범위 밖(X)으로 단정하지 마세요.`;
     else if (ambiguousCats) flagBlock += `\n\n[내부 플래그] 카테고리 모호(${ambiguousCats.join(" vs ")}) → Q 정책으로 칩 되묻기 권장. 칩은 해당 카테고리들 + "잘 모르겠어요".`;
