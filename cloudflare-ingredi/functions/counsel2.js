@@ -6,6 +6,9 @@
 // 변경 요약
 //   - v9~v12: 통념 게이트 / 축 정합(성분우선·가성비) / recommend2 quality 산식 이식 / 4카테고리 확장
 //   - v13: 제품명 직접 조회(4개 경량 인덱스, Strict 발동+실재 매칭) / v14: 세그먼트(대상분류) 대안 필터
+//   - v15.6: 점수 노출 정책 변경 — 화자에게 raw 품질 점수(숫자)를 보내지 않는다(순위 계산엔 내부
+//            사용). 대신 등급(A/B)+근거(함량·인증)로 설명하고, 2차 조건(유산균 여성/키즈, 비타민C
+//            메가도즈≥2,000mg)이 있으면 '특성' 필드로 드러내 신뢰를 높인다. 4개 카테고리 공통.
 //   - v15.5: 멀티턴 카테고리 라우팅 버그 수정 — 라우팅이 대화 전체(화자 인트로 포함)를 훑어
 //            화자가 나열한 4개 카테고리 중 첫 번째(오메가3)로 늘 오라우팅되던 문제. 칩 클릭·후속
 //            발화가 무시됨. 라우팅·인구통계·제품명 폴백을 사용자 발화(userText)만 보도록, 최신
@@ -213,6 +216,15 @@ export async function onRequest(context) {
   }
   // 등급 컷 — recommend2 qualityGradeOf 와 동일 (절대평가, 모집단 무관). S는 이 산식에 없다.
   function gradeFromQuality(q) { return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E"; }
+  // 2차 조건(세그먼트/특성) 판정 — 화자가 추천 이유에 반드시 드러낼 라벨.
+  //  - 유산균: 대상분류가 여성/키즈면 그 값 (일반은 없음)
+  //  - 비타민C: 함량 2,000mg 이상이면 "메가도즈"(앵커 1,000mg의 2배 초과 고용량)
+  //  - 오메가3·눈: 해당 없음(2차 조건 컬럼 없음)
+  function descriptorOf(cat, segRaw, primary) {
+    if (cat === "probiotics") { const s = String(segRaw || "").trim(); return (s === "여성" || s === "키즈") ? s : null; }
+    if (cat === "vitaminC" && primary != null && primary >= 2000) return "메가도즈";
+    return null;
+  }
   function getField(fields, ...candidates) {
     for (const c of candidates) if (fields[c] !== undefined && fields[c] !== null && fields[c] !== "") return fields[c];
     const norm = {};
@@ -668,6 +680,7 @@ export async function onRequest(context) {
           form: getField(f, "제형") || null,
           certs: asText(getField(f, "인증")) || null,
           segment: cfg.segmentField ? (String(getField(f, cfg.segmentField) || "").trim() || null) : null,
+          descriptor: descriptorOf(matchedCategory, getField(f, cfg.segmentField || "__none__"), primary),
           grade: gradeFromQuality(q),
           score: q,
           pass: getField(f, "함량_Pass_Fail") || null
@@ -720,6 +733,7 @@ export async function onRequest(context) {
               daily_cost: Math.round(parseFloat(getField(pf, "1일비용_원")) || 0) || null,
               form: getField(pf, "제형") || null, certs: asText(getField(pf, "인증")) || null,
               segment: cfg.segmentField ? (String(getField(pf, cfg.segmentField) || "").trim() || null) : null,
+              descriptor: descriptorOf(matchedCategory, getField(pf, cfg.segmentField || "__none__"), ppri),
               grade: gradeFromQuality(pq),
               score: pq,
               pass: getField(pf, "함량_Pass_Fail") || null
@@ -816,10 +830,23 @@ export async function onRequest(context) {
 
     let productBlock = "\n\n[제품 데이터]";
     if (productContext.length) {
-      productBlock += "\n" + JSON.stringify(productContext);
+      // 화자에게는 raw 품질 점수(score)를 보내지 않는다 — 등급(A/B)·함량·인증·2차조건으로만 설명.
+      // score는 순위 계산에만 쓰고 여기서 투영 시 제거한다(정밀 숫자 노출이 산식 심문·톤 약화를 부름).
+      const publicView = productContext.map(p => ({
+        product_id: p.product_id, name: p.name,
+        rank_quality: p.rank_quality, rank_value: p.rank_value,
+        grade: p.grade,
+        [QUALITY_CFG[matchedCategory] ? QUALITY_CFG[matchedCategory].primaryLabel : "함량"]:
+          p.primary_mg != null ? p.primary_mg.toLocaleString() + (QUALITY_CFG[matchedCategory] ? QUALITY_CFG[matchedCategory].unit : "") : null,
+        인증: p.certs || null,
+        일일비용: p.daily_cost != null ? p.daily_cost + "원" : null,
+        특성: p.descriptor || null
+      }));
+      productBlock += "\n" + JSON.stringify(publicView);
       productBlock += "\n임상 도즈 앵커: " + (QUALITY_CFG[matchedCategory] ? QUALITY_CFG[matchedCategory].anchorLabel : "카테고리별 근거 용량") + ".";
-      productBlock += "\n후보군 설명: 성분 우선(rank_quality, 품질점수 높은 순)·가성비(rank_value, 파레토 경계 = 이보다 싸면서 더 좋은 제품이 없는 순) 두 기준 각 상위의 합집합입니다. 순위는 전체 제품 기준이며, 목록 페이지의 '성분 우선'·'가성비 우선' 탭과 동일합니다.";
+      productBlock += "\n후보군 설명: 성분 우선(rank_quality, 품질 높은 순)·가성비(rank_value, 파레토 경계 = 이보다 싸면서 더 좋은 제품이 없는 순) 두 기준 각 상위의 합집합입니다. 순위는 전체 제품 기준이며, 목록 페이지의 '성분 우선'·'가성비 우선' 탭과 동일합니다.";
       productBlock += "\n축 선택 규칙: 가격을 중시하면 rank_value(가성비), 그 외에는 rank_quality(성분 우선) 순으로 고르고, 어떤 기준으로 골랐는지 한 마디로 밝히세요 (예: \"성분 우선으로는 이게 1위예요\"). 순수 함량순은 제공하지 않습니다.";
+      productBlock += "\n점수 노출 금지: 내부 품질 점수(숫자)는 사용자에게 절대 말하지 마세요. 대신 등급(A/B…)과 근거로 설명합니다. 각 추천 제품마다 왜 권하는지를 한두 문장으로: ①등급이 기본 충족을 뜻함(A면 근거 용량·인증을 갖춤) ②'인증' 필드의 인증(GMP·GOED·IFOS 등)과 함량(앵커 대비)을 근거로. ③'특성' 필드에 값(여성/키즈/메가도즈)이 있으면 반드시 드러내세요 — 예: \"여성 질유래 유산균이에요\", \"키즈 전용으로 100억 채웠어요\", \"메가도즈(고용량)예요\". 이 2차 조건이 신뢰를 높입니다.";
       productBlock += "\n반복 금지: 직전 턴에서 이미 제시한 대안을 습관처럼 반복하지 마세요. 새 질문의 기준이 다르면 그 기준으로 다시 고르세요.";
     } else {
       productBlock += "\n(이 카테고리의 제품 데이터가 이 요청에 로드되지 않았습니다. 특정 제품 평결이 필요하면 라벨 함량을 요청하고, 대안은 비교 페이지로 안내하세요.)";
