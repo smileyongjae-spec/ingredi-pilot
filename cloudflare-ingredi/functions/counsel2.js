@@ -6,6 +6,8 @@
 // 변경 요약
 //   - v9~v12: 통념 게이트 / 축 정합(성분우선·가성비) / recommend2 quality 산식 이식 / 4카테고리 확장
 //   - v13: 제품명 직접 조회(4개 경량 인덱스, Strict 발동+실재 매칭) / v14: 세그먼트(대상분류) 대안 필터
+//   - v15.7: 일반 추천에 성분/가성비 상위 3개 항상 백필 — LLM이 1개만 주거나 비워 카드가 안 뜨거나
+//            1개만 보이던 문제. 특정 제품 평결(productMatchRecord)은 1개 유지.
 //   - v15.6: 점수 노출 정책 변경 — 화자에게 raw 품질 점수(숫자)를 보내지 않는다(순위 계산엔 내부
 //            사용). 대신 등급(A/B)+근거(함량·인증)로 설명하고, 2차 조건(유산균 여성/키즈, 비타민C
 //            메가도즈≥2,000mg)이 있으면 '특성' 필드로 드러내 신뢰를 높인다. 4개 카테고리 공통.
@@ -129,6 +131,11 @@ export async function onRequest(context) {
   // 제품명 직접 조회 발동 시, 브랜드성 토큰이 아닌 것(도메인·증상·범용어)을 배제하는 목록.
   // 정규화(소문자·공백제거)된 토큰과 정확히 일치할 때만 제외 — 조사 붙은 형태는 실재 매칭(bestLen>=3)이 거른다.
   const NON_BRAND_RE = /^(다이어트|체중|체지방|수면|불면|숙면|멜라토닌|관절|무릎|연골|피부|여드름|뾰루지|주름|기미|콜라겐|미백|뼈|골다공증|골밀도|칼슘|혈압|기억력|인지|집중력|치매|두뇌|면역|피로|활력|컨디션|무기력|간|숙취|커큐민|강황|울금|글루타치온|추천|추천해줘|좋은|좋아|좋을까|괜찮|괜찮아|어때|어떤|알려|알려줘|먹어|먹으면|복용|영양제|건강기능식품|건기식|보충제|제품|성분|효능|효과)$/;
+  // [v15.8] 안전 프로필 감지.
+  //  - SAFETY_PROFILE_RE: "아기엄마" 등 출산/육아 정황 → 되묻지 말고 추천+경고+칩 제안(세그먼트는 안 걸음).
+  //  - EXPLICIT_MATERNAL_RE: 사용자가 직접 수유/임신을 밝힘(칩 클릭 포함) → 유산균은 여성 세그먼트로 재추천.
+  const SAFETY_PROFILE_RE = /아기\s*엄마|애기\s*엄마|아이\s*엄마|육아|돌\s*아기|신생아|출산\s*후|산후/;
+  const EXPLICIT_MATERNAL_RE = /수유|모유|임신|임산부|젖\s*먹이|포\s*맘/;
   const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
 
   const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐|ai|에이아이|약사|의사|영양사|전문가|사람|로봇|봇|진짜)|\bai\s*(야|냐|니)\b|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|이\s*(서비스|사이트|앱)\s*(가|는|이)?\s*뭐|ingredi|인그레디|잉그레디|누가\s*만들|챗\s*봇|챗봇|무슨\s*기준으로\s*(판단|평가)|왜\s*(너를|널)\s*믿|jailbreak|ignore\s+previous/i;
@@ -668,6 +675,11 @@ export async function onRequest(context) {
         const sv = getField(productMatchRecord.fields || {}, cfg.segmentField);
         if (sv) targetSegment = String(sv).trim();
       }
+      // [v15.8] 사용자가 명시적으로 수유/임신을 밝히면(칩 클릭 포함) 유산균은 여성 세그먼트로 재추천.
+      // 단순 인구통계("35살 여성")로는 걸지 않는다(A 결정) — 명시 신호만. 유산균에만 적용.
+      if (!targetSegment && matchedCategory === "probiotics" && EXPLICIT_MATERNAL_RE.test(userText)) {
+        targetSegment = "여성";
+      }
       const items = (pRecords || []).map(r => {
         const f = r.fields || {};
         const { primary } = rawPrimaryOf(f, cfg);
@@ -867,6 +879,14 @@ export async function onRequest(context) {
       if (targetSegment) flagBlock += ` 이 제품은 '${targetSegment}' 대상 제품이며, [제품 데이터]의 대안도 모두 같은 '${targetSegment}' 대상입니다 — 대안을 권할 때 "같은 ${targetSegment} 유산균 중에서" 같은 표현으로 대상을 맞춰 안내하세요.`;
     } else if (productContext.length) {
       flagBlock += `\n\n[비지목] 사용자는 특정 제품을 언급하지 않았습니다. [제품 데이터]의 후보 중 하나를 골라 "이 제품은 권하지 않아요" 식의 단수 평결을 하지 마세요 — 추천 질의에는 추천(성분 우선 상위)으로 답합니다. 후보군에 사용자 상황과 안 맞는 제품(예: 어린이용)이 섞여 있어도 그것을 평결 대상으로 삼지 말고 조용히 제외하세요.`;
+      // [v15.8] 명시적 수유/임신으로 여성 세그먼트가 걸렸을 때(제품 미지목) 프레이밍.
+      if (targetSegment === "여성") flagBlock += `\n\n[여성 대상] 사용자가 수유/임신을 밝혀 [제품 데이터]를 여성(질유래·임산부·수유부) 유산균으로 좁혔습니다. "임산부·수유부용으로 골라드릴게요" 같이 대상을 밝히고 이 안에서 상위 3개를 추천하세요.`;
+    }
+    // [v15.8] 안전 프로필(아기엄마 등)이되 아직 수유/임신을 명시하지 않았고 유산균이면:
+    // "수유 중이세요?"라고 되묻지(Q) 말고, 일반 유산균 상위 3개를 바로 추천(V)한 뒤,
+    // "수유/임신 중이시면 여성·임산부용으로 다시 추천드릴게요"라고 안내하고 칩으로 길을 연다.
+    if (matchedCategory === "probiotics" && SAFETY_PROFILE_RE.test(userText) && !EXPLICIT_MATERNAL_RE.test(userText) && targetSegment !== "여성") {
+      flagBlock += `\n\n[안전 프로필] 출산/육아 정황이 보입니다. 하지만 수유·임신 여부를 "수유 중이세요?"처럼 되묻지 마세요(Q 금지). 대신 policy V로 유산균 상위 3개를 바로 추천하고, warning에 "수유 중이거나 임신 중이시면 여성·임산부용 유산균으로 다시 추천해 드릴게요"를 넣으세요. chips에 "수유 중이에요", "임신 중이에요"를 포함하고, chips_prompts는 각각 "수유 중이에요", "임신 중이에요"로 두세요(누르면 여성용으로 재추천됩니다). 유산균은 대부분 수유부에 안전하니 겁주지 마세요.`;
     }
     if (detectedRisks.length) flagBlock += `\n\n[내부 플래그] 위험 페르소나 감지: ${detectedRisks.join(", ")} → W 플래그 적용, warning 필수.`;
     if (matchedCategory) flagBlock += `\n\n[대상 카테고리] ${CAT_LABEL[matchedCategory]}`;
@@ -978,6 +998,22 @@ export async function onRequest(context) {
       if (payload.verdict_tone === "negative" && payload.alternatives.length === 0 && payload.body.indexOf("비교") === -1) {
         payload.body += "\n\n같은 카테고리의 상위 제품은 ingredi 비교 페이지에서 확인하실 수 있어요.";
       }
+      // [v15.7] 일반 추천(추천 질의)에는 성분/가성비 상위 3개를 항상 채운다.
+      // LLM이 1개만 주거나 비워서 카드가 안 뜨거나 1개만 보이던 문제. 특정 제품을 물은 평결
+      // (productMatchRecord 있음)은 그 제품 1개가 맞으므로 제외. 부정 평결은 위에서 이미 처리.
+      if (payload.policy === "V" && (payload.verdict_tone === "positive" || payload.verdict_tone === "conditional") && !productMatchRecord && cfg2 && productContext.length) {
+        const axKey = (forcedAxis || AXIS_KEYWORDS[0]);
+        const top3 = productContext.filter(p => p[axKey.axis] != null).sort((a, b) => a[axKey.axis] - b[axKey.axis]).slice(0, 3);
+        if (top3.length) {
+          const prior = new Map((payload.alternatives || []).map(a => [String(a.product_id), a]));
+          payload.alternatives = top3.map(p => {
+            const had = prior.get(String(p.product_id));
+            return { product_id: p.product_id, name: p.name, reason: (had && had.reason) ? had.reason : buildReason(p) };
+          });
+          if (!payload.alternatives_note) payload.alternatives_note = `${axKey.label} 상위 ${payload.alternatives.length}개`;
+        }
+      }
+
       // conditional인데 warning이 비면 톤 강등
       if (payload.verdict_tone === "conditional" && !payload.warning) payload.verdict_tone = "none";
       if (payload.policy !== "M") payload.handoff = null;
