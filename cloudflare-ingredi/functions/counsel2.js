@@ -130,12 +130,15 @@ export async function onRequest(context) {
   const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "뭐 먹", "무엇을 먹", "뭘 먹", "뭐가 좋", "뭐 사"];
   // 제품명 직접 조회 발동 시, 브랜드성 토큰이 아닌 것(도메인·증상·범용어)을 배제하는 목록.
   // 정규화(소문자·공백제거)된 토큰과 정확히 일치할 때만 제외 — 조사 붙은 형태는 실재 매칭(bestLen>=3)이 거른다.
-  const NON_BRAND_RE = /^(다이어트|체중|체지방|수면|불면|숙면|멜라토닌|관절|무릎|연골|피부|여드름|뾰루지|주름|기미|콜라겐|미백|뼈|골다공증|골밀도|칼슘|혈압|기억력|인지|집중력|치매|두뇌|면역|피로|활력|컨디션|무기력|간|숙취|커큐민|강황|울금|글루타치온|추천|추천해줘|좋은|좋아|좋을까|괜찮|괜찮아|어때|어떤|알려|알려줘|먹어|먹으면|복용|영양제|건강기능식품|건기식|보충제|제품|성분|효능|효과)$/;
+  const NON_BRAND_RE = /^(다이어트|체중|체지방|수면|불면|숙면|멜라토닌|관절|무릎|연골|피부|여드름|뾰루지|주름|기미|콜라겐|미백|뼈|골다공증|골밀도|칼슘|혈압|기억력|인지|집중력|치매|두뇌|면역|피로|활력|컨디션|무기력|간|숙취|커큐민|강황|울금|글루타치온|추천|추천해줘|좋은|좋아|좋을까|괜찮|괜찮아|어때|어떤|알려|알려줘|먹어|먹으면|복용|영양제|건강기능식품|건기식|보충제|제품|성분|효능|효과|뭐가|뭐|뭘|무엇|무슨|어느|나아|나은|낫|골라|골라줘|추천좀|눈영양제)$/;
   // [v15.8] 안전 프로필 감지.
   //  - SAFETY_PROFILE_RE: "아기엄마" 등 출산/육아 정황 → 되묻지 말고 추천+경고+칩 제안(세그먼트는 안 걸음).
   //  - EXPLICIT_MATERNAL_RE: 사용자가 직접 수유/임신을 밝힘(칩 클릭 포함) → 유산균은 여성 세그먼트로 재추천.
   const SAFETY_PROFILE_RE = /아기\s*엄마|애기\s*엄마|아이\s*엄마|육아|돌\s*아기|신생아|출산\s*후|산후/;
   const EXPLICIT_MATERNAL_RE = /수유|모유|임신|임산부|젖\s*먹이|포\s*맘/;
+  // [v15.10] 어린이(대상) 감지 — "아이 유산균"처럼 아이를 위한 질의. "아이엄마"(수유 흐름, 엄마=본인)와
+  // 구분하기 위해 SAFETY/MATERNAL/"엄마 본인"이면 childHint를 끈다. 청소년·중고생은 성인으로 본다(제외).
+  const CHILD_RE = /어린이|키즈|유아|영유아|아기|베이비|주니어|초등|우리\s*아이|자녀|애기|아이/;
   const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
 
   const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐|ai|에이아이|약사|의사|영양사|전문가|사람|로봇|봇|진짜)|\bai\s*(야|냐|니)\b|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|이\s*(서비스|사이트|앱)\s*(가|는|이)?\s*뭐|ingredi|인그레디|잉그레디|누가\s*만들|챗\s*봇|챗봇|무슨\s*기준으로\s*(판단|평가)|왜\s*(너를|널)\s*믿|jailbreak|ignore\s+previous/i;
@@ -513,6 +516,34 @@ export async function onRequest(context) {
     // 복합제("닥터스베스트 루테인 오메가3")를 복수 질의로 오인하지 않도록 여기서 해제.
     if (matchedCategory && explicitMultiCats) explicitMultiCats = null;
 
+    // [v15.10] 어린이 게이트: 어린이 대상 질의는 유산균만 다룬다(유산균만 키즈 세그먼트·데이터 보유).
+    // "아이 비타민C"처럼 어린이 단어 + (어린이가 아닌 브랜드 토큰 없음)이면 일반 어린이 질의로 보고,
+    // 비유산균은 범위 밖(X)·유산균은 키즈 세그먼트로 처리. 반면 "종근당 락토핏 키즈"처럼 실제 브랜드
+    // 토큰이 있으면 특정 제품이므로 게이트를 걸지 않고 정상 매칭한다(키즈 토큰은 제품 구별에 계속 사용).
+    // "아이엄마"(수유)는 CHILD_RE 판정에서 제외. 청소년·중고생은 어린이로 안 봄.
+    let childProbiotics = false;
+    const CHILD_TOKEN_RE = /^(어린이|아이|애기|아기|키즈|유아|영유아|베이비|주니어|초등|자녀)$/;
+    const childHint = CHILD_RE.test(userText)
+      && !SAFETY_PROFILE_RE.test(userText) && !EXPLICIT_MATERNAL_RE.test(userText)
+      && !/엄마\s*본인/.test(userText);
+    const nonChildBrand = brandCands.filter(t => !CHILD_TOKEN_RE.test(t));
+    if (childHint && !explicitMultiCats && !nonChildBrand.length) {
+      if (matchedCategory === "probiotics") {
+        childProbiotics = true;  // [6]에서 targetSegment = "키즈"
+      } else if (matchedCategory === "vitaminC" || matchedCategory === "omega3" || matchedCategory === "eye") {
+        const catKo = CAT_KO[matchedCategory];
+        return respond(fixedPayload("X",
+          `어린이 ${catKo}는 제가 깊이 있게 다루는 범위가 아니에요. 어린이 제품은 성인과 기준(용량·제형)이 달라서 성인용 데이터로 판단드리기 어렵거든요. 대신 어린이 유산균은 도와드릴 수 있어요.`,
+          { chips: ["어린이 유산균 보기", `성인 ${catKo} 볼게요`], chips_prompts: ["어린이 유산균 추천해줘", `성인 ${catKo} 추천해줘`] }
+        ), { gate: "child_scope", matchedCategory, demographics });
+      } else if (!matchedCategory && !hintDomain) {
+        return respond(fixedPayload("X",
+          `어린이 영양제는 유산균을 깊게 봐드릴 수 있어요. 오메가3·비타민C·눈 영양제는 어린이 기준 데이터가 충분하지 않아 성인 기준으로만 판단할 수 있거든요. 어린이 유산균부터 보시겠어요?`,
+          { chips: ["어린이 유산균 보기"], chips_prompts: ["어린이 유산균 추천해줘"] }
+        ), { gate: "child_scope", demographics });
+      }
+    }
+
     // 제품 테이블은 매칭된 카테고리 1개만 전체 로드(하위요청 한도 안전). 카테고리 미확정이면
     // 자유 질문의 제품명 감지를 위해 오메가3를 기본 로드(기존 동작 유지).
     const prodCat = (matchedCategory && QUALITY_CFG[matchedCategory]) ? matchedCategory : (!matchedCategory ? "omega3" : null);
@@ -693,6 +724,8 @@ export async function onRequest(context) {
         const sv = getField(productMatchRecord.fields || {}, cfg.segmentField);
         if (sv) targetSegment = String(sv).trim();
       }
+      // [v15.10] 어린이 대상 유산균 질의(특정 제품 미지목)는 키즈 세그먼트로 추천.
+      if (!targetSegment && childProbiotics) targetSegment = "키즈";
       // [v15.8] 사용자가 명시적으로 수유/임신을 밝히면(칩 클릭 포함) 유산균은 여성 세그먼트로 재추천.
       // 단순 인구통계("35살 여성")로는 걸지 않는다(A 결정) — 명시 신호만. 유산균에만 적용.
       if (!targetSegment && matchedCategory === "probiotics" && EXPLICIT_MATERNAL_RE.test(userText)) {
@@ -899,6 +932,7 @@ export async function onRequest(context) {
       flagBlock += `\n\n[비지목] 사용자는 특정 제품을 언급하지 않았습니다. [제품 데이터]의 후보 중 하나를 골라 "이 제품은 권하지 않아요" 식의 단수 평결을 하지 마세요 — 추천 질의에는 추천(성분 우선 상위)으로 답합니다. 후보군에 사용자 상황과 안 맞는 제품(예: 어린이용)이 섞여 있어도 그것을 평결 대상으로 삼지 말고 조용히 제외하세요.`;
       // [v15.8] 명시적 수유/임신으로 여성 세그먼트가 걸렸을 때(제품 미지목) 프레이밍.
       if (targetSegment === "여성") flagBlock += `\n\n[여성 대상] 사용자가 수유/임신을 밝혀 [제품 데이터]를 여성(질유래·임산부·수유부) 유산균으로 좁혔습니다. "임산부·수유부용으로 골라드릴게요" 같이 대상을 밝히고 이 안에서 상위 3개를 추천하세요.`;
+      if (targetSegment === "키즈") flagBlock += `\n\n[어린이 대상] 사용자가 어린이용을 찾아 [제품 데이터]를 어린이(키즈) 유산균으로 좁혔습니다. "어린이 유산균 중에서 골라드릴게요" 같이 대상을 밝히고 이 안에서 상위 3개를 추천하세요. 나이를 되묻지 마세요(Q 금지).`;
     }
     // [v15.8] 안전 프로필(아기엄마 등)이되 아직 수유/임신을 명시하지 않았고 유산균이면:
     // "수유 중이세요?"라고 되묻지(Q) 말고, 일반 유산균 상위 3개를 바로 추천(V)한 뒤,
