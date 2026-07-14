@@ -230,6 +230,33 @@ export async function onRequest(context) {
   //  - 유산균: 대상분류가 여성/키즈면 그 값 (일반은 없음)
   //  - 비타민C: 함량 2,000mg 이상이면 "메가도즈"(앵커 1,000mg의 2배 초과 고용량)
   //  - 오메가3·눈: 해당 없음(2차 조건 컬럼 없음)
+  // [v15.11] 인증을 성격별 이름으로 재가공 — 일반인이 약어(GMP·HACCP)만 보면 뜻을 모르므로,
+  // 코드가 무엇을 보증하는지 이름을 붙여 화자에게 넘긴다. 품질과 무관한 종교/식이/미국 인증
+  // (Halal·Kosher·GRAS·FDA·MUI·V-label·Vegan 등)은 제거한다. "규칙은 코드에" — 명명은 판단이 아님.
+  function classifyCerts(raw) {
+    if (!raw) return null;
+    const s = String(raw).toUpperCase();
+    const has = (...ks) => ks.some(k => s.indexOf(k) !== -1);
+    const groups = [];
+    if (has("GMP")) groups.push("제조 인증(GMP)");
+    const safety = [];
+    if (has("HACCP")) safety.push("HACCP");
+    else if (has("CODEX")) safety.push("CODEX");
+    if (has("FSSC22000", "FSSC 22000")) safety.push("FSSC22000");
+    if (has("ISO22000", "ISO 22000")) safety.push("ISO22000");
+    if (has("EFSA")) safety.push("EFSA");
+    if (has("QPS")) safety.push("QPS");
+    if (safety.length) groups.push("안전 인증(" + safety.slice(0, 2).join("·") + ")");
+    const purity = [];
+    if (has("GOED")) purity.push("GOED");
+    if (has("IFOS")) purity.push("IFOS");
+    if (has("IFFO")) purity.push("IFFO");
+    if (has("MSC")) purity.push("MSC");
+    if (has("MARINTRUST", "MARIN TRUST")) purity.push("MarinTrust");
+    if (purity.length) groups.push("주요성분 품질 인증(" + purity.slice(0, 2).join("·") + ")");
+    if (has("NON-GMO", "NONGMO", "NON GMO")) groups.push("Non-GMO");
+    return groups.length ? groups.join(", ") : null;
+  }
   function descriptorOf(cat, segRaw, primary) {
     if (cat === "probiotics") { const s = String(segRaw || "").trim(); return (s === "여성" || s === "키즈") ? s : null; }
     if (cat === "vitaminC" && primary != null && primary >= 2000) return "메가도즈";
@@ -901,7 +928,7 @@ export async function onRequest(context) {
         grade: p.grade,
         [QUALITY_CFG[matchedCategory] ? QUALITY_CFG[matchedCategory].primaryLabel : "함량"]:
           p.primary_mg != null ? p.primary_mg.toLocaleString() + (QUALITY_CFG[matchedCategory] ? QUALITY_CFG[matchedCategory].unit : "") : null,
-        인증: p.certs || null,
+        인증: classifyCerts(p.certs) || null,
         일일비용: p.daily_cost != null ? p.daily_cost + "원" : null,
         특성: p.descriptor || null
       }));
@@ -909,7 +936,7 @@ export async function onRequest(context) {
       productBlock += "\n임상 도즈 앵커: " + (QUALITY_CFG[matchedCategory] ? QUALITY_CFG[matchedCategory].anchorLabel : "카테고리별 근거 용량") + ".";
       productBlock += "\n후보군 설명: 성분 우선(rank_quality, 품질 높은 순)·가성비(rank_value, 파레토 경계 = 이보다 싸면서 더 좋은 제품이 없는 순) 두 기준 각 상위의 합집합입니다. 순위는 전체 제품 기준이며, 목록 페이지의 '성분 우선'·'가성비 우선' 탭과 동일합니다.";
       productBlock += "\n축 선택 규칙: 가격을 중시하면 rank_value(가성비), 그 외에는 rank_quality(성분 우선) 순으로 고르고, 어떤 기준으로 골랐는지 한 마디로 밝히세요 (예: \"성분 우선으로는 이게 1위예요\"). 순수 함량순은 제공하지 않습니다.";
-      productBlock += "\n점수 노출 금지: 내부 품질 점수(숫자)는 사용자에게 절대 말하지 마세요. 대신 등급(A/B…)과 근거로 설명합니다. 각 추천 제품마다 왜 권하는지를 한두 문장으로: ①등급이 기본 충족을 뜻함(A면 근거 용량·인증을 갖춤) ②'인증' 필드의 인증(GMP·GOED·IFOS 등)과 함량(앵커 대비)을 근거로. ③'특성' 필드에 값(여성/키즈/메가도즈)이 있으면 반드시 드러내세요 — 예: \"여성 질유래 유산균이에요\", \"키즈 전용으로 100억 채웠어요\", \"메가도즈(고용량)예요\". 이 2차 조건이 신뢰를 높입니다.";
+      productBlock += "\n점수 노출 금지: 내부 품질 점수(숫자)는 사용자에게 절대 말하지 마세요. 대신 등급(A/B…)과 근거로 설명합니다. 각 추천 제품마다 왜 권하는지를 한두 문장으로: ①등급이 기본 충족을 뜻함(A면 근거 용량·인증을 갖춤) ②'인증' 필드는 이미 성격별 이름(제조 인증·안전 인증·주요성분 품질 인증·Non-GMO)으로 정제돼 있으니 그 이름 그대로 말하세요(예: \"GMP 제조 인증과 HACCP 안전 인증을 갖췄어요\"). 절대 '인증' 두 글자만 말하지 말고, 무엇을 보증하는 인증인지 이름을 붙이세요. 함량은 앵커 대비로. ③'특성' 필드에 값(여성/키즈/메가도즈)이 있으면 반드시 드러내세요 — 예: \"여성 질유래 유산균이에요\", \"키즈 전용으로 100억 채웠어요\", \"메가도즈(고용량)예요\". 이 2차 조건이 신뢰를 높입니다.";
       productBlock += "\n반복 금지: 직전 턴에서 이미 제시한 대안을 습관처럼 반복하지 마세요. 새 질문의 기준이 다르면 그 기준으로 다시 고르세요.";
     } else {
       productBlock += "\n(이 카테고리의 제품 데이터가 이 요청에 로드되지 않았습니다. 특정 제품 평결이 필요하면 라벨 함량을 요청하고, 대안은 비교 페이지로 안내하세요.)";
@@ -1023,7 +1050,8 @@ export async function onRequest(context) {
         const bits = [];
         if (cfg2 && p.primary_mg != null) bits.push(`${cfg2.primaryLabel} ${p.primary_mg.toLocaleString()}${cfg2.unit}`);
         if (p.daily_cost) bits.push(`하루 ${p.daily_cost.toLocaleString()}원`);
-        if (p.certs) bits.push(String(p.certs).split(",")[0].trim());
+        const certTxt = classifyCerts(p.certs);
+        if (certTxt) bits.push(certTxt.split(",")[0].trim());
         return bits.join(" · ");
       };
       if (payload.verdict_tone === "negative" && cfg2) {
