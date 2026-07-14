@@ -1015,7 +1015,34 @@ export async function onRequest(context) {
     const data = await resp.json();
     const rawText = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
 
-    // ─── [10] JSON 계약 파싱 + 검증 ─────────────────
+  // ─── [C가드] 화자 발화 규칙 기계 검출 ────────────────
+  // 규칙 체크리스트의 🟦 항목을 응답 텍스트에서 검출한다. 이 버전은 "검출→debug 노출"만 한다
+  // (검증 안 된 정규식으로 라이브 발화를 자동 수정하면 문장을 깨뜨릴 위험). 검출 결과가 안정적이면
+  // 안전한 항목만 자동 수정으로 승격한다. 목적: 사람이 찾던 위반을 시스템이 먼저 표시.
+  function checkSpeakerRules(pl, cat) {
+    // 화자 산문(body·warning·verdict·default_answer)만 검사한다. alternatives[].reason은
+    // 코드가 buildReason으로 생성(항상 정제된 인증명)하므로 검사에서 제외 — 포함하면 카드 이유가
+    // body의 위반을 가린다.
+    const parts = [pl.body, pl.warning, pl.verdict, pl.default_answer].filter(Boolean);
+    const text = parts.join("\n");
+    const v = [];
+    // 3.3 내부 품질 점수(숫자) 노출 — "점수 97" / "97점"류. 함량(100억·1000mg·1764원)·순위(97위)는 제외.
+    if (/점수\s*(?:는|가|를|이)?\s*\d{1,3}(?:\.\d)?/.test(text) ||
+        /\d{2,3}(?:\.\d)?\s*점(?!\s*(?:포|정|캡슐|알|이상|위))/.test(text)) v.push("score_number(3.3)");
+    // 3.5 "인증"이 성격 이름 없이 단독 — 허용 형태(제조/안전/주요성분 품질/성분/품질 인증, Non-GMO)가
+    //     하나도 없이 "인증"만 등장하면 플래그.
+    if (/인증/.test(text) && !/(제조|안전|주요성분\s*품질|성분|품질)\s*인증|non-?gmo/i.test(text)) v.push("bare_cert(3.5)");
+    // 3.6 제거 대상 인증(종교·미국·식이) 등장 — 데이터에선 제거됐으나 환각/제품명 유입 감시.
+    if (/할랄|코셔|halal|kosher|\bgras\b|\bfda\b|vegan|비건|v-?label|mui\b/i.test(text)) v.push("removed_cert(3.6)");
+    // 1.1 면허 직군 자칭·암시.
+    if (/(제가|저는|저희는)?\s*(약사|의사|영양사|한약사)\s*(입니다|이에요|예요|랍니다|로서|로써)|처방(해\s*드릴|을\s*내려|해\s*줄)/.test(text)) v.push("license_claim(1.1)");
+    // 3.8 근거 없는 성분-효능 연결(휴리스틱): 우리 카테고리가 아닌 성분을 "좋다"고 연결. 약한 신호만.
+    //     (의미 판정은 B 검수 몫; 여기선 대표 오연결 패턴만.)
+    if (cat && /수유|임신/.test(text) && new RegExp(`(오메가3|루테인|비타민c).{0,10}(좋|도움|효과)`, "i").test(text) && cat !== "omega3") v.push("weak_link(3.8)");
+    return v;
+  }
+
+  // ─── [10] JSON 계약 파싱 + 검증 ─────────────────
     function parseContract(t) {
       let s = String(t || "").trim().replace(/^```json\s*/i, "").replace(/^```\s*/,"").replace(/```\s*$/, "").trim();
       const a = s.indexOf("{"), b = s.lastIndexOf("}");
@@ -1125,6 +1152,7 @@ export async function onRequest(context) {
     }
 
     // ─── [11] 응답 ──────────────────────────────────
+    const guardViolations = checkSpeakerRules(payload, matchedCategory);
     const meta = {
       category: matchedCategory ? CAT_KO[matchedCategory] : null,
       healthDomain: hintDomain,
@@ -1132,6 +1160,7 @@ export async function onRequest(context) {
       demographics,
       detectedRisks,
       categoryOptions: (!matchedCategory && !productMatchRecord) ? CATEGORY_OPTIONS : null,
+      guard: guardViolations.length ? guardViolations : undefined,
       sources: {
         knowledge: knowledgeMatched.map(d => ({ id: d.id, oneline: d.oneline })),
         faq: faqMatched.map(d => ({ id: d.id, question: d.question }))
