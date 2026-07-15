@@ -32,15 +32,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/tokens-v1.css">
   <style>
     :root {
-      /* 화자 디자인 헌장: 한지 배경, 비대칭 배색(그린은 긍정에만), 먹색 타이포 */
-      --paper: #FAF8F3; --paper-dim: #F1EDE3;
-      --ink: #24231F; --ink-soft: #4A4740; --ink-faint: #8A8578;
-      --line: #DAD5C7; --line-strong: #B8B2A2;
-      --green-deep: #1B3A2E; --green-primary: #2D5F3F; --green-tint: #EDF3EE; --green-light: #E8F1EA;
-      --font-voice: 'Noto Serif KR', 'Pretendard', serif;
-      --font-ui: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      /* [웜 변형 오버라이드] 화자 상담 전용 · design.md §2.6
+         공용 토큰은 /tokens-v1.css — 아래 7종 외 재정의 금지 */
+      --ink: #24231F;
+      --ink-soft: #4A4740;
+      --ink-faint: #8A8578;
+      --line: #DAD5C7;
+      --line-strong: #B8B2A2;
+      --paper-dim: #F1EDE3;
+      --green-tint: #EDF3EE;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -59,7 +62,7 @@
     .header-share { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); background: none; border: none; border-radius: 8px; padding: 0; }
     .header-share:active { transform: scale(0.92); }
     .header-share svg { width: 20px; height: 20px; }
-    .share-toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: var(--green-deep); color: #fff; font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 100px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+    .share-toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: var(--green-deep); color: var(--surface); font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 100px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
     .share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* ── 스레드 ── */
@@ -79,7 +82,7 @@
     /* 되묻기(Q) */
     .clarify-q { font-family: var(--font-voice); font-size: 19px; line-height: 1.6; color: var(--ink); margin-bottom: 14px; }
     .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-    .chip { font-family: var(--font-ui); font-size: 14px; padding: 9px 16px; border-radius: 999px; border: 0.5px solid var(--line-strong); background: #fff; color: var(--ink); cursor: pointer; transition: all .15s ease; }
+    .chip { font-family: var(--font-ui); font-size: 14px; padding: 9px 16px; border-radius: 999px; border: 0.5px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; transition: all .15s ease; }
     .chip:hover { border-color: var(--green-primary); color: var(--green-primary); }
     .chip:active { transform: scale(0.97); }
     .chip.dim { color: var(--ink-faint); }
@@ -98,7 +101,7 @@
 
     /* 대안 카드 — 부정 평결의 출구 (그린은 여기에만) */
     .alts { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
-    .alt-card { background: #fff; border: 0.5px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-decoration: none; }
+    .alt-card { background: var(--surface); border: 0.5px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-decoration: none; }
     .alt-card:active { transform: scale(0.99); }
     .alt-info { min-width: 0; }
     .alt-name { font-size: 14px; color: var(--ink); font-weight: 500; }
@@ -123,11 +126,11 @@
 
     /* ── 입력창 ── */
     .composer { position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(250,248,243,0) 0%, var(--paper) 24%); padding: 18px 16px calc(14px + env(safe-area-inset-bottom)); }
-    .composer-inner { display: flex; gap: 8px; align-items: flex-end; background: #fff; border: 0.5px solid var(--line-strong); border-radius: 16px; padding: 8px 8px 8px 16px; }
+    .composer-inner { display: flex; gap: 8px; align-items: flex-end; background: var(--surface); border: 0.5px solid var(--line-strong); border-radius: 16px; padding: 8px 8px 8px 16px; }
     .composer-inner:focus-within { border-color: var(--green-primary); }
     .composer textarea { flex: 1; border: none; outline: none; resize: none; font-family: var(--font-ui); font-size: 15px; line-height: 1.5; color: var(--ink); background: transparent; max-height: 96px; padding: 6px 0; }
     .composer textarea::placeholder { color: var(--ink-faint); }
-    .send-btn { width: 38px; height: 38px; border-radius: 12px; border: none; background: var(--green-primary); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .send-btn { width: 38px; height: 38px; border-radius: 12px; border: none; background: var(--green-primary); color: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .send-btn:disabled { background: var(--line); cursor: default; }
     .send-btn svg { width: 18px; height: 18px; }
     .composer-note { text-align: center; font-size: 11px; color: var(--ink-faint); margin-top: 8px; line-height: 1.5; }
@@ -148,13 +151,13 @@
     .feedback-modal-close svg { width: 20px; height: 20px; }
     .feedback-modal-body { flex: 1; display: flex; flex-direction: column; padding: 18px; overflow-y: auto; }
     .feedback-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; margin-bottom: 12px; }
-    .feedback-textarea { flex: 1; width: 100%; min-height: 200px; resize: none; padding: 14px; background: white; border: 1px solid var(--line); border-radius: 10px; font-family: inherit; font-size: 15px; color: var(--ink); line-height: 1.6; }
+    .feedback-textarea { flex: 1; width: 100%; min-height: 200px; resize: none; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-family: inherit; font-size: 15px; color: var(--ink); line-height: 1.6; }
     .feedback-textarea:focus { outline: none; border-color: var(--green-primary); }
     .feedback-err { font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
     .feedback-modal-foot { display: flex; gap: 8px; padding: 14px 18px max(14px, env(safe-area-inset-bottom)); border-top: 0.5px solid var(--line); background: var(--paper); }
     .feedback-btn { flex: 1; padding: 14px; border: none; border-radius: 10px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
     .feedback-btn.cancel { background: var(--green-light); color: var(--green-deep); }
-    .feedback-btn.send { background: var(--green-primary); color: white; }
+    .feedback-btn.send { background: var(--green-primary); color: var(--surface); }
     .feedback-btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
     .feedback-done { display: none; position: fixed; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; z-index: 201; background: var(--paper); flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px; text-align: center; }
     .feedback-done.active { display: flex; animation: fbFade 0.2s ease; }
