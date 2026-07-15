@@ -143,7 +143,12 @@ export async function onRequest(context) {
   //   요구한다. "아이"도 같은 이유로 뒤에 조사·공백을 요구한다 — 눈 영양제 브랜드가 아이(eye)를
   //   즐겨 써서(안국건강 "아이원", "아이허브") 맨 "아이"는 브랜드명을 어린이 질의로 오인한다.
   //   신생아는 INFANT_RE(영아 게이트)가 별도로 처리한다.
-  const CHILD_RE = /어린이|키즈|유아|영유아|아기|베이비|주니어|초등|초딩|우리\s*아이|우리\s*애|자녀|애기|아이(?=$|[\s,.!?·]|가|를|은|는|도|의|랑|와|과|들|한테|한|에게|용|것|거)|\d+\s*살\s*(?:딸|아들|남아|여아|애)|(?:^|[\s,.·!?])애\s*(?:가|를|한테|들|둘|셋|먹|는)/;
+  // [v15.20] 만 12세 이하 확정 신호. 나이는 12 이하만 잡는다("40살 딸"은 성인).
+  //   한글 수사(여덟살)도 실제 고객이 많이 쓴다.
+  const CHILD_RE = /어린이|키즈|유아|영유아|아기|베이비|주니어|초등|초딩|유치원|꼬맹이|우리\s*아이|우리\s*애|울\s*애|자녀|애기|아이(?=$|[\s,.!?·]|가|를|은|는|도|의|랑|와|과|들|한테|한|에게|용|것|거)|(?:^|[^\d])(?:[1-9]|1[0-2])\s*살|(?:한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|열한|열두)\s*살|(?:^|[\s,.·!?])애\s*(?:가|를|한테|들|둘|셋|먹|는)/;
+  // [v15.20] 자녀 관계어지만 연령이 불명확한 신호(성인 자녀일 수 있음) → 하드 게이트 대신
+  //   프롬프트 플래그로 넘겨 나이를 먼저 확인하게 한다.
+  const CHILD_MAYBE_RE = /딸|아들|조카|손주|손녀|손자|둘째|셋째|막내|첫째|형제|남매/;
   const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
 
   const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐|ai|에이아이|약사|의사|영양사|전문가|사람|로봇|봇|진짜)|\bai\s*(야|냐|니)\b|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|이\s*(서비스|사이트|앱)\s*(가|는|이)?\s*뭐|ingredi|인그레디|잉그레디|누가\s*만들|챗\s*봇|챗봇|무슨\s*기준으로\s*(판단|평가)|왜\s*(너를|널)\s*믿|jailbreak|ignore\s+previous/i;
@@ -616,7 +621,18 @@ export async function onRequest(context) {
     //   토큰이 있으면 특정 제품이므로 게이트를 걸지 않고 정상 매칭")를 그대로 구현한 것 —
     //   "락토핏 키즈 어때요"는 제품이 매칭되므로 평결로 가고, "우리 애 눈 나빠지는데 루테인
     //   먹여도 돼요"는 제품 미매칭이므로 게이트가 걸린다.
-    if (childHint && !explicitMultiCats && !productMatchRecord) {
+    // [v15.20] 제품 매칭이 어린이 토큰만으로 성립했으면 "제품 지목"으로 보지 않는다.
+    //   "조카 선물로 어린이 비타민C"가 제품명에 '어린이'가 든 상품과 매칭돼 게이트를 뚫던 문제 —
+    //   아이를 가리키는 단어가 게이트를 무력화하는 역설. 질의의 비-어린이 토큰이 매칭된 제품명에
+    //   실제로 들어 있을 때만 지목으로 인정한다("락토핏 키즈"의 '락토핏'처럼).
+    let namedProduct = productMatchRecord;
+    if (childHint && productMatchRecord) {
+      const CHILD_TOK = /^(어린이|아이|애기|아기|키즈|유아|영유아|베이비|주니어|초등|초딩|자녀|꼬맹이|유치원)$/;
+      const nm = normEntity(getField(productMatchRecord.fields || {}, "제품명", "name"));
+      const qTok = makeBrandCands(query).filter(t => !CHILD_TOK.test(t));
+      if (!qTok.some(t => nm.indexOf(t) !== -1)) namedProduct = null;
+    }
+    if (childHint && !explicitMultiCats && !namedProduct) {
       if (matchedCategory === "probiotics") {
         childProbiotics = true;  // [6]에서 targetSegment = "키즈"
       } else if (matchedCategory === "vitaminC" || matchedCategory === "omega3" || matchedCategory === "eye") {
@@ -1028,6 +1044,12 @@ export async function onRequest(context) {
       flagBlock += `\n\n[안전 프로필] 출산/육아 정황이 보입니다. 하지만 수유·임신 여부를 "수유 중이세요?"처럼 되묻지 마세요(Q 금지). 대신 policy V로 유산균 상위 3개를 바로 추천하고, warning에 "수유 중이거나 임신 중이시면 여성·임산부용 유산균으로 다시 추천해 드릴게요"를 넣으세요. chips에 "수유 중이에요", "임신 중이에요"를 포함하고, chips_prompts는 각각 "수유 중이에요", "임신 중이에요"로 두세요(누르면 여성용으로 재추천됩니다). 유산균은 대부분 수유부에 안전하니 겁주지 마세요.`;
     }
     if (detectedRisks.length) flagBlock += `\n\n[내부 플래그] 위험 페르소나 감지: ${detectedRisks.join(", ")} → W 플래그 적용, warning 필수.`;
+    // [v15.20] 자녀 관계어는 있으나 만 12세 이하가 확정되지 않은 경우(성인 자녀일 수 있음).
+    //   코드 게이트를 걸면 "우리 딸이 40살인데"까지 막히므로, 나이 확인을 프롬프트에 맡긴다.
+    //   핵심은 확인 전에 성인용 제품을 default_answer로 흘리지 않는 것 — 그게 게이트 우회였다.
+    if (!childHint && CHILD_MAYBE_RE.test(userText) && !SAFETY_PROFILE_RE.test(userText) && !EXPLICIT_MATERNAL_RE.test(userText)) {
+      flagBlock += `\n\n[내부 플래그] 자녀·손주 등 가족 대상 문의로 보이나 연령이 불명확합니다. 나이를 먼저 확인하세요(Q). 확인 전에는 default_answer에 성인용 제품을 넣지 마세요 — 만 12세 이하면 유산균만 다루고 나머지 카테고리는 범위 밖이기 때문입니다. 성인 자녀로 확인되면 평소대로 답하면 됩니다.`;
+    }
     if (matchedCategory) flagBlock += `\n\n[대상 카테고리] ${CAT_LABEL[matchedCategory]}`;
     else if (explicitMultiCats) flagBlock += `\n\n[복수 카테고리] 사용자가 여러 카테고리(${explicitMultiCats.join(", ")})를 한 번에 물었습니다. 한 응답에 다 담지 말고 Q 정책으로 "어느 쪽부터 볼까요?"라고 하나만 되물으세요. chips는 ${explicitMultiCats.map(c => `"${c}"`).join(", ")}와 "다 궁금해요"로, chips_prompts는 각 카테고리의 추천 요청 문장(예: "${explicitMultiCats[0]} 추천해줘")으로 두세요. 카운셀링은 한 번에 한 카테고리를 깊게 봅니다 — 사과하지 말고 자연스럽게 하나씩 안내하세요.`;
     else if (hintDomain) flagBlock += `\n\n[내부 플래그] 4개 카테고리 밖 도메인(${hintDomain}) 질문 가능성 → X 정책 검토. 단, 병용 질문이면 답변.`;
