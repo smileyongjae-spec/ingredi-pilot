@@ -1,4 +1,4 @@
-// functions/counsel2.js  (v15 — 자체점검(2,195문항) 기반 라우팅·게이트 수정)
+// functions/counsel2.js  [v15.14 — 어린이 게이트 판정을 제품 매칭 이후로 이동]  (v15 — 자체점검(2,195문항) 기반 라우팅·게이트 수정)
 //
 // 기존 counsel-api.js(v7)와 병행 배포. 프론트 전환 완료 후 v7 폐기.
 // ※ _lib/airtable.js v4(캐시 키 variant 분리)와 함께 배포해야 함.
@@ -138,7 +138,10 @@ export async function onRequest(context) {
   const EXPLICIT_MATERNAL_RE = /수유|모유|임신|임산부|젖\s*먹이|포\s*맘/;
   // [v15.10] 어린이(대상) 감지 — "아이 유산균"처럼 아이를 위한 질의. "아이엄마"(수유 흐름, 엄마=본인)와
   // 구분하기 위해 SAFETY/MATERNAL/"엄마 본인"이면 childHint를 끈다. 청소년·중고생은 성인으로 본다(제외).
-  const CHILD_RE = /어린이|키즈|유아|영유아|아기|베이비|주니어|초등|우리\s*아이|자녀|애기|아이/;
+  // [v15.14] 커버리지 확장 — 실제 고객 발화는 "아이"보다 "애"·"N살 딸"·"초딩"을 더 많이 쓴다.
+  //   "애"는 단독으로 쓰면 "수면장애가"·"소화장애를"에 오탐하므로 앞에 경계(문장 시작/공백/구두점)를
+  //   요구한다. 신생아는 SAFETY_PROFILE_RE(수유 정황)와 겹쳐 별도 판단이 필요해 여기 넣지 않았다.
+  const CHILD_RE = /어린이|키즈|유아|영유아|아기|베이비|주니어|초등|초딩|우리\s*아이|우리\s*애|자녀|애기|아이|\d+\s*살\s*(?:딸|아들|남아|여아|애)|(?:^|[\s,.·!?])애\s*(?:가|를|한테|들|둘|셋|먹|는)/;
   const VAGUE_QUERY = /건강이\s*걱정|몸이\s*예전|나이\s*드는|돈\s*낭비|기운이?\s*없|피곤|피로\s*회복|활력|컨디션|무기력|식약처|fda|gras|기능성\s*표시|인증\s*마크/i;
 
   const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고|너\s*(는|누구|어떤|뭐|ai|에이아이|약사|의사|영양사|전문가|사람|로봇|봇|진짜)|\bai\s*(야|냐|니)\b|무슨\s*모델|모델이(야|니|에요)|당신은\s*누구|이\s*(서비스|사이트|앱)\s*(가|는|이)?\s*뭐|ingredi|인그레디|잉그레디|누가\s*만들|챗\s*봇|챗봇|무슨\s*기준으로\s*(판단|평가)|왜\s*(너를|널)\s*믿|jailbreak|ignore\s+previous/i;
@@ -543,33 +546,14 @@ export async function onRequest(context) {
     // 복합제("닥터스베스트 루테인 오메가3")를 복수 질의로 오인하지 않도록 여기서 해제.
     if (matchedCategory && explicitMultiCats) explicitMultiCats = null;
 
-    // [v15.10] 어린이 게이트: 어린이 대상 질의는 유산균만 다룬다(유산균만 키즈 세그먼트·데이터 보유).
-    // "아이 비타민C"처럼 어린이 단어 + (어린이가 아닌 브랜드 토큰 없음)이면 일반 어린이 질의로 보고,
-    // 비유산균은 범위 밖(X)·유산균은 키즈 세그먼트로 처리. 반면 "종근당 락토핏 키즈"처럼 실제 브랜드
-    // 토큰이 있으면 특정 제품이므로 게이트를 걸지 않고 정상 매칭한다(키즈 토큰은 제품 구별에 계속 사용).
-    // "아이엄마"(수유)는 CHILD_RE 판정에서 제외. 청소년·중고생은 어린이로 안 봄.
+    // [v15.14] 어린이 감지 신호만 여기서 계산하고, 게이트 판정은 제품 매칭 이후로 미룬다.
+    //   (기존 v15.10은 게이트가 productMatchRecord보다 앞이라 "실제 제품 지목인가"를 알 수 없었고,
+    //    대용품으로 쓴 nonChildBrand가 "많은/걸로/우리/돼요" 같은 평범한 한국어를 브랜드로 오인해
+    //    "아이 비타민C"처럼 조사 없는 2단어 질의에서만 게이트가 발동했다 → 실전 미발동.)
     let childProbiotics = false;
-    const CHILD_TOKEN_RE = /^(어린이|아이|애기|아기|키즈|유아|영유아|베이비|주니어|초등|자녀)$/;
     const childHint = CHILD_RE.test(userText)
       && !SAFETY_PROFILE_RE.test(userText) && !EXPLICIT_MATERNAL_RE.test(userText)
       && !/엄마\s*본인/.test(userText);
-    const nonChildBrand = brandCands.filter(t => !CHILD_TOKEN_RE.test(t));
-    if (childHint && !explicitMultiCats && !nonChildBrand.length) {
-      if (matchedCategory === "probiotics") {
-        childProbiotics = true;  // [6]에서 targetSegment = "키즈"
-      } else if (matchedCategory === "vitaminC" || matchedCategory === "omega3" || matchedCategory === "eye") {
-        const catKo = CAT_KO[matchedCategory];
-        return respond(fixedPayload("X",
-          `어린이 ${catKo}는 제가 깊이 있게 다루는 범위가 아니에요. 어린이 제품은 성인과 기준(용량·제형)이 달라서 성인용 데이터로 판단드리기 어렵거든요. 대신 어린이 유산균은 도와드릴 수 있어요.`,
-          { chips: ["어린이 유산균 보기", `성인 ${catKo} 볼게요`], chips_prompts: ["어린이 유산균 추천해줘", `성인 ${catKo} 추천해줘`] }
-        ), { gate: "child_scope", matchedCategory, demographics });
-      } else if (!matchedCategory && !hintDomain) {
-        return respond(fixedPayload("X",
-          `어린이 영양제는 유산균을 깊게 봐드릴 수 있어요. 오메가3·비타민C·눈 영양제는 어린이 기준 데이터가 충분하지 않아 성인 기준으로만 판단할 수 있거든요. 어린이 유산균부터 보시겠어요?`,
-          { chips: ["어린이 유산균 보기"], chips_prompts: ["어린이 유산균 추천해줘"] }
-        ), { gate: "child_scope", demographics });
-      }
-    }
 
     // 제품 테이블은 매칭된 카테고리 1개만 전체 로드(하위요청 한도 안전). 카테고리 미확정이면
     // 자유 질문의 제품명 감지를 위해 오메가3를 기본 로드(기존 동작 유지).
@@ -587,6 +571,28 @@ export async function onRequest(context) {
         || findProductMention(query, pRecords || [])
         || (askedBefore ? findProductMention(userText, pRecords || []) : null);  // [v15.5] 화자 발화 제외
       if (productMatchRecord && !matchedCategory) matchedCategory = prodCat;
+    }
+
+    // [v15.14] 어린이 게이트 (제품 매칭 이후): 어린이 대상 질의는 유산균만 다룬다.
+    //   판정 기준을 nonChildBrand → productMatchRecord로 교체. v15.10의 원래 의도("실제 브랜드
+    //   토큰이 있으면 특정 제품이므로 게이트를 걸지 않고 정상 매칭")를 그대로 구현한 것 —
+    //   "락토핏 키즈 어때요"는 제품이 매칭되므로 평결로 가고, "우리 애 눈 나빠지는데 루테인
+    //   먹여도 돼요"는 제품 미매칭이므로 게이트가 걸린다.
+    if (childHint && !explicitMultiCats && !productMatchRecord) {
+      if (matchedCategory === "probiotics") {
+        childProbiotics = true;  // [6]에서 targetSegment = "키즈"
+      } else if (matchedCategory === "vitaminC" || matchedCategory === "omega3" || matchedCategory === "eye") {
+        const catKo = CAT_KO[matchedCategory];
+        return respond(fixedPayload("X",
+          `어린이 ${catKo}는 제가 깊이 있게 다루는 범위가 아니에요. 어린이 제품은 성인과 기준(용량·제형)이 달라서 성인용 데이터로 판단드리기 어렵거든요. 대신 어린이 유산균은 도와드릴 수 있어요.`,
+          { chips: ["어린이 유산균 보기", `성인 ${catKo} 볼게요`], chips_prompts: ["어린이 유산균 추천해줘", `성인 ${catKo} 추천해줘`] }
+        ), { gate: "child_scope", matchedCategory, demographics });
+      } else if (!matchedCategory && !hintDomain) {
+        return respond(fixedPayload("X",
+          `어린이 영양제는 유산균을 깊게 봐드릴 수 있어요. 오메가3·비타민C·눈 영양제는 어린이 기준 데이터가 충분하지 않아 성인 기준으로만 판단할 수 있거든요. 어린이 유산균부터 보시겠어요?`,
+          { chips: ["어린이 유산균 보기"], chips_prompts: ["어린이 유산균 추천해줘"] }
+        ), { gate: "child_scope", demographics });
+      }
     }
 
     // [3.5] 크로스 카테고리 폴백: 카테고리 키워드로 라우팅됐지만 그 테이블에 제품이 없을 때,
