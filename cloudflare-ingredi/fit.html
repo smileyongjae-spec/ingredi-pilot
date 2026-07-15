@@ -21,19 +21,9 @@
   <title>ingredi · 내 영양제 조합 점검</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="/tokens-v1.css">
   <style>
-    :root {
-      --green-deep: #1B3A2E; --green-primary: #2D5F3F; --green-mid: #4A7C5A;
-      --green-light: #E8F1EA; --green-bg: #F5F9F6;
-      --paper: #FAF8F3; --ink: #1A1F1B; --ink-soft: #4F564E;
-      --ink-faint: #8B928A; --line: #D9DDD7; --line-soft: #ECEFEA;
-      --blue: #2563EB; --blue-light: #EFF6FF;
-      --warn-bg: #FEF3F2; --warn: #C9533D; --warn-deep: #991B1B;
-      --caution-bg: #FFF7ED; --caution: #B07142;
-      --safe-bg: #F0FDF4; --safe: #16A34A;
-      --shadow-sm: 0 1px 2px rgba(27,58,46,0.06);
-      --radius-sm: 8px; --radius-md: 14px; --radius-lg: 20px;
-    }
+    /* 컬러·형태 토큰: /tokens-v1.css (단일 원본) */
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -54,7 +44,7 @@
     .header-share { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); background: none; border: none; border-radius: 8px; padding: 0; }
     .header-share:active { transform: scale(0.92); }
     .header-share svg { width: 21px; height: 21px; }
-    .share-toast { position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: var(--green-deep); color: #fff; font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 100px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+    .share-toast { position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: var(--green-deep); color: var(--surface); font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 100px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
     .share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     .screen { display: none; padding: 20px; }
@@ -62,31 +52,31 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
 
     /* ── 입력 화면 ── */
-    .intro { background: linear-gradient(135deg, #EAF3DE 0%, white 100%); border: 1.5px solid #97C459; border-radius: var(--radius-md); padding: 16px; margin-bottom: 18px; }
-    .intro-eyebrow { font-size: 13px; font-weight: 700; color: #3B6D11; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+    .intro { background: linear-gradient(135deg, var(--fit-bg) 0%, var(--surface) 100%); border: 1.5px solid var(--fit-line); border-radius: var(--radius-md); padding: 16px; margin-bottom: 18px; }
+    .intro-eyebrow { font-size: 13px; font-weight: 700; color: var(--fit-primary); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
     .intro-title { font-size: 20px; font-weight: 800; color: var(--green-deep); letter-spacing: -0.02em; margin-bottom: 4px; }
     .intro-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
 
     .section-block { margin-bottom: 22px; }
     .section-label { font-size: 15px; font-weight: 700; color: var(--green-deep); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-    .section-num { background: var(--green-primary); color: white; font-size: 12px; padding: 1px 6px; border-radius: 100px; }
+    .section-num { background: var(--green-primary); color: var(--surface); font-size: 12px; padding: 1px 6px; border-radius: 100px; }
 
     /* 영양제 체크박스 그리드 */
     .item-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px; }
     .item-chip {
       display: flex; align-items: center; gap: 8px; padding: 10px 12px;
-      background: white; border: 1.5px solid var(--line-soft); border-radius: var(--radius-sm);
+      background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: var(--radius-sm);
       cursor: pointer; transition: all 0.15s ease;
     }
     .item-chip:hover { border-color: var(--green-mid); }
-    .item-chip.selected { background: var(--green-bg); border-color: var(--green-primary); }
+    .item-chip.selected { background: var(--green-tint); border-color: var(--green-primary); }
     .item-chip-check {
       width: 18px; height: 18px; border: 2px solid var(--line);
       border-radius: 5px; display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; background: white;
+      flex-shrink: 0; background: var(--surface);
     }
     .item-chip.selected .item-chip-check { background: var(--green-primary); border-color: var(--green-primary); }
-    .item-chip-check svg { width: 12px; height: 12px; stroke: white; opacity: 0; }
+    .item-chip-check svg { width: 12px; height: 12px; stroke: var(--surface); opacity: 0; }
     .item-chip.selected .item-chip-check svg { opacity: 1; }
     .item-chip-label { font-size: 15px; color: var(--ink); font-weight: 500; }
 
@@ -94,14 +84,14 @@
     .free-add-wrap { position: relative; margin-top: 8px; }
     .free-add-input {
       width: 100%; padding: 11px 90px 11px 14px;
-      background: white; border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+      background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius-sm);
       font-family: inherit; font-size: 15px; color: var(--ink);
     }
     .free-add-input:focus { outline: none; border-color: var(--green-primary); }
     .free-add-input::placeholder { color: var(--ink-faint); }
     .free-add-btn {
       position: absolute; right: 4px; top: 4px; bottom: 4px;
-      padding: 0 16px; background: var(--green-primary); color: white;
+      padding: 0 16px; background: var(--green-primary); color: var(--surface);
       border: none; border-radius: 6px; font-family: inherit;
       font-size: 14px; font-weight: 700; cursor: pointer;
     }
@@ -111,42 +101,42 @@
     .custom-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .custom-item-tag {
       display: inline-flex; align-items: center; gap: 4px;
-      background: var(--green-bg); color: var(--green-deep);
+      background: var(--green-tint); color: var(--green-deep);
       border: 1px solid var(--green-mid); border-radius: 100px;
       padding: 4px 8px 4px 12px; font-size: 14px; font-weight: 600;
     }
     .custom-item-remove {
       width: 16px; height: 16px; background: var(--green-primary);
-      color: white; border-radius: 50%; display: flex;
+      color: var(--surface); border-radius: 50%; display: flex;
       align-items: center; justify-content: center; cursor: pointer;
       font-size: 13px; font-weight: 700; border: none;
     }
 
     /* 컨텍스트 질문 (yes/no) */
     .yn-group { display: flex; flex-direction: column; gap: 10px; }
-    .yn-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; background: white; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); }
+    .yn-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius-sm); }
     .yn-row-label { font-size: 15px; font-weight: 600; color: var(--ink); }
     .yn-row-desc { font-size: 13px; color: var(--ink-faint); margin-top: 2px; }
     .yn-buttons { display: flex; gap: 6px; flex-shrink: 0; }
     .yn-btn {
       padding: 6px 14px; font-size: 14px; font-weight: 700;
-      background: white; border: 1.5px solid var(--line); color: var(--ink-soft);
+      background: var(--surface); border: 1.5px solid var(--line); color: var(--ink-soft);
       border-radius: 100px; cursor: pointer; font-family: inherit;
       transition: all 0.15s ease;
     }
     .yn-btn:hover { border-color: var(--green-mid); }
-    .yn-btn.active { background: var(--green-primary); color: white; border-color: var(--green-primary); }
+    .yn-btn.active { background: var(--green-primary); color: var(--surface); border-color: var(--green-primary); }
 
     /* 약 입력 영역 */
     .med-input-wrap { display: none; margin-top: 8px; padding: 10px 12px; background: var(--paper); border-radius: var(--radius-sm); }
     .med-input-wrap.active { display: block; }
-    .med-input { width: 100%; padding: 9px 12px; background: white; border: 1px solid var(--line); border-radius: 6px; font-family: inherit; font-size: 14px; }
+    .med-input { width: 100%; padding: 9px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-family: inherit; font-size: 14px; }
     .med-input:focus { outline: none; border-color: var(--green-primary); }
     .med-input-hint { font-size: 13px; color: var(--ink-faint); margin-top: 6px; }
 
     /* 제출 버튼 */
     .submit-btn {
-      width: 100%; padding: 14px; background: var(--green-primary); color: white;
+      width: 100%; padding: 14px; background: var(--green-primary); color: var(--surface);
       border: none; border-radius: var(--radius-sm); font-family: inherit;
       font-size: 16px; font-weight: 700; cursor: pointer;
       transition: all 0.15s ease; margin-top: 10px;
@@ -163,7 +153,7 @@
     /* ── 결과 화면 ── */
     .result-header {
       background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-primary) 100%);
-      color: white; padding: 18px 20px; margin: -20px -20px 16px;
+      color: var(--surface); padding: 18px 20px; margin: -20px -20px 16px;
     }
     .result-header-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; }
     .result-header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
@@ -172,7 +162,7 @@
     .result-header-tag.med { background: rgba(255,255,255,0.25); }
 
     /* AI 요약 박스 */
-    .ai-summary { background: white; border: 1.5px solid var(--green-mid); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+    .ai-summary { background: var(--surface); border: 1.5px solid var(--green-mid); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
     .ai-summary-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 13px; font-weight: 700; color: var(--green-primary); letter-spacing: 0.04em; text-transform: uppercase; }
     .ai-summary-header svg { width: 14px; height: 14px; stroke: var(--green-primary); }
     .ai-summary-text { font-size: 15px; line-height: 1.7; color: var(--ink); }
@@ -190,14 +180,14 @@
     .severity-banner-text strong { font-weight: 700; }
 
     /* 세션 카드 */
-    .section { background: white; border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+    .section { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
     .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .section-title-row { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--green-deep); }
     .section-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
     .section-icon svg { width: 15px; height: 15px; }
     .section-icon.warn { background: var(--warn-bg); } .section-icon.warn svg { stroke: var(--warn); }
     .section-icon.caution { background: var(--caution-bg); } .section-icon.caution svg { stroke: var(--caution); }
-    .section-icon.info { background: var(--blue-light); } .section-icon.info svg { stroke: var(--blue); }
+    .section-icon.info { background: var(--info-bg); } .section-icon.info svg { stroke: var(--info); }
     .section-icon.safe { background: var(--safe-bg); } .section-icon.safe svg { stroke: var(--safe); }
     .section-count { font-size: 13px; font-weight: 600; color: var(--ink-faint); background: var(--paper); padding: 2px 8px; border-radius: 100px; }
 
@@ -212,12 +202,12 @@
     .item-pair-sep { color: var(--ink-faint); font-weight: 400; }
     .item-badges { display: flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
     .badge-sev { font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.02em; }
-    .badge-sev.금기 { background: var(--warn-deep); color: white; }
-    .badge-sev.경고 { background: var(--warn); color: white; }
-    .badge-sev.주의 { background: var(--caution); color: white; }
-    .badge-sev.안전 { background: var(--safe); color: white; }
+    .badge-sev.금기 { background: var(--warn-deep); color: var(--surface); }
+    .badge-sev.경고 { background: var(--warn); color: var(--surface); }
+    .badge-sev.주의 { background: var(--caution); color: var(--surface); }
+    .badge-sev.안전 { background: var(--safe); color: var(--surface); }
     .badge-ev { font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--line-soft); color: var(--ink-soft); }
-    .badge-ev.강 { background: var(--green-primary); color: white; }
+    .badge-ev.강 { background: var(--green-primary); color: var(--surface); }
     .badge-ev.중 { background: var(--green-light); color: var(--green-deep); }
 
     .item-desc { font-size: 14px; line-height: 1.6; color: var(--ink-soft); margin-bottom: 6px; }
@@ -226,7 +216,7 @@
 
     .empty-section { font-size: 14px; color: var(--ink-faint); text-align: center; padding: 16px; }
 
-    .restart-btn { width: 100%; margin-top: 20px; padding: 12px; background: white; color: var(--green-primary); border: 1.5px solid var(--green-primary); border-radius: var(--radius-sm); font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .restart-btn { width: 100%; margin-top: 20px; padding: 12px; background: var(--surface); color: var(--green-primary); border: 1.5px solid var(--green-primary); border-radius: var(--radius-sm); font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
     .restart-btn:hover { background: var(--green-light); }
     .disclaimer { margin-top: 20px; padding: 14px; font-size: 12px; color: var(--ink-faint); text-align: center; line-height: 1.6; border-top: 1px solid var(--line-soft); }
 
