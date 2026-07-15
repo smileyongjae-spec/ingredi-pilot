@@ -1227,6 +1227,10 @@ function renderCardV8(p, ctx){
 function renderRestCardV8(p, ctx){
   const m = ctx.metrics;
   const grade = p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null);
+  const gc = GRADE[grade] || ["transparent","#9AA0A6","#E4E4E1"];
+  const gradeBadge = grade
+    ? `<span class="cv-grade" style="background:${gc[0]};color:${gc[1]};border-color:${gc[2]}">${grade}</span>`
+    : `<span class="cv-grade cv-grade-na">–</span>`;
   const pv = num(p.primaryValue);
   const img = p.image ? escapeHtml(p.image) : PLACEHOLDER;
   const sub = `${escapeHtml(m.primary.label)} ${fmt(pv)}${escapeHtml(m.primary.unit)}`;
@@ -1236,7 +1240,7 @@ function renderRestCardV8(p, ctx){
       <span class="cr-rank">${ctx.idx+1}위</span>
       <img class="cr-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div class="cr-info"><div class="cr-name">${escapeHtml(p.name)}</div><div class="cr-sub">${sub}</div></div>
-      <div class="cr-right"><div class="cr-vscore">${grade || "–"}</div><span class="cr-chev">자세히 ▼</span></div>
+      <div class="cr-right">${gradeBadge}<span class="cr-chev">자세히 ▼</span></div>
     </div>
     <div class="cr-expanded"><div class="cr-collapse" onclick="toggleCatExpand(${ctx.idx})">접기 ▲</div>${full}</div>
   </div>`;
