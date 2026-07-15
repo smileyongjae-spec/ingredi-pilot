@@ -1,4 +1,4 @@
-// functions/counsel2.js  [v15.16 — 어린이 게이트 재구성 + 영아 이관 + 응급 문구 무조건형]  (v15 — 자체점검(2,195문항) 기반 라우팅·게이트 수정)
+// functions/counsel2.js  [v15.17 — 어린이/영아 게이트 + 응급 문구 + 대안 카드 보존(발화-카드 일치)]  (v15 — 자체점검(2,195문항) 기반 라우팅·게이트 수정)
 //
 // 기존 counsel-api.js(v7)와 병행 배포. 프론트 전환 완료 후 v7 폐기.
 // ※ _lib/airtable.js v4(캐시 키 variant 분리)와 함께 배포해야 함.
@@ -177,7 +177,10 @@ export async function onRequest(context) {
   // 축은 목록(app.html)과 동일하게 2개: 성분 우선(품질점수순) · 가성비(파레토 경계).
   const AXIS_KEYWORDS = [
     { axis: "rank_quality", label: "성분 우선", re: /성분\s*(우선|기준|위주|중심)|품질|인증|등급|프리미엄|핵심\s*성분/ },
-    { axis: "rank_value",   label: "가성비",   re: /가성비|가격|저렴|싸게|싸고|경제적|1일\s*비용|저가/ }
+    // [v15.17] "싼"·"최저가"·"돈이 없"·"예산" 추가 — 실제 고객은 "제일 싼 걸로요"라고 말하는데
+    //   기존 정규식이 못 잡아 forcedAxis가 null이 되고, 백필이 성분 우선으로 덮어썼다.
+    //   "싼"은 앞 경계를 요구한다 — 그러지 않으면 "비싼"(반대 의미)에 걸린다.
+    { axis: "rank_value",   label: "가성비",   re: /가성비|가격|저렴|싸게|싸고|경제적|1일\s*비용|저가|최저가|(?:^|[\s,.·])싼|(?:^|[\s,.·])쌀|돈이\s*없|예산/ }
   ];
   // 순수 함량(용량) 의도 — 별도 함량 축을 두지 않는다. 근거 용량을 넘으면 함량 차이는
   // 무의미(v7 원칙: 초과분 가점 없음)하므로, 함량 요청은 성분 우선으로 흡수하고 통념을 교정한다.
@@ -927,7 +930,9 @@ export async function onRequest(context) {
 ## 출력 (반드시 이 JSON만, 코드펜스·인사말 금지)
 {"policy":"V|Q|M|X","verdict_tone":"positive|negative|conditional|none","verdict":"평결 한 문장(V 필수, 외 null)","body":"본문","warning":"경고(없으면 null)","question":"되묻기 질문(Q만)","chips":["..."],"chips_prompts":["칩을 눌렀을 때 사용자 발화로 보낼 자연어 문장"],"default_answer":"Q의 기본 답(Q만)","alternatives":[{"product_id":"...","name":"...","reason":"한 줄"}],"alternatives_note":"대안·추천 목록의 선정 기준 한 줄 (없으면 null)","handoff":"M일 때 병원에서 물어볼 것(외 null)"}
 - verdict_tone 규칙: positive=긍정 평결, negative=부정 평결(alternatives 필수), conditional=조건부(warning 필수), none=Q/M/X.
-- chips와 chips_prompts는 같은 길이. alternatives의 product_id는 [제품 데이터]에 있는 것만.`;
+- chips와 chips_prompts는 같은 길이. alternatives의 product_id는 [제품 데이터]에 있는 것만.
+- rank_quality·rank_value·primary_mg 같은 내부 필드명을 사용자에게 보이는 문장에 쓰지 마세요. 한국어로("성분 우선", "가성비") 쓰세요.
+- JSON 문자열 값 안에서 큰따옴표(")를 쓰지 마세요. 인용이 필요하면 홑따옴표(\'')나 낫표(「」)를 쓰세요. 큰따옴표를 쓰면 응답 전체가 깨집니다.`;
 
     // ─── [8] 유저 프롬프트 (RAG + 플래그) ───────────
     let contextBlock = "[검색된 지식]\n";
@@ -1060,6 +1065,8 @@ export async function onRequest(context) {
     if (/인증/.test(text) && !/(제조|안전|주요성분\s*품질|성분|품질)\s*인증|non-?gmo/i.test(text)) v.push("bare_cert(3.5)");
     // 3.6 제거 대상 인증(종교·미국·식이) 등장 — 데이터에선 제거됐으나 환각/제품명 유입 감시.
     if (/할랄|코셔|halal|kosher|\bgras\b|\bfda\b|vegan|비건|v-?label|mui\b/i.test(text)) v.push("removed_cert(3.6)");
+    // [v15.17] 내부 필드명·시스템 상태 누설.
+    if (/rank_quality|rank_value|primary_mg|product_id|productContext|데이터가.{0,12}(불러와|로드)|검색된\s*데이터/i.test(text)) v.push("internal_leak(3.7)");
     // 1.1 면허 직군 자칭·암시.
     if (/(제가|저는|저희는)?\s*(약사|의사|영양사|한약사)\s*(입니다|이에요|예요|랍니다|로서|로써)|처방(해\s*드릴|을\s*내려|해\s*줄)/.test(text)) v.push("license_claim(1.1)");
     // 3.8 근거 없는 성분-효능 연결(휴리스틱): 우리 카테고리가 아닌 성분을 "좋다"고 연결. 약한 신호만.
@@ -1069,17 +1076,51 @@ export async function onRequest(context) {
   }
 
   // ─── [10] JSON 계약 파싱 + 검증 ─────────────────
+    const CONTRACT_KEYS = ["policy","verdict_tone","verdict","body","warning","question","chips","chips_prompts","default_answer","alternatives","alternatives_note","handoff"];
     function parseContract(t) {
       let s = String(t || "").trim().replace(/^```json\s*/i, "").replace(/^```\s*/,"").replace(/```\s*$/, "").trim();
       const a = s.indexOf("{"), b = s.lastIndexOf("}");
       if (a === -1 || b === -1 || b <= a) return null;
       try { return JSON.parse(s.slice(a, b + 1)); } catch (_) { return null; }
     }
-    let payload = parseContract(rawText);
+    // [v15.17] 계약 복구 — 모델이 문자열 값 안에 이스케이프 없는 큰따옴표를 쓰면(예: body에
+    //   `예를 들어 "오메가3랑 같이 먹어도 되나요?"`) JSON.parse가 깨진다. 일반 복구 휴리스틱은
+    //   안쪽 따옴표 뒤에 쉼표가 와서 닫는 따옴표와 구별되지 않아 실패하므로, 스키마 키를
+    //   종결 앵커로 삼아 필드를 추출한다.
+    function salvageContract(t) {
+      const s = String(t || "");
+      const KEYSET = CONTRACT_KEYS.join("|");
+      const pickStr = (k) => {
+        let m = s.match(new RegExp(`"${k}"\\s*:\\s*"([\\s\\S]*?)"\\s*,\\s*"(?:${KEYSET})"\\s*:`));
+        if (!m) m = s.match(new RegExp(`"${k}"\\s*:\\s*"([\\s\\S]*?)"\\s*\\}\\s*$`));
+        if (!m) return null;
+        return m[1].replace(/\\n/g, "\n").replace(/\\t/g, "\t");
+      };
+      const body = pickStr("body");
+      if (!body) return null;
+      const pol = (s.match(/"policy"\s*:\s*"([VQMXW])"/) || [])[1] || "V";
+      const p = fixedPayload(pol, body);
+      p.verdict = pickStr("verdict");
+      p.warning = pickStr("warning");
+      p.question = pickStr("question");
+      p.default_answer = pickStr("default_answer");
+      p.verdict_tone = (s.match(/"verdict_tone"\s*:\s*"(positive|negative|conditional|none)"/) || [])[1] || (p.verdict ? "positive" : "none");
+      p.contract_salvaged = true;
+      return p;
+    }
+    let payload = parseContract(rawText) || salvageContract(rawText);
     if (!payload || !payload.policy || typeof payload.body !== "string") {
-      // 계약 파싱 실패 — 원문을 body로 강등 (화자 문장은 살린다)
-      payload = fixedPayload("V", String(rawText || "").slice(0, 1200) || "답변 생성에 문제가 있었어요. 다시 물어봐 주세요.");
+      // 계약 파싱·복구 모두 실패. 원문이 산문이면 화자 문장을 살리고, JSON 잔해면 절대 노출하지
+      // 않는다 — 사용자가 `{"policy":"V",...}` 를 보는 것보다 재시도 안내가 낫다.
+      const rt = String(rawText || "").trim();
+      const looksJson = /^[\[{]/.test(rt) || /"(?:policy|verdict_tone|alternatives)"\s*:/.test(rt);
+      payload = fixedPayload("V", looksJson
+        ? "답변을 정리하다 문제가 있었어요. 한 번만 다시 물어봐 주세요."
+        : (rt.slice(0, 1200) || "답변 생성에 문제가 있었어요. 다시 물어봐 주세요."));
       payload.contract_fallback = true;
+    } else if (payload.contract_salvaged) {
+      delete payload.contract_salvaged;
+      payload.contract_repaired = true;
     } else {
       // 정규화 + 안전 검증
       payload.policy = ["V","Q","M","X"].includes(payload.policy) ? payload.policy : "V";
@@ -1107,6 +1148,15 @@ export async function onRequest(context) {
         if (certTxt) bits.push(certTxt.split(",")[0].trim());
         return bits.join(" · ");
       };
+      // [v15.17] LLM이 고른 대안의 이름을 DB 정본으로 정규화(축약·변형 방지). 선택 자체는 보존한다.
+      if (cfg2 && payload.alternatives.length) {
+        const ctxById = new Map(productContext.map(p => [String(p.product_id), p]));
+        payload.alternatives = payload.alternatives.map(a => {
+          const p = ctxById.get(String(a.product_id));
+          return p ? { product_id: a.product_id, name: p.name, reason: a.reason || buildReason(p) } : a;
+        });
+      }
+
       if (payload.verdict_tone === "negative" && cfg2) {
         const anchor = cfg2.anchor;
         const byId = new Map(productContext.map(p => [String(p.product_id), p]));
@@ -1135,18 +1185,39 @@ export async function onRequest(context) {
       // [v15.7] 일반 추천(추천 질의)에는 성분/가성비 상위 3개를 항상 채운다.
       // LLM이 1개만 주거나 비워서 카드가 안 뜨거나 1개만 보이던 문제. 특정 제품을 물은 평결
       // (productMatchRecord 있음)은 그 제품 1개가 맞으므로 제외. 부정 평결은 위에서 이미 처리.
-      if (payload.policy === "V" && (payload.verdict_tone === "positive" || payload.verdict_tone === "conditional") && !productMatchRecord && cfg2 && productContext.length) {
+      // [v15.17] 덮어쓰기 → 채우기. 기존 구현은 LLM이 고른 대안을 축 상위 3개로 무조건 교체해서,
+      //   화자 산문("뉴트리원을 권해요")과 카드(안국건강)가 다른 제품을 가리켰다. 1,000문항 점검에서
+      //   consistency 3.04(6축 최하위)의 주원인. v15.7의 원래 의도는 "LLM이 1개만 주거나 비웠을 때
+      //   카드가 안 뜨는 문제"를 메우는 것이었으므로, 부족분만 채운다. LLM의 선택은 산문과 짝이
+      //   맞으므로 보존한다(예: "가성비 1·2위는 B등급이라 3위를 권해요" 같은 판단을 코드가 뭉개지 않음).
+      if (payload.policy === "V" && (payload.verdict_tone === "positive" || payload.verdict_tone === "conditional") && !productMatchRecord && cfg2 && productContext.length && payload.alternatives.length < 3) {
         const axKey = (forcedAxis || AXIS_KEYWORDS[0]);
-        const top3 = productContext.filter(p => p[axKey.axis] != null).sort((a, b) => a[axKey.axis] - b[axKey.axis]).slice(0, 3);
-        if (top3.length) {
-          const prior = new Map((payload.alternatives || []).map(a => [String(a.product_id), a]));
-          payload.alternatives = top3.map(p => {
-            const had = prior.get(String(p.product_id));
-            return { product_id: p.product_id, name: p.name, reason: (had && had.reason) ? had.reason : buildReason(p) };
-          });
-          if (!payload.alternatives_note) payload.alternatives_note = `${axKey.label} 상위 ${payload.alternatives.length}개`;
+        const wasEmpty = payload.alternatives.length === 0;
+        const have = new Set(payload.alternatives.map(a => String(a.product_id)));
+        const fill = productContext
+          .filter(p => p[axKey.axis] != null && !have.has(String(p.product_id)))
+          .sort((a, b) => a[axKey.axis] - b[axKey.axis]);
+        for (const p of fill) {
+          if (payload.alternatives.length >= 3) break;
+          payload.alternatives.push({ product_id: p.product_id, name: p.name, reason: buildReason(p) });
+        }
+        if (!payload.alternatives_note && wasEmpty && payload.alternatives.length) {
+          payload.alternatives_note = `${axKey.label} 상위 ${payload.alternatives.length}개`;
         }
       }
+
+      // [v15.17] 내부 필드명 스크러빙 — LLM이 "가성비 기준(rank_value) 상위 3개"처럼 스키마
+      //   필드명을 사용자 문구에 그대로 쓴다. alternatives_note는 UI에 라벨로 노출되므로 코드로 지운다.
+      //   (프롬프트에도 금지 규칙을 넣었지만, 노출되면 안 되는 것이라 코드가 최종 방어선.)
+      const scrubInternal = (s) => (typeof s === "string" && s)
+        ? s.replace(/[（(]\s*(?:rank_quality|rank_value|primary_mg|product_id|productContext|daily_cost)\s*[)）]/gi, "")
+           .replace(/\b(?:rank_quality|rank_value|primary_mg|product_id|productContext|daily_cost)\b/gi, "")
+           .replace(/[（(]\s*[)）]/g, "").replace(/\s{2,}/g, " ").trim()
+        : s;
+      for (const k of ["verdict", "body", "warning", "question", "default_answer", "alternatives_note", "handoff"]) {
+        if (payload[k]) payload[k] = scrubInternal(payload[k]);
+      }
+      if (payload.alternatives_note === "") payload.alternatives_note = null;
 
       // conditional인데 warning이 비면 톤 강등
       if (payload.verdict_tone === "conditional" && !payload.warning) payload.verdict_tone = "none";
@@ -1155,7 +1226,10 @@ export async function onRequest(context) {
       // 대안 정렬 축 확정: 명시 축(forcedAxis)이 있으면 그 축, 없고 부정 평결이면 성분 우선을
       // 기본 축으로 둔다. 화자가 부정 평결 대안에 가성비 제품을 섞지 못하게 코드가 순서를 확정.
       // (rank_*는 전체 모집단 기준, productContext는 각 축 상위 8 포함 → 상위 3 정확.)
-      const effectiveAxis = forcedAxis || (payload.verdict_tone === "negative" ? AXIS_KEYWORDS[0] : null);
+      // [v15.17] 긍정·조건부 평결에서는 재정렬하지 않는다 — 카드를 축 상위로 확정하면 화자 산문과
+      //   어긋난다(위 백필과 같은 이유). 부정 평결은 "결함을 해결하는 대안"이라는 자격이 걸린
+      //   안전 규칙이므로 코드가 계속 순서를 확정한다.
+      const effectiveAxis = (payload.verdict_tone === "negative") ? (forcedAxis || AXIS_KEYWORDS[0]) : null;
       if (effectiveAxis && cfg2 && productContext.length &&
           payload.policy === "V" && Array.isArray(payload.alternatives) && payload.alternatives.length >= 2) {
         const rk = effectiveAxis.axis;
@@ -1199,7 +1273,7 @@ export async function onRequest(context) {
       productMatch: productMatchRecord ? getField(productMatchRecord.fields || {}, "제품명", "name") : null,
       matchedCategory, hintDomain, productLookupFailed, targetSegment,
       forcedAxis: forcedAxis ? forcedAxis.axis : null, doseIntent,
-      askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback
+      askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback, repaired: !!payload.contract_repaired
     };
     return respond(payload, meta);
 
