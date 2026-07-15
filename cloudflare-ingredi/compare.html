@@ -418,8 +418,8 @@ function goCompare(){
 
   const cart = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
   const buys = `<div class="buyrow">${prods.map(p=> p.link
-      ? `<a class="buy" href="${esc(p.link)}" target="_blank" rel="noopener" title="${esc(p.name)}" data-product="${esc(p.name)}"><span class="buy-cap">${esc(p.name.slice(0,10))}</span><span class="buy-act">${cart}구매하러 가기</span></a>`
-      : `<span class="buy disabled" title="${esc(p.name)}"><span class="buy-cap">${esc(p.name.slice(0,10))}</span><span class="buy-act">${cart}링크 없음</span></span>`).join("")}</div>`;
+      ? `<a class="buy" href="${esc(p.link)}" target="_blank" rel="noopener" title="${esc(p.name)}" data-product="${esc(p.name)}"><span class="buy-act">${cart}구매하러 가기</span></a>`
+      : `<span class="buy disabled" title="${esc(p.name)}"><span class="buy-act">${cart}링크 없음</span></span>`).join("")}</div>`;
 
   const nAll = (curData._all || []).length;
   const basis = `<div class="cmp-basis"><b>${profileLabel()}</b><span>등급은 절대 기준(근거 함량·제형·인증)이에요. 종합 위치는 ${activeCat} 전체에서의 참고치, 표 안의 표시는 선택한 ${prods.length}개끼리의 비교예요.</span></div>`;
