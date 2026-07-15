@@ -1,0 +1,68 @@
+/* ============================================================
+   ingredi. design tokens v1  ·  단일 원본 (docs/design.md 참조)
+   규칙: 페이지 내 컬러 하드코딩 금지, 반드시 이 변수만 사용.
+   내용 변경 시 파일명 버전 올릴 것 (엣지 캐시 무효화 안 됨).
+   ============================================================ */
+:root {
+  /* ---- 코어 ---- */
+  --paper: #FAF8F3;
+  --surface: #FFFFFF;
+  --ink: #1A1F1B;
+  --ink-soft: #4F564E;
+  --ink-faint: #8B928A;
+  --line: #D9DDD7;
+  --line-soft: #ECEFEA;
+  --gray: #6E7177;
+  --gray-soft: #9AA0A6;
+  --gray-line: #E1E2E4;
+
+  /* ---- 브랜드 그린 ---- */
+  --green-deep: #1B3A2E;
+  --green-primary: #2D5F3F;
+  --green-mid: #4A7C5A;
+  --green-light: #E8F1EA;
+  --green-tint: #F5F9F6;   /* 구 --green-bg */
+  --green-hover: #DCE9DF;
+
+  /* ---- 시맨틱 (상태·판정) ---- */
+  --safe: #16A34A;         --safe-bg: #F0FDF4;
+  --caution: #B07142;      --caution-bg: #FBF1E3;
+  --warn: #C9533D;         --warn-bg: #FEF3F2;    --warn-deep: #991B1B;
+  --info: #3A6EA5;         --info-bg: #EAF3FB;    --info-line: #CFE3F5;
+
+  /* ---- 등급 메탈릭 ---- */
+  --gold: #B8902F;         --gold-deep: #8A6A1F;  --gold-bg: #FBF3DD;
+  --silver: #8B8E91;
+  --bronze: #8C5E33;       /* v1.1: --caution과 분리, 청동 고유값 */
+
+  /* ---- 카테고리 아이덴티티 (아이콘·뱃지 전용) ---- */
+  --cat-omega: #185FA5;    --cat-omega-bg: #E6F1FB;
+  --cat-eye: #4F46E5;      --cat-eye-bg: #EEF2FF;
+  --cat-biome: #A63D72;    --cat-biome-bg: #FBEEF5;   /* v1.1: 베리, 구 #16A34A는 --safe로 */
+  --cat-vitc: #BA7517;     --cat-vitc-bg: #FFF7E6;
+
+  /* ---- fit(안전성 체크) 아이덴티티 ---- */
+  --fit-primary: #3B6D11;
+  --fit-hover: #27500A;
+  --fit-line: #97C459;
+  --fit-bg: #EAF3DE;
+
+  /* ---- 형태 ---- */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 100px;
+  --shadow-sm: 0 1px 2px rgba(27, 58, 46, 0.06);
+  --shadow-md: 0 4px 12px rgba(27, 58, 46, 0.08);
+
+  /* ---- 타이포 (신규 코드부터 적용) ---- */
+  --font-ui: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-voice: 'Noto Serif KR', 'Pretendard', serif;
+  --fs-caption: 11px;
+  --fs-small: 12px;
+  --fs-body-sm: 13px;
+  --fs-body: 14px;
+  --fs-lead: 15px;
+  --fs-title: 17px;
+  --fs-display: 20px;
+}
