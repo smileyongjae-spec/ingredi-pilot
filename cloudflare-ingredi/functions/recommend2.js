@@ -1,18 +1,20 @@
-// Cloudflare Pages Function: Unified category recommendation (v7.2)
+// Cloudflare Pages Function: Unified category recommendation (v7.3)
 // [v6] 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다. 없으면 null.
 // [v7] 품질점수(quality)·절대등급(qualityGrade)·가성비 경계(isPareto)를 서버에서 계산한다.
 //      - 품질점수 = 검증 가능한 축만 (가격·리뷰 제외)
 //      - 근거함량 = min(원값/임상앵커, 1)×100, 초과 가점 없음 (앵커: knowledge 테이블 근거 용량)
 //      - 등급 컷 = A≥85 B≥70 C≥55 D≥40 E — 절대평가, 모집단과 무관
 //      - 축 데이터가 없는 제품은 quality=null (평가 준비중) — 0점으로 둔갑시키지 않는다
-// [v7.1] 리뷰 인사이트에 마이크로바이옴 추가 — 마이크로바이옴_리뷰인사이트 테이블 실데이터
-//        업데이트 완료에 따라 예시 폴백 해제. 4개 카테고리 전체가 실리뷰.
-// [v7.2] 진단 계측 추가 (첫 화면 20초 간헐 지연 원인 규명용).
-//        *** 추천 로직·응답 필드·캐시 키는 v7.1과 완전히 동일. 계측은 순수 부가. ***
-//        - /recommend2?category=X&debug=timing  → 응답에 _timing 블록 추가
-//        - /recommend2?category=X&debug=timing&nocache=<CACHE_REFRESH_SECRET>
-//          → 캐시를 무시하고 강제 미스 재현 (KV 키를 지우지 않고도 반복 측정 가능)
-//        - _timing.dataShape 로 Attachment 가설·컬럼 수 가설을 함께 검증한다
+// [v7.1] 리뷰 인사이트에 마이크로바이옴 추가 — 4개 카테고리 전체가 실리뷰.
+// [v7.2] 진단 계측 추가 (?debug=timing). 추천 로직과 무관한 부가 기능.
+// [v7.3] 실측(v7.2) 결과에 따른 성능 수정. *** 추천 로직·응답 필드는 변경 없음. ***
+//      실측: 강제 미스 5,318ms = 제품 3,231 + 리뷰 2,087 (직렬) + KV쓰기 1,028(응답 경로 포함)
+//      - (a) 제품·리뷰 테이블을 Promise.all 로 병렬 로드 (두 로드는 서로 의존하지 않는다)
+//      - (b) 리뷰 테이블 TTL 1800초(30분) → 기본값(6시간)으로 통일.
+//            리뷰만 하루 48번 만료돼 미스를 자주 밟던 구조였다.
+//      - (c) ctx 전달 → airtable.js v6 의 SWR·비동기 KV 쓰기 활성화.
+//            만료돼도 옛 값을 즉시 반환하므로 사용자가 Airtable을 기다리지 않는다.
+//      기대: 미스 경로 5.3초 → 2초 미만, 캐시 만료 시 체감 지연 0
 // File path: functions/recommend2.js
 // URL: /recommend2?category=<오메가3|눈|마이크로바이옴|비타민C>
 //
@@ -54,14 +56,11 @@ function qualityGradeOf(q) {
   return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E";
 }
 
-// [v7.2] 원천 레코드의 형태를 요약한다 — Attachment 가설·컬럼 수 가설 검증용.
-// 20초의 크기를 설명하려면 "왜 페이지 하나가 느린가"를 봐야 하는데,
-// 그 유력 후보가 (a) 이미지 Attachment 서명 URL 생성 (b) 불필요한 컬럼 과다 이다.
+// [v7.2] 원천 레코드 형태 요약 — 진단 모드에서만 계산.
 function describeShape(records, imageField) {
   if (!records || !records.length) return null;
   const colSet = new Set();
-  let attachmentCount = 0, stringUrlCount = 0, emptyImgCount = 0;
-  let thumbCount = 0;
+  let attachmentCount = 0, stringUrlCount = 0, emptyImgCount = 0, thumbCount = 0;
   for (const r of records) {
     const f = r.fields || {};
     for (const k of Object.keys(f)) colSet.add(k);
@@ -78,15 +77,14 @@ function describeShape(records, imageField) {
       stringUrlCount++;
     }
   }
-  // 실제로 서비스가 쓰는 컬럼 대비 얼마나 더 받아오는지
   return {
     records: records.length,
     distinctColumns: colSet.size,
     columnNames: Array.from(colSet).sort(),
     image: {
       field: imageField,
-      attachment: attachmentCount,   // ← 높으면 Attachment 가설 유력
-      withThumbnails: thumbCount,    // ← 썸네일 생성 부하 지표
+      attachment: attachmentCount,
+      withThumbnails: thumbCount,
       plainString: stringUrlCount,
       empty: emptyImgCount
     }
@@ -124,7 +122,7 @@ export async function onRequest(context) {
   const timing = wantTiming ? [] : null;
   const T_START = Date.now();
 
-  // 강제 미스 재현은 시크릿 필요 (공개 엔드포인트 남용 방지 — Airtable 초당 5요청 한도 보호)
+  // 강제 미스 재현은 시크릿 필요 (공개 엔드포인트 남용 방지)
   const nocacheKey = url.searchParams.get("nocache") || "";
   const forceMiss = !!(nocacheKey && env.CACHE_REFRESH_SECRET && nocacheKey === env.CACHE_REFRESH_SECRET);
 
@@ -179,17 +177,37 @@ export async function onRequest(context) {
     return img || "";
   }
 
-  // ── 데이터 로드 (단일 테이블) ──
+  // ── [v7.3] 제품 · 리뷰 테이블 병렬 로드 ──
+  // 두 로드는 서로 의존하지 않는데 v7.2까지는 직렬이었다(실측 3.2초 + 2.1초).
+  // 리뷰는 조인 시점(아래)에서 await 하므로, 여기서 시작만 걸어둔다.
+  const REVIEW_TABLE = {
+    "오메가3": "오메가_리뷰인사이트",
+    "눈": "눈_리뷰인사이트",
+    "비타민C": "비타민C_리뷰인사이트",
+    "마이크로바이옴": "마이크로바이옴_리뷰인사이트"
+  };
+  const reviewsReady = !!REVIEW_TABLE[catKey];
+
+  const tParallel = Date.now();
+  const productPromise = getRecords(env, cfg.table, { timing, force: forceMiss, ctx: context });
+  // [v7.3-b] TTL 1800(30분) 제거 → 제품 테이블과 동일하게 기본 6시간
+  const reviewPromise = reviewsReady
+    ? getRecords(env, REVIEW_TABLE[catKey], { timing, force: forceMiss, ctx: context })
+        .then(rv => ({ ok: true, rv }))
+        .catch(e => ({ ok: false, err: (e && e.message) ? String(e.message).slice(0, 300) : "unknown" }))
+    : Promise.resolve({ ok: true, rv: [] });
+
   let records;
-  const tProduct = Date.now();
   try {
-    records = await getRecords(env, cfg.table, { timing, force: forceMiss });
+    records = await productPromise;
   } catch (e) {
+    // 제품 로드 실패 시에도 리뷰 프로미스가 떠 있으면 정리 (unhandled rejection 방지)
+    try { context.waitUntil(reviewPromise.catch(function () {})); } catch (_) {}
     const errBody = { error: "airtable_error", message: e.message };
-    if (wantTiming) errBody._timing = { phase: "product_load", ms: Date.now() - tProduct, steps: timing };
+    if (wantTiming) errBody._timing = { phase: "product_load", ms: Date.now() - tParallel, steps: timing };
     return new Response(JSON.stringify(errBody), { status: 500, headers });
   }
-  const msProductLoad = Date.now() - tProduct;
+  const msProductLoad = Date.now() - tParallel;
 
   // 원천 레코드 형태 요약 (진단 모드에서만 계산)
   const dataShape = wantTiming ? describeShape(records, "이미지URL") : null;
@@ -272,18 +290,18 @@ export async function onRequest(context) {
   items.forEach((it, i) => { it.rank = i + 1; });
   const msScore = Date.now() - tScore;
 
-  // ── 리뷰 인사이트 조인 (4개 카테고리 전체) ──
-  // [v7.1] 마이크로바이옴_리뷰인사이트 실데이터 업데이트로 예시 폴백 해제.
-  const REVIEW_TABLE = { "오메가3": "오메가_리뷰인사이트", "눈": "눈_리뷰인사이트", "비타민C": "비타민C_리뷰인사이트", "마이크로바이옴": "마이크로바이옴_리뷰인사이트" };
-  const reviewsReady = !!REVIEW_TABLE[catKey];
+  // ── 리뷰 인사이트 조인 (병렬로 이미 로드 중이던 결과를 여기서 받는다) ──
   const tReview = Date.now();
   let reviewError = null;
   let reviewMatched = 0;
+  const rres = await reviewPromise;
   if (reviewsReady) {
-    try {
-      const rv = await getRecords(env, REVIEW_TABLE[catKey], { ttl: 1800, timing, force: forceMiss });
+    if (!rres.ok) {
+      // 조용한 실패를 진단에서는 드러낸다
+      reviewError = rres.err;
+    } else {
       const rmap = {};
-      for (const r of rv) {
+      for (const r of rres.rv) {
         const f = r.fields || {};
         const pid = readProductId(f, "");
         if (!pid) continue;
@@ -298,10 +316,6 @@ export async function onRequest(context) {
         const rvd = rmap[String(it.id).trim()];
         if (rvd && (rvd.good.length || rvd.caution.length)) { it.reviews = rvd; reviewMatched++; }
       }
-    } catch (e) {
-      // 리뷰 테이블 조회 실패 시 해당 카테고리는 예시로 폴백
-      // [v7.2] 조용한 실패를 진단에서는 드러낸다 (429가 여기 숨어 있을 수 있음)
-      reviewError = e && e.message ? String(e.message).slice(0, 300) : "unknown";
     }
   }
   const msReview = Date.now() - tReview;
@@ -347,17 +361,19 @@ export async function onRequest(context) {
     const sum = (arr, f) => arr.reduce((a, b) => a + (f(b) || 0), 0);
 
     payload._timing = {
-      note: "Workers는 I/O 전까지 시계가 멈춰 있어 순수 CPU 구간(map/score)은 0ms로 찍힙니다. 정상입니다.",
+      note: "Workers는 I/O 전까지 시계가 멈춰 있어 순수 CPU 구간(map/score)은 0ms로 찍힙니다. 정상입니다. [v7.3] 제품·리뷰는 병렬 로드이므로 phases 합은 totalMs와 다릅니다. KV 쓰기는 waitUntil로 응답 이후 처리되어 kv.put 계측이 비어 있을 수 있습니다.",
+      version: "v7.3",
       forceMiss,
       totalMs,
       phases: {
-        productLoad: msProductLoad,   // 제품 테이블 (캐시 or Airtable)
+        productLoad: msProductLoad,   // 제품 테이블 (병렬 시작~수신)
         map: msMap,                   // 매핑 (CPU)
         score: msScore,               // 품질·파레토·정렬 (CPU, O(n^2))
-        reviewLoad: msReview          // 리뷰 테이블 (캐시 or Airtable)
+        reviewJoin: msReview           // 리뷰 대기+조인 (병렬이라 대부분 0에 가깝다)
       },
       summary: {
-        cacheHits: kvGets.filter(s => s.hit).length,
+        cacheHits: kvGets.filter(s => s.hit && s.fresh).length,
+        cacheStale: kvGets.filter(s => s.hit && !s.fresh).length,
         cacheMisses: kvGets.filter(s => !s.hit).length,
         airtablePages: pages.length,
         airtableMsTotal: sum(pages, s => s.ms),
