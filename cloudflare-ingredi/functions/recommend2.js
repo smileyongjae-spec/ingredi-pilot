@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: Unified category recommendation (v7.1)
+// Cloudflare Pages Function: Unified category recommendation (v7.2)
 // [v6] 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다. 없으면 null.
 // [v7] 품질점수(quality)·절대등급(qualityGrade)·가성비 경계(isPareto)를 서버에서 계산한다.
 //      - 품질점수 = 검증 가능한 축만 (가격·리뷰 제외)
@@ -7,6 +7,12 @@
 //      - 축 데이터가 없는 제품은 quality=null (평가 준비중) — 0점으로 둔갑시키지 않는다
 // [v7.1] 리뷰 인사이트에 마이크로바이옴 추가 — 마이크로바이옴_리뷰인사이트 테이블 실데이터
 //        업데이트 완료에 따라 예시 폴백 해제. 4개 카테고리 전체가 실리뷰.
+// [v7.2] 진단 계측 추가 (첫 화면 20초 간헐 지연 원인 규명용).
+//        *** 추천 로직·응답 필드·캐시 키는 v7.1과 완전히 동일. 계측은 순수 부가. ***
+//        - /recommend2?category=X&debug=timing  → 응답에 _timing 블록 추가
+//        - /recommend2?category=X&debug=timing&nocache=<CACHE_REFRESH_SECRET>
+//          → 캐시를 무시하고 강제 미스 재현 (KV 키를 지우지 않고도 반복 측정 가능)
+//        - _timing.dataShape 로 Attachment 가설·컬럼 수 가설을 함께 검증한다
 // File path: functions/recommend2.js
 // URL: /recommend2?category=<오메가3|눈|마이크로바이옴|비타민C>
 //
@@ -48,6 +54,45 @@ function qualityGradeOf(q) {
   return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E";
 }
 
+// [v7.2] 원천 레코드의 형태를 요약한다 — Attachment 가설·컬럼 수 가설 검증용.
+// 20초의 크기를 설명하려면 "왜 페이지 하나가 느린가"를 봐야 하는데,
+// 그 유력 후보가 (a) 이미지 Attachment 서명 URL 생성 (b) 불필요한 컬럼 과다 이다.
+function describeShape(records, imageField) {
+  if (!records || !records.length) return null;
+  const colSet = new Set();
+  let attachmentCount = 0, stringUrlCount = 0, emptyImgCount = 0;
+  let thumbCount = 0;
+  for (const r of records) {
+    const f = r.fields || {};
+    for (const k of Object.keys(f)) colSet.add(k);
+    const v = f[imageField];
+    if (v === undefined || v === null || v === "") { emptyImgCount++; continue; }
+    if (Array.isArray(v)) {
+      attachmentCount++;
+      const a = v[0];
+      if (a && a.thumbnails) thumbCount++;
+    } else if (typeof v === "object") {
+      attachmentCount++;
+      if (v.thumbnails) thumbCount++;
+    } else {
+      stringUrlCount++;
+    }
+  }
+  // 실제로 서비스가 쓰는 컬럼 대비 얼마나 더 받아오는지
+  return {
+    records: records.length,
+    distinctColumns: colSet.size,
+    columnNames: Array.from(colSet).sort(),
+    image: {
+      field: imageField,
+      attachment: attachmentCount,   // ← 높으면 Attachment 가설 유력
+      withThumbnails: thumbCount,    // ← 썸네일 생성 부하 지표
+      plainString: stringUrlCount,
+      empty: emptyImgCount
+    }
+  };
+}
+
 export async function onRequest(context) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -73,6 +118,15 @@ export async function onRequest(context) {
       available: Object.keys(CATEGORIES)
     }), { status: 400, headers });
   }
+
+  // ── [v7.2] 진단 스위치 ──
+  const wantTiming = url.searchParams.get("debug") === "timing";
+  const timing = wantTiming ? [] : null;
+  const T_START = Date.now();
+
+  // 강제 미스 재현은 시크릿 필요 (공개 엔드포인트 남용 방지 — Airtable 초당 5요청 한도 보호)
+  const nocacheKey = url.searchParams.get("nocache") || "";
+  const forceMiss = !!(nocacheKey && env.CACHE_REFRESH_SECRET && nocacheKey === env.CACHE_REFRESH_SECRET);
 
   function num(v) { const n = parseFloat(String(v).replace(/,/g, "")); return isNaN(n) ? 0 : n; }
   function numOrNull(v) {
@@ -127,13 +181,21 @@ export async function onRequest(context) {
 
   // ── 데이터 로드 (단일 테이블) ──
   let records;
+  const tProduct = Date.now();
   try {
-    records = await getRecords(env, cfg.table);
+    records = await getRecords(env, cfg.table, { timing, force: forceMiss });
   } catch (e) {
-    return new Response(JSON.stringify({ error: "airtable_error", message: e.message }), { status: 500, headers });
+    const errBody = { error: "airtable_error", message: e.message };
+    if (wantTiming) errBody._timing = { phase: "product_load", ms: Date.now() - tProduct, steps: timing };
+    return new Response(JSON.stringify(errBody), { status: 500, headers });
   }
+  const msProductLoad = Date.now() - tProduct;
+
+  // 원천 레코드 형태 요약 (진단 모드에서만 계산)
+  const dataShape = wantTiming ? describeShape(records, "이미지URL") : null;
 
   // ── 매핑 ──
+  const tMap = Date.now();
   let affiliateCount = 0;
   const items = records.map(r => {
     const f = r.fields || {};
@@ -180,8 +242,10 @@ export async function onRequest(context) {
       extra
     };
   }).filter(it => it.name);
+  const msMap = Date.now() - tMap;
 
   // [v7] 품질점수 · 절대등급 · 가성비(파레토) 경계
+  const tScore = Date.now();
   const qcfg = QUALITY_CFG[catKey];
   for (const it of items) {
     // 근거 원값: 눈은 루테인+지아잔틴 합, 나머지는 primaryValue 그대로
@@ -206,14 +270,18 @@ export async function onRequest(context) {
 
   items.sort((a, b) => b.vScore - a.vScore);
   items.forEach((it, i) => { it.rank = i + 1; });
+  const msScore = Date.now() - tScore;
 
   // ── 리뷰 인사이트 조인 (4개 카테고리 전체) ──
   // [v7.1] 마이크로바이옴_리뷰인사이트 실데이터 업데이트로 예시 폴백 해제.
   const REVIEW_TABLE = { "오메가3": "오메가_리뷰인사이트", "눈": "눈_리뷰인사이트", "비타민C": "비타민C_리뷰인사이트", "마이크로바이옴": "마이크로바이옴_리뷰인사이트" };
   const reviewsReady = !!REVIEW_TABLE[catKey];
+  const tReview = Date.now();
+  let reviewError = null;
+  let reviewMatched = 0;
   if (reviewsReady) {
     try {
-      const rv = await getRecords(env, REVIEW_TABLE[catKey], { ttl: 1800 });
+      const rv = await getRecords(env, REVIEW_TABLE[catKey], { ttl: 1800, timing, force: forceMiss });
       const rmap = {};
       for (const r of rv) {
         const f = r.fields || {};
@@ -228,10 +296,15 @@ export async function onRequest(context) {
       }
       for (const it of items) {
         const rvd = rmap[String(it.id).trim()];
-        if (rvd && (rvd.good.length || rvd.caution.length)) it.reviews = rvd;
+        if (rvd && (rvd.good.length || rvd.caution.length)) { it.reviews = rvd; reviewMatched++; }
       }
-    } catch (e) { /* 리뷰 테이블 조회 실패 시 해당 카테고리는 예시로 폴백 */ }
+    } catch (e) {
+      // 리뷰 테이블 조회 실패 시 해당 카테고리는 예시로 폴백
+      // [v7.2] 조용한 실패를 진단에서는 드러낸다 (429가 여기 숨어 있을 수 있음)
+      reviewError = e && e.message ? String(e.message).slice(0, 300) : "unknown";
+    }
   }
+  const msReview = Date.now() - tReview;
 
   function dist(vals) {
     const v = vals.filter(x => x > 0);
@@ -245,7 +318,7 @@ export async function onRequest(context) {
     capsule: dist(items.map(it => it.capsuleMg))
   };
 
-  return new Response(JSON.stringify({
+  const payload = {
     category: catKey,
     reviewsReady: reviewsReady,
     metrics: {
@@ -261,5 +334,44 @@ export async function onRequest(context) {
     affiliateCount,
     products: items,
     disclaimer: "\u00A0\uBCF8 V-Score\uB294 \uACF5\uAC1C\uB41C \uC81C\uD488 \uB370\uC774\uD130 \uAE30\uBC18\uC758 \uAC1D\uAD00\uC801 \uC9C0\uD45C\uC774\uBA70, \uAC1C\uC778\uC758 \uAC74\uAC15 \uC0C1\uD0DC\u00B7\uC57D\uBB3C\u00B7\uC54C\uB808\uB974\uAE30\uC5D0 \ub530\ub77c \uCD5C\uC801 \uC81C\ud488\uC740 \ub2E4\ub97c \uC218 \uC788\uC2B5\ub2C8\ub2E4."
-  }), { status: 200, headers });
+  };
+
+  // ── [v7.2] 진단 블록 ──
+  if (wantTiming) {
+    const totalMs = Date.now() - T_START;
+    const steps = timing || [];
+    const pages = steps.filter(s => s.step === "airtable.page");
+    const kvGets = steps.filter(s => s.step === "kv.get");
+    const kvPuts = steps.filter(s => s.step === "kv.put");
+    const payloads = steps.filter(s => s.step === "payload");
+    const sum = (arr, f) => arr.reduce((a, b) => a + (f(b) || 0), 0);
+
+    payload._timing = {
+      note: "Workers는 I/O 전까지 시계가 멈춰 있어 순수 CPU 구간(map/score)은 0ms로 찍힙니다. 정상입니다.",
+      forceMiss,
+      totalMs,
+      phases: {
+        productLoad: msProductLoad,   // 제품 테이블 (캐시 or Airtable)
+        map: msMap,                   // 매핑 (CPU)
+        score: msScore,               // 품질·파레토·정렬 (CPU, O(n^2))
+        reviewLoad: msReview          // 리뷰 테이블 (캐시 or Airtable)
+      },
+      summary: {
+        cacheHits: kvGets.filter(s => s.hit).length,
+        cacheMisses: kvGets.filter(s => !s.hit).length,
+        airtablePages: pages.length,
+        airtableMsTotal: sum(pages, s => s.ms),
+        slowestPageMs: pages.length ? Math.max(...pages.map(s => s.ms || 0)) : 0,
+        kvGetMsTotal: sum(kvGets, s => s.ms),
+        kvPutMsTotal: sum(kvPuts, s => s.ms),
+        kvPutFailures: kvPuts.filter(s => !s.ok).length,
+        payloadBytesTotal: sum(payloads, s => s.bytes)
+      },
+      review: { matched: reviewMatched, error: reviewError },
+      dataShape,
+      steps
+    };
+  }
+
+  return new Response(JSON.stringify(payload), { status: 200, headers });
 }
