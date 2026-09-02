@@ -1363,7 +1363,12 @@ async function loadChangelog(){
   const box = document.getElementById('changelogHome');
   if (!box) return;
   try {
-    const res = await fetch(`${API_BASE}/changelog`);
+    // [2026-09] 외부 API(Airtable)가 가끔 크게 튄다. 개선 소식은 첫 화면 필수 요소가
+    // 아니므로 3초를 넘기면 포기한다 — 아래 catch가 조용히 삼켜 화면엔 영향이 없다.
+    const _ctrl = new AbortController();
+    const _timer = setTimeout(function(){ _ctrl.abort(); }, 3000);
+    const res = await fetch(`${API_BASE}/changelog`, { signal: _ctrl.signal });
+    clearTimeout(_timer);
     if (!res.ok) return;
     const data = await res.json();
     const items = (data && data.items) || [];
