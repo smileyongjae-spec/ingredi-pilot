@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1B3A2E">
+<meta name="description" content="국제스포츠영양학회(ISSN) 근거 기준으로 비교하는 스포츠 뉴트리션. 광고 없는 정직한 비교, ingredi.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ingredi">
+<meta property="og:title" content="ingredi · 스포츠 뉴트리션 비교">
+<meta property="og:description" content="ISSN 근거 기준으로 단백질·크레아틴·아미노산을 비교합니다">
+<meta property="og:url" content="https://ingredi.kr/sports.html">
+<meta property="og:image" content="https://ingredi.kr/og-image.png">
+<title>ingredi · 스포츠 뉴트리션</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="/tokens-v1.css">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--paper); color:var(--ink); font-size:17px; line-height:1.5;
+  letter-spacing:-0.01em; -webkit-font-smoothing:antialiased; }
+.app { max-width:480px; margin:0 auto; min-height:100vh; background:var(--paper);
+  box-shadow:0 0 40px rgba(27,58,46,0.05); }
+.header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px;
+  border-bottom:1px solid var(--line-soft); background:var(--paper); position:sticky; top:0; z-index:20; }
+.header-back { width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--ink-soft); border-radius:var(--radius-sm); }
+.header-back svg { width:22px; height:22px; }
+.header-title { font-size:19px; font-weight:700; color:var(--green-deep); letter-spacing:-0.02em; }
+.header-spacer { width:36px; }
+.screen { padding:24px 20px 40px; }
+
+/* ── 도메인 배너: 이 화면이 다른 근거 체계로 움직인다는 것을 먼저 말한다 ── */
+.dom { background:var(--green-tint); border:1px solid var(--green-hover); border-radius:12px;
+  padding:13px 15px; margin:-6px 0 16px; }
+.dom-t { font-size:13.5px; font-weight:700; color:var(--green-deep); margin-bottom:3px; }
+.dom-b { font-size:12px; color:var(--ink-soft); line-height:1.55; word-break:keep-all; }
+
+.cat-tabbar { position:sticky; top:0; z-index:9; background:var(--paper); display:flex; gap:7px;
+  overflow-x:auto; padding:12px 20px; scrollbar-width:none; border-bottom:1px solid var(--line-soft);
+  margin:-24px -20px 0; }
+.cat-tabbar::-webkit-scrollbar { display:none; }
+.cat-tab { flex:0 0 auto; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft);
+  font-size:14px; font-family:inherit; padding:9px 16px; border-radius:22px; cursor:pointer;
+  white-space:nowrap; transition:.15s; font-weight:600; }
+.cat-tab.active { background:var(--green-deep); color:var(--surface); border-color:var(--green-deep); }
+
+.cat-subbar { display:flex; gap:6px; margin-top:14px; flex-wrap:wrap; }
+.cat-sub { padding:8px 13px; border-radius:20px; background:var(--green-tint);
+  border:1px solid var(--green-hover); color:var(--ink-soft); font-size:12.5px; font-weight:600;
+  cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:5px; }
+.cat-sub.active { background:var(--green-primary); color:var(--surface); border-color:var(--green-primary); }
+/* 근거등급 점 — 성분의 속성이므로 카드가 아니라 탭에 붙는다 */
+.dot { width:7px; height:7px; border-radius:50%; flex:none; }
+.dot.issn { background:#2D5F3F; }
+.dot.issn_cond { background:#B07142; }
+.dot.none { background:#B4B2A9; }
+.cat-sub.active .dot.issn { background:#DCEBDF; }
+.cat-sub.active .dot.issn_cond { background:#F5D9BE; }
+.cat-sub.active .dot.none { background:#DDDDD8; }
+
+/* 근거등급 설명 시트 */
+.tier { margin-top:10px; background:var(--surface); border:1px solid var(--line-soft);
+  border-radius:12px; padding:12px 14px; display:none; }
+.tier.on { display:block; }
+.tier-h { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.tier-t { font-size:13px; font-weight:700; color:var(--ink); margin-bottom:5px; }
+.tier-b { font-size:12.5px; color:var(--ink-soft); line-height:1.6; word-break:keep-all; }
+.tier-x { border:none; background:none; color:var(--ink-faint); cursor:pointer; font-size:19px;
+  line-height:1; padding:0 2px; flex:none; }
+
+/* 체중 슬라이더 — 상시 노출. 지금 등급이 어떤 가정 위에 있는지 늘 보이게 한다 */
+.wt { margin-top:12px; background:var(--surface); border:1px solid var(--line-soft);
+  border-radius:12px; padding:12px 14px; }
+.wt-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:9px; }
+.wt-l { font-size:12.5px; color:var(--ink-soft); font-weight:600; }
+.wt-v { font-size:16px; font-weight:800; color:var(--green-deep); }
+.wt input[type=range] { width:100%; accent-color:var(--green-primary); }
+.wt-n { font-size:11.5px; color:var(--ink-faint); margin-top:7px; }
+
+.cat-meta { font-size:12px; color:var(--ink-faint); padding:14px 2px 4px; display:flex;
+  align-items:center; gap:6px; }
+.cat-status { padding:50px 18px; text-align:center; color:var(--ink-faint); font-size:14px; }
+
+.cv-card { background:var(--surface); border:1px solid var(--line-soft); border-radius:18px;
+  padding:15px 16px 14px; margin-bottom:14px; box-shadow:var(--shadow-sm); }
+.cv-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+.cv-rank { font-size:12px; font-weight:700; color:var(--ink-soft); }
+.cv-grade { width:28px; height:28px; border-radius:50%; border:1px solid; font-size:13px;
+  font-weight:700; display:flex; align-items:center; justify-content:center; }
+.cv-row { display:flex; align-items:center; gap:13px; }
+.cv-thumb { width:58px; height:58px; border-radius:13px; object-fit:cover; flex-shrink:0;
+  background:var(--green-tint); border:1px solid var(--line-soft); }
+.cv-name { font-size:15px; color:var(--green-deep); font-weight:700; line-height:1.4; letter-spacing:-0.02em; }
+.cv-lead { margin-top:12px; font-size:18px; line-height:1.5; color:var(--ink); letter-spacing:-.3px; word-break:keep-all; }
+.cv-lead b { font-weight:800; }
+.cl-block { margin-top:13px; padding-top:11px; border-top:1px solid var(--line-soft); }
+.cl-head { font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
+.cl-line { display:flex; align-items:flex-start; gap:9px; font-size:13.5px; line-height:1.45;
+  color:var(--ink-soft); padding:4px 0; }
+.cl-tx { flex:1; min-width:0; }
+.cl-line b { font-weight:700; color:var(--ink); }
+.cl-ar { flex:none; margin-top:3px; }
+.cl-ar.up { color:var(--green-primary); } .cl-ar.dn { color:var(--gray-soft); }
+.cv-price { display:flex; align-items:baseline; justify-content:space-between; margin-top:13px;
+  padding-top:11px; border-top:1px solid var(--line-soft); }
+.cv-price .lbl { font-size:11px; color:var(--ink-faint); }
+.cv-price .val { font-size:15px; font-weight:800; color:var(--ink); }
+.cv-mo { display:inline-block; background:var(--gold-bg); color:var(--gold-deep); font-size:11px;
+  font-weight:700; padding:2px 7px; border-radius:12px; margin-left:5px; }
+.cv-certrow { display:flex; gap:10px; align-items:flex-start; margin-top:12px; }
+.cv-certrow .lbl { font-size:11px; color:var(--ink-faint); padding-top:5px; flex-shrink:0; }
+.cv-tagrow { display:flex; flex-wrap:wrap; gap:6px; flex:1; }
+.cv-tag { display:inline-flex; align-items:center; background:var(--green-light); color:var(--green-deep);
+  font-size:12px; font-weight:700; padding:4px 9px; border-radius:100px; }
+.cv-tag.mfds { background:var(--info-bg); color:var(--info); border:1px solid var(--info-line); }
+.cv-form { margin-top:9px; display:flex; align-items:center; gap:10px; font-size:11px; color:var(--ink-faint); }
+.cv-form .fval { font-size:12px; color:var(--ink-soft); font-weight:600; }
+.cv-foot { display:flex; justify-content:space-between; align-items:center; margin-top:12px;
+  padding-top:12px; border-top:1px solid var(--line-soft); }
+.cv-rev { font-size:12px; color:var(--ink-faint); }
+.cv-buybtn { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:13px;
+  padding:13px; background:var(--green-primary); color:var(--surface); border-radius:12px;
+  font-size:15px; font-weight:700; text-decoration:none; box-shadow:0 3px 10px rgba(45,95,63,0.28); }
+.cv-buybtn.disabled { background:var(--line); color:var(--ink-faint); box-shadow:none; pointer-events:none; }
+
+.cat-resthead { font-size:15px; font-weight:700; color:var(--ink); margin:22px 2px 12px; }
+.cr-card { background:var(--surface); border:1px solid var(--line-soft); border-radius:12px;
+  margin-bottom:8px; overflow:hidden; box-shadow:var(--shadow-sm); }
+.cr-row { display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; }
+.cr-rank { font-size:12px; color:var(--ink-faint); font-weight:700; width:30px; flex-shrink:0; text-align:center; }
+.cr-thumb { width:44px; height:44px; border-radius:9px; object-fit:cover; flex-shrink:0;
+  background:var(--green-tint); border:1px solid var(--line-soft); }
+.cr-info { flex:1; min-width:0; }
+.cr-name { font-size:14px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cr-sub { font-size:12px; color:var(--ink-faint); margin-top:2px; }
+.cr-right { display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex-shrink:0; }
+.cr-chev { font-size:11px; color:var(--ink-faint); }
+.cr-expanded { display:none; padding:6px 6px 2px; }
+.cr-collapse { text-align:center; font-size:12px; color:var(--ink-faint); padding:4px 6px 8px; cursor:pointer; }
+.cr-card.open .cr-row { display:none; }
+.cr-card.open .cr-expanded { display:block; }
+.cr-expanded .cv-card { margin-bottom:4px; box-shadow:none; border:none; padding:12px 6px 4px; }
+
+.disclosure { border-top:.5px solid var(--line-soft); margin-top:20px; padding:14px 8px 4px; }
+.disclosure-text { font-size:11px; line-height:1.6; color:var(--ink-faint); text-align:center; margin:0; }
+.disclosure-text strong { color:var(--ink-soft); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-back" onclick="location.href='/app.html'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="header-title">스포츠 뉴트리션</div>
+    <div class="header-spacer"></div>
+  </header>
+
+  <main class="screen">
+    <div class="cat-tabbar" id="catTabbar"></div>
+
+    <div class="dom">
+      <div class="dom-t">ISSN 근거로 비교합니다</div>
+      <div class="dom-b">국제스포츠영양학회(ISSN)가 낸 지침의 권장 용량을 기준으로 평가해요. 식약처 인정 기능성을 기준으로 하는 오메가3·유산균 등과는 다른 체계입니다.</div>
+    </div>
+
+    <div class="cat-subbar" id="catSubBar"></div>
+    <div class="tier" id="tierSheet">
+      <div class="tier-h">
+        <div style="flex:1;min-width:0">
+          <div class="tier-t" id="tierT"></div>
+          <div class="tier-b" id="tierB"></div>
+        </div>
+        <button class="tier-x" onclick="document.getElementById('tierSheet').classList.remove('on')" aria-label="닫기">×</button>
+      </div>
+    </div>
+
+    <div id="wtBox"></div>
+    <div class="cat-meta" id="catMeta"></div>
+    <div id="catCards"></div>
+    <div class="cat-status" id="catStatus"></div>
+
+    <div class="disclosure">
+      <p class="disclosure-text" id="catDisclaimer"></p>
+      <p class="disclosure-text" style="margin-top:8px"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 추천 결과에 영향을 주지 않습니다.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+const API = window.location.origin;
+const CATS = ["단백질","크레아틴","아미노산","부스터","카르니틴"];
+const TIER_LABEL = { issn:"ISSN 기준", issn_cond:"ISSN 기준 (조건부)", none:"기준 없음" };
+
+// 등급 색: A만 채우고 나머지는 물러선다. 낮은 등급에 빨강을 쓰면 "사지 마라"는 판정이 되므로
+// 회색으로 "우리 지표에서 앞서지 않았다"만 말한다. (recommend2와 동일 원칙)
+const GRADE = {
+  A:["#2D5F3F","#FAF8F3","#2D5F3F"], B:["#EAF1EA","#2D5F3F","#CADBCD"],
+  C:["transparent","#5A5E63","#D3D5D8"], D:["transparent","#6E7177","#E1E2E4"], E:["transparent","#6E7177","#E8E9EA"]
+};
+const PLACEHOLDER = "data:image/svg+xml," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="58" height="58" viewBox="0 0 58 58"><rect width="58" height="58" rx="13" fill="#EEF1EC"/><rect x="22" y="12" width="14" height="7" rx="2" fill="#9FB6A4"/><rect x="17" y="18" width="24" height="29" rx="6" fill="#2D5F3F"/><rect x="17" y="29" width="24" height="9" fill="#fff" opacity="0.9"/></svg>');
+const ARROW_UP='<svg class="cl-ar up" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+const ARROW_DN='<svg class="cl-ar dn" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg>';
+const ARROW_FL='<svg class="cl-ar fl" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+let activeCat = "단백질", activeSub = null, weight = 70, data = null, showTierAfter = false;
+
+function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
+function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
+
+function renderTabs(){
+  document.getElementById('catTabbar').innerHTML = CATS.map(c=>
+    `<button class="cat-tab${c===activeCat?' active':''}" onclick="go('${c}')">${c}</button>`).join('');
+}
+function renderSubs(d){
+  const bar = document.getElementById('catSubBar');
+  if (!d.subs || d.subs.length<2){
+    // 서브필터가 하나뿐인 카테고리(크레아틴·카르니틴)는 탭을 그리지 않는다.
+    // 근거등급 점은 catMeta 줄로 옮겨 붙인다.
+    bar.innerHTML=''; return;
+  }
+  bar.innerHTML = d.subs.map(s=>
+    `<button class="cat-sub${s.key===d.sub?' active':''}" onclick="pick('${s.key}')"><span class="dot ${s.tier}"></span>${esc(s.label)}</button>`).join('');
+}
+function showTier(d){
+  const t=document.getElementById('tierSheet');
+  document.getElementById('tierT').textContent =
+    (d.subs.find(x=>x.key===d.sub)||{}).label + ' · ' + TIER_LABEL[d.tier];
+  document.getElementById('tierB').textContent = d.tierNote || '';
+  t.classList.add('on');
+}
+function renderWeight(d){
+  const box=document.getElementById('wtBox');
+  if (!d.perKg){ box.innerHTML=''; return; }
+  box.innerHTML = `<div class="wt">
+    <div class="wt-top"><span class="wt-l">체중 기준</span><span class="wt-v" id="wtV">${d.weight}kg</span></div>
+    <input type="range" min="45" max="115" step="1" value="${d.weight}" id="wtR"
+      oninput="document.getElementById('wtV').textContent=this.value+'kg'" onchange="setWeight(this.value)">
+    <div class="wt-n">기준 함량 <b>${fmt(d.anchor)}mg</b> · ${esc(d.anchorLabel||'')}</div>
+  </div>`;
+}
+window.setWeight = function(v){ weight = parseInt(v,10); load(); };
+
+// 비교 문장: 같은 서브필터 안에서의 위치. 상위 25%만 정확한 백분율을 쓰고 나머지는 뭉갠다.
+function tierWord(p){ return p<=25?'top':p<=75?'mid':'low'; }
+function pctOf(arr,v,hi){ if(!arr||!arr.length) return null;
+  const b = hi?arr.filter(x=>x>v).length:arr.filter(x=>x<v).length;
+  return Math.max(1, Math.round(b/arr.length*100)); }
+function rankOf(arr,v,hi){ if(!arr||!arr.length) return null;
+  return (hi?arr.filter(x=>x>v).length:arr.filter(x=>x<v).length)+1; }
+function line(t,a){ return `<div class="cl-line">${a||ARROW_FL}<span class="cl-tx">${t}</span></div>`; }
+
+function compare(p,d){
+  const pa=d.dist.primary&&d.dist.primary.arr, ca=d.dist.cost&&d.dist.cost.arr;
+  const out=[];
+  const pv = p.primary && p.primary.v;
+  if (pv>0 && pa){
+    const t=tierWord(pctOf(pa,pv,true)), rk=rankOf(pa,pv,true);
+    const nm=esc(p.primary.label);
+    if(t==='top') out.push(line(`${nm} <b>상위 ${pctOf(pa,pv,true)}%</b> · ${rk}위`,ARROW_UP));
+    else if(t==='mid') out.push(line(`${nm}은 <b>보통</b> · ${rk}위`,ARROW_FL));
+    else out.push(line(`${nm}이 <b>낮은 편</b> · ${rk}위`,ARROW_DN));
+  }
+  if (p.dailyCost>0 && ca){
+    const t=tierWord(pctOf(ca,p.dailyCost,false)), rk=rankOf(ca,p.dailyCost,false);
+    if(t==='top') out.push(line(`가격이 <b>저렴한 편</b> · ${rk}위`,ARROW_UP));
+    else if(t==='mid') out.push(line(`가격은 <b>보통</b> · ${rk}위`,ARROW_FL));
+    else out.push(line(`가격이 <b>비싼 편</b> · ${rk}위`,ARROW_DN));
+  }
+  if(!out.length) return '';
+  const label=(d.subs.find(x=>x.key===d.sub)||{}).label||d.category;
+  return `<div class="cl-block"><div class="cl-head">${esc(label)} ${d.total}개 제품과 비교하면</div>${out.join('')}</div>`;
+}
+
+function card(p,d){
+  const g=p.qualityGrade, c=GRADE[g]||['transparent','#9AA0A6','#E4E4E1'];
+  const img=p.image?esc(p.image):PLACEHOLDER;
+  const cost=num(p.dailyCost), price=num(p.price);
+  const pv=p.primary&&p.primary.v;
+  const lead = (cost>0&&pv>0)
+    ? `<div class="cv-lead">하루 <b>${fmt(cost)}원</b>에<br>${esc(p.primary.label)} <b>${fmt(pv)}${esc(p.primary.unit)}</b>.</div>` : '';
+  let mo='';
+  if(price>0&&cost>0){ const m=Math.round(price/cost/30);
+    mo=`<span class="cv-mo">${m>=1?m+'개월분':'1개월 미만'}</span>`; }
+  const tags=[];
+  // 식약처 인정 기능성을 받은 제품은 그 사실을 그대로 표시한다(일반식품과 구분).
+  if(p.mfdsFunction) tags.push(`<span class="cv-tag mfds">식약처 ${esc(p.mfdsFunction)}</span>`);
+  String(p.certs||'').split(/[,\/·]/).map(s=>s.trim()).filter(Boolean).slice(0,4)
+    .forEach(x=>tags.push(`<span class="cv-tag">${esc(x)}</span>`));
+  const cart='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
+  const buy = p.link
+    ? `<a class="cv-buybtn" href="${esc(p.link)}" target="_blank" rel="noopener">${cart}구매하러 가기</a>`
+    : `<span class="cv-buybtn disabled">${cart}구매하러 가기</span>`;
+  // 무채점 유형은 등급 배지 자리를 비운다. 회색 배지나 "미부여" 표기를 넣지 않는다.
+  const badge = (d.tier==='none') ? ''
+    : (g ? `<span class="cv-grade" style="background:${c[0]};color:${c[1]};border-color:${c[2]}">${g}</span>`
+         : `<span class="cv-grade" style="background:transparent;color:#9AA0A6;border-color:#E4E4E1">–</span>`);
+  return `<div class="cv-card" id="prod-${esc(p.id)}">
+    <div class="cv-top"><span class="cv-rank">${p.rank}위</span>${badge}</div>
+    <div class="cv-row">
+      <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
+      <div style="flex:1;min-width:0"><div class="cv-name">${esc(p.name)}</div></div>
+    </div>
+    ${lead}
+    ${compare(p,d)}
+    ${price>0?`<div class="cv-price"><span class="lbl">판매가</span><span class="val">${fmt(price)}원${mo}</span></div>`:''}
+    ${tags.length?`<div class="cv-certrow"><span class="lbl">인증</span><div class="cv-tagrow">${tags.join('')}</div></div>`:''}
+    ${p.form?`<div class="cv-form"><span class="lbl">제형</span><span class="fval">${esc(p.form)}</span>${p.flavor?`<span class="fval">${esc(p.flavor)}</span>`:''}</div>`:''}
+    <div class="cv-foot"><span class="cv-rev">리뷰 ${fmt(p.reviewCount)}개</span></div>
+    ${buy}
+  </div>`;
+}
+
+function restCard(p,d,i){
+  const g=p.qualityGrade, c=GRADE[g]||['transparent','#9AA0A6','#E4E4E1'];
+  const img=p.image?esc(p.image):PLACEHOLDER;
+  const pv=p.primary&&p.primary.v;
+  const sub = pv>0 ? `${esc(p.primary.label)} ${fmt(pv)}${esc(p.primary.unit)}`
+                   : (p.dailyCost>0?`하루 ${fmt(p.dailyCost)}원`:'정보 준비중');
+  const badge = (d.tier==='none') ? ''
+    : (g?`<span class="cv-grade" style="background:${c[0]};color:${c[1]};border-color:${c[2]}">${g}</span>`
+        :`<span class="cv-grade" style="background:transparent;color:#9AA0A6;border-color:#E4E4E1">–</span>`);
+  return `<div class="cr-card" id="cr-${i}">
+    <div class="cr-row" onclick="tog(${i})">
+      <span class="cr-rank">${p.rank}위</span>
+      <img class="cr-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
+      <div class="cr-info"><div class="cr-name">${esc(p.name)}</div><div class="cr-sub">${sub}</div></div>
+      <div class="cr-right">${badge}<span class="cr-chev">자세히 ▼</span></div>
+    </div>
+    <div class="cr-expanded"><div class="cr-collapse" onclick="tog(${i})">접기 ▲</div>${card(p,d)}</div>
+  </div>`;
+}
+window.tog = function(i){ const c=document.getElementById('cr-'+i); if(c) c.classList.toggle('open'); };
+
+function render(d){
+  data=d;
+  renderSubs(d); renderWeight(d);
+  const one = !d.subs || d.subs.length<2;
+  const sortLabel = d.tier==='none' ? '가격순 정렬' : '성분 우선 정렬';
+  const dot = one ? `<span class="dot ${d.tier}" style="cursor:pointer" onclick="showTier(data)"></span>` : '';
+  document.getElementById('catMeta').innerHTML =
+    `${dot}<span>${esc(d.category)} · ${d.total}개 · ${sortLabel}</span>`;
+  document.getElementById('catDisclaimer').textContent = d.disclaimer||'';
+  const el=document.getElementById('catCards');
+  if(!d.products.length){ el.innerHTML=''; document.getElementById('catStatus').textContent='표시할 제품이 없습니다.'; return; }
+  document.getElementById('catStatus').textContent='';
+  const top=d.products.slice(0,3).map(p=>card(p,d)).join('');
+  const rest=d.products.slice(3);
+  const restHtml = rest.length
+    ? `<div class="cat-resthead">그 외 ${rest.length}개 제품</div>` + rest.map((p,i)=>restCard(p,d,i+3)).join('')
+    : '';
+  el.innerHTML = top + restHtml;
+  if (showTierAfter) { showTier(d); showTierAfter = false; }
+}
+window.showTier = showTier;
+
+async function load(){
+  document.getElementById('catStatus').textContent='불러오는 중…';
+  document.getElementById('catCards').innerHTML='';
+  try{
+    let u = `${API}/sports?category=${encodeURIComponent(activeCat)}&weight=${weight}`;
+    if(activeSub) u += `&sub=${encodeURIComponent(activeSub)}`;
+    const res=await fetch(u);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const d=await res.json();
+    if(d.error) throw new Error(d.message||d.error);
+    activeSub=d.sub;
+    render(d);
+  }catch(e){
+    document.getElementById('catStatus').textContent='불러오기에 실패했습니다. ('+e.message+')';
+  }
+}
+window.go = function(c){ activeCat=c; activeSub=null;
+  document.getElementById('tierSheet').classList.remove('on');
+  renderTabs(); load(); window.scrollTo(0,0); };
+// 서브필터를 누르면 목록 전환과 함께 근거등급 설명을 연다.
+// 별도 버튼을 두지 않고 탭 하나가 두 역할을 겸한다 — "눌러야 하는지 모르는" 문제를 없앤다.
+window.pick = function(s){ activeSub=s; showTierAfter=true; load(); };
+
+(function(){
+  const sp=new URLSearchParams(location.search);
+  const c=sp.get('category'); if(c&&CATS.indexOf(c)!==-1) activeCat=c;
+  const s=sp.get('sub'); if(s) activeSub=s;
+  const w=parseInt(sp.get('weight')||'',10); if(w>=45&&w<=115) weight=w;
+  renderTabs(); load();
+})();
+</script>
+</body>
+</html>
