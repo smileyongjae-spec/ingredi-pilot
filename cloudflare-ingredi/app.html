@@ -204,6 +204,15 @@
     .icon-prob  { background: var(--cat-biome-bg); } .icon-prob svg  { color: var(--cat-biome); }
     .icon-vitc  { background: var(--cat-vitc-bg); } .icon-vitc svg  { color: var(--cat-vitc); }
 
+    /* ── 도메인 구분 (건강기능식품 / 스포츠 뉴트리션) ──
+       두 섹션은 근거 체계가 다르다. 식약처 인정 기능성 vs ISSN 지침.
+       섹션 제목 아래 한 줄로 그 차이를 밝힌다. */
+    .dom-note { font-size: 12px; color: var(--ink-faint); margin: -8px 0 12px; line-height: 1.5; }
+    .icon-protein  { background: var(--green-light); }  .icon-protein svg  { color: var(--green-primary); }
+    .icon-creatine { background: var(--gold-bg); }      .icon-creatine svg { color: var(--gold-deep); }
+    .icon-amino    { background: var(--info-bg); }      .icon-amino svg    { color: var(--info); }
+    .icon-booster  { background: var(--caution-bg); }   .icon-booster svg  { color: var(--caution); }
+
     .compare-entry-section {
       margin: 24px 0 12px; padding: 18px;
       background: linear-gradient(135deg, var(--green-light) 0%, var(--surface) 100%);
@@ -507,7 +516,8 @@
       </div>
     </div>
 
-        <h2 class="section-title">카테고리별 비교</h2>
+        <h2 class="section-title">건강기능식품</h2>
+    <div class="dom-note">식약처가 인정한 기능성을 기준으로 비교합니다</div>
     <div class="profile-grid" id="categoryGrid">
       <div class="profile-card" onclick="openCategory('오메가3')">
         <div class="profile-icon-box icon-omega"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z"/></svg></div>
@@ -524,6 +534,27 @@
       <div class="profile-card" onclick="openCategory('비타민C')">
         <div class="profile-icon-box icon-vitc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></div>
         <div class="profile-text"><div class="profile-label">비타민C</div><div class="profile-desc">항산화·면역</div></div>
+      </div>
+    </div>
+
+    <h2 class="section-title tools-title">스포츠 뉴트리션</h2>
+    <div class="dom-note">국제스포츠영양학회(ISSN) 근거를 기준으로 비교합니다</div>
+    <div class="profile-grid" id="sportsGrid">
+      <div class="profile-card" onclick="openSports('단백질')">
+        <div class="profile-icon-box icon-protein"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="5" width="10" height="14" rx="2"/><path d="M4 9h3M17 9h3M4 15h3M17 15h3"/></svg></div>
+        <div class="profile-text"><div class="profile-label">단백질</div><div class="profile-desc">웨이 · 게이너</div></div>
+      </div>
+      <div class="profile-card" onclick="openSports('크레아틴')">
+        <div class="profile-icon-box icon-creatine"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9z"/></svg></div>
+        <div class="profile-text"><div class="profile-label">크레아틴</div><div class="profile-desc">근력 · 파워</div></div>
+      </div>
+      <div class="profile-card" onclick="openSports('아미노산')">
+        <div class="profile-icon-box icon-amino"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="10" r="2.5"/><circle cx="10" cy="17" r="2.5"/><path d="M8.2 8.3l7.4 1.2M16.4 12.1l-4.8 3.5"/></svg></div>
+        <div class="profile-text"><div class="profile-label">아미노산</div><div class="profile-desc">EAA · HMB · BCAA</div></div>
+      </div>
+      <div class="profile-card" onclick="openSports('부스터')">
+        <div class="profile-icon-box icon-booster"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c3 2.5 5 5.5 5 9a5 5 0 0 1-10 0c0-3.5 2-6.5 5-9z"/><path d="M9 20h6"/></svg></div>
+        <div class="profile-text"><div class="profile-label">부스터</div><div class="profile-desc">카페인 · 비카페인</div></div>
       </div>
     </div>
 
@@ -1321,6 +1352,10 @@ function openCategory(cat){
   loadCategory(cat);
 }
 window.openCategory = openCategory;
+
+// 스포츠 뉴트리션은 근거 체계(ISSN)와 채점 방식이 달라 별도 화면으로 분리했다.
+function openSports(cat){ window.location.href = '/sports.html?category=' + encodeURIComponent(cat); }
+window.openSports = openSports;
 
 // 딥링크 focus: 카드가 그려질 때까지 기다렸다 해당 제품으로 스크롤 + 하이라이트
 function focusProduct(id, tries){
