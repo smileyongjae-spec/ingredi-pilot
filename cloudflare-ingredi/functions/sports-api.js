@@ -48,7 +48,7 @@ const CAT_ALIASES = {
 //  calc   : (core점수, 부가점수) → quality. null이면 채점 불가
 const TYPES = {
   "웨이프로틴": {
-    tier: "issn", label: "웨이프로틴",
+    tier: "issn", label: "단백질 밀도",   // 성분명이 아니라 지표명이다. "웨이프로틴 90%"로 읽히면 오해를 준다.
     anchorLabel: "단백질 밀도 80%",
     note: "1회 섭취량 중 단백질이 차지하는 비율. WPC 순도 상한 80%를 기준으로 봅니다.",
     core: (f, N) => {
