@@ -80,7 +80,16 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
 .wt-n { font-size:11.5px; color:var(--ink-faint); margin-top:7px; }
 
 .cat-meta { font-size:12px; color:var(--ink-faint); padding:14px 2px 4px; display:flex;
-  align-items:center; gap:6px; }
+  align-items:center; gap:8px; flex-wrap:wrap; }
+.tier-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:11.5px;
+  font-weight:600; font-family:inherit; cursor:pointer; }
+.tier-chip:active { background:var(--green-tint); }
+.tier-chip-q { width:13px; height:13px; border-radius:50%; background:var(--line-soft);
+  color:var(--ink-faint); font-size:9px; display:inline-flex; align-items:center; justify-content:center; }
+.tier-legend { display:flex; gap:12px; flex-wrap:wrap; margin-top:9px; padding:0 2px; }
+.tier-legend:empty { display:none; }
+.lg { display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--ink-faint); }
 .cat-status { padding:50px 18px; text-align:center; color:var(--ink-faint); font-size:14px; }
 
 .cv-card { background:var(--surface); border:1px solid var(--line-soft); border-radius:18px;
@@ -167,6 +176,7 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
     </div>
 
     <div class="cat-subbar" id="catSubBar"></div>
+    <div class="tier-legend" id="tierLegend"></div>
     <div class="tier" id="tierSheet">
       <div class="tier-h">
         <div style="flex:1;min-width:0">
@@ -211,6 +221,9 @@ let activeCat = "단백질", activeSub = null, weight = 70, data = null, showTie
 function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
 function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
+// 원본에 '-' 나 '미표기'가 값으로 들어오는 칸이 있다. 빈 값과 동일하게 다룬다.
+function clean(v){ const s=String(v==null?'':v).trim();
+  return (s===''||s==='-'||s==='nan'||s==='미표기') ? '' : s; }
 
 function renderTabs(){
   document.getElementById('catTabbar').innerHTML = CATS.map(c=>
@@ -225,6 +238,11 @@ function renderSubs(d){
   }
   bar.innerHTML = d.subs.map(s=>
     `<button class="cat-sub${s.key===d.sub?' active':''}" onclick="pick('${s.key}')"><span class="dot ${s.tier}"></span>${esc(s.label)}</button>`).join('');
+  // 점만으로는 뜻을 모른다. 실제로 쓰인 등급만 골라 범례를 만든다.
+  const used=[]; d.subs.forEach(s=>{ if(used.indexOf(s.tier)===-1) used.push(s.tier); });
+  document.getElementById('tierLegend').innerHTML = used.length>1
+    ? used.map(t=>`<span class="lg"><span class="dot ${t}"></span>${TIER_LABEL[t]}</span>`).join('')
+    : '';
 }
 function showTier(d){
   const t=document.getElementById('tierSheet');
@@ -243,7 +261,13 @@ function renderWeight(d){
     <div class="wt-n">기준 함량 <b>${fmt(d.anchor)}mg</b> · ${esc(d.anchorLabel||'')}</div>
   </div>`;
 }
-window.setWeight = function(v){ weight = parseInt(v,10); load(); };
+// 드래그 중 change 이벤트가 연속 발생해 API를 남발한다. 300ms 모아서 한 번만 호출한다.
+let wTimer=null;
+window.setWeight = function(v){
+  weight = parseInt(v,10);
+  clearTimeout(wTimer);
+  wTimer = setTimeout(load, 300);
+};
 
 // 비교 문장: 같은 서브필터 안에서의 위치. 상위 25%만 정확한 백분율을 쓰고 나머지는 뭉갠다.
 function tierWord(p){ return p<=25?'top':p<=75?'mid':'low'; }
@@ -309,7 +333,7 @@ function card(p,d){
     ${compare(p,d)}
     ${price>0?`<div class="cv-price"><span class="lbl">판매가</span><span class="val">${fmt(price)}원${mo}</span></div>`:''}
     ${tags.length?`<div class="cv-certrow"><span class="lbl">인증</span><div class="cv-tagrow">${tags.join('')}</div></div>`:''}
-    ${p.form?`<div class="cv-form"><span class="lbl">제형</span><span class="fval">${esc(p.form)}</span>${p.flavor?`<span class="fval">${esc(p.flavor)}</span>`:''}</div>`:''}
+    ${clean(p.form)?`<div class="cv-form"><span class="lbl">제형</span><span class="fval">${esc(clean(p.form))}</span>${clean(p.flavor)?`<span class="fval">${esc(clean(p.flavor))}</span>`:''}</div>`:''}
     <div class="cv-foot"><span class="cv-rev">리뷰 ${fmt(p.reviewCount)}개</span></div>
     ${buy}
   </div>`;
@@ -341,9 +365,12 @@ function render(d){
   renderSubs(d); renderWeight(d);
   const one = !d.subs || d.subs.length<2;
   const sortLabel = d.tier==='none' ? '가격순 정렬' : '성분 우선 정렬';
-  const dot = one ? `<span class="dot ${d.tier}" style="cursor:pointer" onclick="showTier(data)"></span>` : '';
+  // 서브필터가 없는 카테고리는 탭에 점을 붙일 자리가 없다. meta 줄에 누를 수 있는 칩으로 둔다.
+  const chip = one
+    ? `<button class="tier-chip" onclick="showTier(data)"><span class="dot ${d.tier}"></span>${TIER_LABEL[d.tier]}<span class="tier-chip-q">?</span></button>`
+    : '';
   document.getElementById('catMeta').innerHTML =
-    `${dot}<span>${esc(d.category)} · ${d.total}개 · ${sortLabel}</span>`;
+    `${chip}<span>${esc(d.category)} · ${d.total}개 · ${sortLabel}</span>`;
   document.getElementById('catDisclaimer').textContent = d.disclaimer||'';
   const el=document.getElementById('catCards');
   if(!d.products.length){ el.innerHTML=''; document.getElementById('catStatus').textContent='표시할 제품이 없습니다.'; return; }
@@ -362,7 +389,7 @@ async function load(){
   document.getElementById('catStatus').textContent='불러오는 중…';
   document.getElementById('catCards').innerHTML='';
   try{
-    let u = `${API}/sports-api?category=${encodeURIComponent(activeCat)}&weight=${weight}`;
+    let u = `${API}/sports?category=${encodeURIComponent(activeCat)}&weight=${weight}`;
     if(activeSub) u += `&sub=${encodeURIComponent(activeSub)}`;
     const res=await fetch(u);
     if(!res.ok) throw new Error('HTTP '+res.status);
