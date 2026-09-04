@@ -173,6 +173,19 @@ async function handle(context, headers) {
     }
     bases.push(["direct", "https://api.anthropic.com"]);
     diag.ping = {};
+    // [판별 실험] 무효 키로 직접 호출:
+    //   403 Request not allowed → 키 무관, 발신지(CF Workers) 차단
+    //   401 API key is invalid  → 발신지 정상, 실제 키/계정이 거절당하는 것
+    try {
+      const rb = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": "sk-ant-invalid-probe-000", "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: "user", content: "hi" }] })
+      });
+      diag.ping.direct_badkey = { status: rb.status, detail: (await rb.text()).slice(0, 160) };
+    } catch (e) {
+      diag.ping.direct_badkey = { threw: String(e && e.message || e).slice(0, 160) };
+    }
     for (const [name, base] of bases) {
       try {
         const r = await fetch(`${base}/v1/messages`, {
