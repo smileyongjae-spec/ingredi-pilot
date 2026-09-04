@@ -46,7 +46,18 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
   white-space:nowrap; transition:.15s; font-weight:600; }
 .cat-tab.active { background:var(--green-deep); color:var(--surface); border-color:var(--green-deep); }
 
-.cat-subbar { display:flex; gap:6px; margin-top:14px; flex-wrap:wrap; }
+.cat-profilebar { display:flex; gap:6px; background:var(--surface); border:1px solid var(--line-soft);
+  border-radius:12px; padding:4px; margin-top:14px; box-shadow:var(--shadow-sm); }
+.cat-pf { flex:1; border:none; background:none; font-family:inherit; font-size:13px; font-weight:700;
+  color:var(--ink-soft); padding:9px 4px; border-radius:9px; cursor:pointer; transition:.15s;
+  display:flex; flex-direction:column; align-items:center; gap:2px; line-height:1.2; }
+.cat-pf small { font-size:10px; font-weight:500; color:var(--ink-faint); }
+.cat-pf:active { transform:scale(0.97); }
+.cat-pf.active { background:var(--green-primary); color:var(--surface); }
+.cat-pf.active small { color:rgba(255,255,255,0.82); }
+.cv-pareto { display:inline-block; background:var(--gold-bg); color:var(--gold-deep); font-size:11px;
+  font-weight:700; padding:2px 8px; border-radius:12px; margin-left:5px; }
+.cat-subbar { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
 .cat-sub { padding:8px 13px; border-radius:20px; background:var(--green-tint);
   border:1px solid var(--green-hover); color:var(--ink-soft); font-size:12.5px; font-weight:600;
   cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:5px; }
@@ -175,6 +186,7 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
       <div class="dom-b">국제스포츠영양학회(ISSN)가 낸 지침의 권장 용량을 기준으로 평가해요. 식약처 인정 기능성을 기준으로 하는 오메가3·유산균 등과는 다른 체계입니다.</div>
     </div>
 
+    <div class="cat-profilebar" id="catProfileBar"></div>
     <div class="cat-subbar" id="catSubBar"></div>
     <div class="tier-legend" id="tierLegend"></div>
     <div class="tier" id="tierSheet">
@@ -217,6 +229,38 @@ const ARROW_DN='<svg class="cl-ar dn" viewBox="0 0 24 24" width="14" height="14"
 const ARROW_FL='<svg class="cl-ar fl" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
 let activeCat = "단백질", activeSub = null, weight = 70, data = null, showTierAfter = false;
+let profile = "quality";   // quality(성분 우선) | value(가성비 우선)
+
+// 같은 데이터를 다시 정렬한다. 축이 바뀔 뿐 모집단은 그대로다(추가 요청 없음).
+function sortList(products, tier){
+  const arr = products.slice();
+  const cost = p => (p.dailyCost > 0) ? p.dailyCost : 1e9;
+  if (tier === 'none'){
+    // 무채점 유형은 품질점수가 없다. 성분 우선 = 함량 내림차순, 가성비 = 1일비용 오름차순.
+    // 어느 쪽이든 함량 미표기 제품은 뒤로 보낸다(적게 넣고 싸게 판 제품이 앞에 오지 않도록).
+    const has = arr.filter(p => p.primary && p.primary.v != null);
+    const no  = arr.filter(p => !(p.primary && p.primary.v != null));
+    if (profile === 'value') return has.sort((a,b)=>cost(a)-cost(b)).concat(no.sort((a,b)=>cost(a)-cost(b)));
+    return has.sort((a,b)=>b.primary.v - a.primary.v).concat(no);
+  }
+  const scored = arr.filter(p => p.quality != null);
+  const rest   = arr.filter(p => p.quality == null);
+  if (profile === 'value'){
+    // 가성비 경계 제품을 먼저, 그 안에서 싼 순. 경계 밖도 같은 규칙으로 뒤에 붙인다.
+    scored.sort((a,b)=>{
+      if (!!a.isPareto !== !!b.isPareto) return a.isPareto ? -1 : 1;
+      return cost(a) - cost(b);
+    });
+  } else {
+    scored.sort((a,b)=> b.quality - a.quality || cost(a) - cost(b));
+  }
+  return scored.concat(rest);
+}
+window.setProfile = function(p){
+  if (profile === p) return;
+  profile = p;
+  if (data) render(data);
+};
 
 function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
@@ -323,8 +367,10 @@ function card(p,d){
   const badge = (d.tier==='none') ? ''
     : (g ? `<span class="cv-grade" style="background:${c[0]};color:${c[1]};border-color:${c[2]}">${g}</span>`
          : `<span class="cv-grade" style="background:transparent;color:#9AA0A6;border-color:#E4E4E1">–</span>`);
+  // 가성비 경계 배지는 가성비 탭에서만. 성분 탭에서 띄우면 축이 섞여 보인다.
+  const pareto = (profile==='value' && p.isPareto) ? `<span class="cv-pareto">가성비 경계</span>` : '';
   return `<div class="cv-card" id="prod-${esc(p.id)}">
-    <div class="cv-top"><span class="cv-rank">${p.rank}위</span>${badge}</div>
+    <div class="cv-top"><span class="cv-rank">${p.rank}위${pareto}</span>${badge}</div>
     <div class="cv-row">
       <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div style="flex:1;min-width:0"><div class="cv-name">${esc(p.name)}</div></div>
@@ -360,11 +406,22 @@ function restCard(p,d,i){
 }
 window.tog = function(i){ const c=document.getElementById('cr-'+i); if(c) c.classList.toggle('open'); };
 
+function renderProfileBar(d){
+  const scoreLabel = d.tier==='none' ? '함량순' : '성분 우선';
+  const scoreDesc  = d.tier==='none' ? '많이 든 순서' : '근거 함량·인증';
+  document.getElementById('catProfileBar').innerHTML =
+    `<button class="cat-pf${profile==='quality'?' active':''}" onclick="setProfile('quality')">${scoreLabel}<small>${scoreDesc}</small></button>` +
+    `<button class="cat-pf${profile==='value'?' active':''}" onclick="setProfile('value')">가성비 우선<small>${d.tier==='none'?'1일 비용':'같은 값이면 싼 쪽'}</small></button>`;
+}
+
 function render(d){
   data=d;
-  renderSubs(d); renderWeight(d);
+  renderSubs(d); renderWeight(d); renderProfileBar(d);
+  d.products = sortList(d.products, d.tier);
+  d.products.forEach((p,i)=>{ p.rank = i+1; });
   const one = !d.subs || d.subs.length<2;
-  const sortLabel = d.tier==='none' ? '가격순 정렬' : '성분 우선 정렬';
+  const sortLabel = profile==='value' ? '가성비 우선 정렬'
+                  : (d.tier==='none' ? '함량순 정렬' : '성분 우선 정렬');
   // 서브필터가 없는 카테고리는 탭에 점을 붙일 자리가 없다. meta 줄에 누를 수 있는 칩으로 둔다.
   const chip = one
     ? `<button class="tier-chip" onclick="showTier(data)"><span class="dot ${d.tier}"></span>${TIER_LABEL[d.tier]}<span class="tier-chip-q">?</span></button>`
@@ -389,7 +446,7 @@ async function load(){
   document.getElementById('catStatus').textContent='불러오는 중…';
   document.getElementById('catCards').innerHTML='';
   try{
-    let u = `${API}/sports-api?category=${encodeURIComponent(activeCat)}&weight=${weight}`;
+    let u = `${API}/sports?category=${encodeURIComponent(activeCat)}&weight=${weight}`;
     if(activeSub) u += `&sub=${encodeURIComponent(activeSub)}`;
     const res=await fetch(u);
     if(!res.ok) throw new Error('HTTP '+res.status);
