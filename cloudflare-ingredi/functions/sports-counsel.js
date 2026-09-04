@@ -15,6 +15,9 @@
 //   코드 게이트: 응급, 도핑·불법 약물, 투석·신부전 등 중증 의료, 미성년+부스터.
 //   프롬프트 규칙: 근거등급 정직 응답, 통념 교정, 기능성 표현 제한, 어투.
 
+// v1.1: Anthropic 호출 경로·재시도를 counsel2(라이브 검증됨)와 동일하게 맞춤.
+//   - Cloudflare AI Gateway 경유 (env.CF_ACCOUNT_ID + CF_AI_GATEWAY 있으면), 없으면 직접
+//   - 429/5xx 재시도 3회 백오프
 const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 1000;
 
@@ -169,24 +172,31 @@ export async function onRequest(context) {
   messages.push({ role: "user", content: userMsg });
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        // 시스템 프롬프트는 고정 문자열 — 프롬프트 캐시로 비용·지연 절감 (counsel2 v15.4와 동일 패턴)
-        system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-        messages
-      })
+    // counsel2와 동일: AI Gateway 있으면 경유, 없으면 직접
+    const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
+      ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
+      : "https://api.anthropic.com";
+    const reqBody = JSON.stringify({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      // 시스템 프롬프트는 고정 문자열 — 프롬프트 캐시로 비용·지연 절감 (counsel2와 동일 패턴)
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      messages
     });
-    if (!res.ok) {
-      const t = await res.text();
-      return new Response(JSON.stringify({ error: "llm_error", detail: t.slice(0, 300) }), { status: 502, headers });
+    const RETRY_STATUS = [429, 500, 502, 503, 504, 529];
+    let res = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch(`${ANTHROPIC_BASE}/v1/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+        body: reqBody
+      });
+      if (res.ok || RETRY_STATUS.indexOf(res.status) === -1) break;
+      await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+    }
+    if (!res || !res.ok) {
+      const t = res ? await res.text() : "no_response";
+      return new Response(JSON.stringify({ error: "llm_error", status: res ? res.status : 0, detail: String(t).slice(0, 300) }), { status: 502, headers });
     }
     const data = await res.json();
     const raw = (data.content || []).filter(c => c.type === "text").map(c => c.text).join("\n").trim();
