@@ -446,7 +446,7 @@ async function load(){
   document.getElementById('catStatus').textContent='불러오는 중…';
   document.getElementById('catCards').innerHTML='';
   try{
-    let u = `${API}/sports?category=${encodeURIComponent(activeCat)}&weight=${weight}`;
+    let u = `${API}/sports-api?category=${encodeURIComponent(activeCat)}&weight=${weight}`;
     if(activeSub) u += `&sub=${encodeURIComponent(activeSub)}`;
     const res=await fetch(u);
     if(!res.ok) throw new Error('HTTP '+res.status);
