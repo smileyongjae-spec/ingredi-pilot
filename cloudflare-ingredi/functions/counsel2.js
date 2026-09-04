@@ -1069,9 +1069,14 @@ export async function onRequest(context) {
     }]);
 
     // ─── [9] Claude 호출 (비스트리밍) ───────────────
+    // [v15.21] AI Gateway→Anthropic 구간 플랫폼 장애(전요청 403 "Request not allowed",
+    // 2026-08~09, Cloudflare 커뮤니티 동일 보고 다수) 대응. 게이트웨이를 먼저 시도하되
+    // 401/403이면 직접 경로로 자동 폴백한다. 게이트웨이가 복구되면 저절로 원상복귀.
+    // 이 장애 동안 상담이 전부 "잠시 연결이 원활하지 않아요" 폴백으로 죽어 있었다.
     const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
       ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
       : "https://api.anthropic.com";
+    const DIRECT_BASE = "https://api.anthropic.com";
     const reqBody = JSON.stringify({
       model: "claude-sonnet-4-6", max_tokens: 1200,
       // 프롬프트 캐싱: 시스템 프롬프트(페르소나·5정책·산식 설명, ~2,800토큰)는 매 호출 100% 동일하다.
@@ -1090,6 +1095,14 @@ export async function onRequest(context) {
       });
       if (resp.ok || RETRY_STATUS.indexOf(resp.status) === -1) break;
       await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+    }
+    // [v15.21] 게이트웨이가 차단(401/403)하면 직접 경로로 1회 재시도
+    if (resp && (resp.status === 401 || resp.status === 403) && ANTHROPIC_BASE !== DIRECT_BASE) {
+      resp = await fetch(`${DIRECT_BASE}/v1/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
+        body: reqBody
+      });
     }
     if (!resp || !resp.ok) {
       return respond(fixedPayload("X", "잠시 연결이 원활하지 않아요. 조금 뒤에 다시 물어봐 주세요."), { error: "upstream", status: resp ? resp.status : 0 });
