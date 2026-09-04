@@ -48,8 +48,8 @@ const CAT_ALIASES = {
 //  calc   : (core점수, 부가점수) → quality. null이면 채점 불가
 const TYPES = {
   "웨이프로틴": {
-    tier: "issn", label: "단백질 밀도",   // 성분명이 아니라 지표명이다. "웨이프로틴 90%"로 읽히면 오해를 준다.
-    anchorLabel: "단백질 밀도 80%",
+    tier: "issn", label: "단백질 함량",   // 성분명이 아니라 지표명이다. "웨이프로틴 90%"로 읽히면 오해를 준다.
+    anchorLabel: "단백질 함량 80%",
     note: "1회 섭취량 중 단백질이 차지하는 비율. WPC 순도 상한 80%를 기준으로 봅니다.",
     core: (f, N) => {
       const p = N(f["단백질_g"]), s = N(f["1일_총_섭취량(g)"]);
@@ -301,10 +301,24 @@ export async function onRequest(context) {
     items.push(it);
   }
 
+  // ── 가성비 경계(파레토) ──
+  // "이보다 싸면서 더 좋은 제품이 없는" 제품. 동률은 둘 다 경계에 남는다.
+  // 순수 가격순은 "적게 넣고 싸게 판 제품"에 상을 주므로, 품질을 함께 본 경계를 쓴다.
+  // (recommend2와 동일한 정의 — 두 도메인의 가성비 개념을 어긋나게 두지 않는다)
+  for (const it of items) {
+    it.isPareto = false;
+    if (it.quality == null || !(it.dailyCost > 0)) continue;
+    it.isPareto = !items.some(o =>
+      o !== it && o.quality != null && o.dailyCost > 0 &&
+      o.dailyCost <= it.dailyCost && o.quality >= it.quality &&
+      (o.dailyCost < it.dailyCost || o.quality > it.quality)
+    );
+  }
+
   // ── 정렬 ──
-  // 채점 유형: 품질점수 내림차순. 미채점은 항상 뒤(0점으로 둔갑시키지 않는다).
+  // 기본은 성분 우선(품질점수 내림차순). 미채점은 항상 뒤(0점으로 둔갑시키지 않는다).
+  // 가성비 우선 정렬은 프런트에서 같은 데이터를 재정렬한다(추가 요청 없음).
   // 무채점 유형: 함량 표기 여부 → 1일비용 오름차순.
-  //   순수 가격순으로 하면 "적게 넣고 싸게 판 제품"이 최상단에 오므로 표기 여부를 앞에 둔다.
   const scored = items.filter(x => x.quality != null);
   const rest = items.filter(x => x.quality == null);
 
