@@ -123,15 +123,66 @@ const SYSTEM_PROMPT = `당신은 ingredi의 스포츠 뉴트리션 AI 상담입�
 - JSON 외의 텍스트를 출력하지 않는다.`;
 
 // ─────────────────────────────────────────────────────────────
+// [v1.2] Cloudflare 502 브랜드 페이지 = Function의 처리되지 않은 예외.
+// 어디서 터지는지 이론으로 못 좁혀서, 전체를 방탄 래퍼로 감싸 예외 원문을 JSON으로 내보낸다.
+// + GET ?diag=1 진단: env 존재 여부(불리언만)와 Anthropic 1토큰 핑 결과를 보고한다.
 export async function onRequest(context) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Content-Type": "application/json; charset=utf-8"
   };
+  try {
+    return await handle(context, headers);
+  } catch (e) {
+    // 이 블록이 실행되면 CF 502 대신 원인 원문이 화면에 뜬다
+    return new Response(JSON.stringify({
+      error: "unhandled_exception",
+      message: String(e && e.message || e).slice(0, 300),
+      stack: String(e && e.stack || "").split("\n").slice(0, 4)
+    }), { status: 500, headers });
+  }
+}
+
+async function handle(context, headers) {
   const { request, env } = context;
   if (request.method === "OPTIONS") return new Response(null, { headers });
+
+  // ── GET 진단 모드 ──
+  if (request.method === "GET") {
+    const url = new URL(request.url);
+    if (url.searchParams.get("diag") !== "1") {
+      return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers });
+    }
+    const diag = {
+      version: "v1.2",
+      env: {
+        ANTHROPIC_API_KEY: !!env.ANTHROPIC_API_KEY,
+        CF_ACCOUNT_ID: !!env.CF_ACCOUNT_ID,
+        CF_AI_GATEWAY: !!env.CF_AI_GATEWAY
+      }
+    };
+    const key = env.ANTHROPIC_API_KEY || env.CLAUDE_API_KEY || env.ANTHROPIC_KEY;
+    if (!key) { diag.ping = "skip: no key"; return new Response(JSON.stringify(diag), { headers }); }
+    const base = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
+      ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
+      : "https://api.anthropic.com";
+    diag.base = base.indexOf("gateway") !== -1 ? "gateway" : "direct";
+    try {
+      const r = await fetch(`${base}/v1/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: "user", content: "hi" }] })
+      });
+      diag.ping = { status: r.status, ok: r.ok };
+      if (!r.ok) diag.ping.detail = (await r.text()).slice(0, 300);
+    } catch (e) {
+      diag.ping = { threw: String(e && e.message || e).slice(0, 300) };
+    }
+    return new Response(JSON.stringify(diag, null, 2), { headers });
+  }
+
   if (request.method !== "POST") {
     return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers });
   }
