@@ -246,11 +246,10 @@ function sortList(products, tier){
   const scored = arr.filter(p => p.quality != null);
   const rest   = arr.filter(p => p.quality == null);
   if (profile === 'value'){
-    // 가성비 경계 제품을 먼저, 그 안에서 싼 순. 경계 밖도 같은 규칙으로 뒤에 붙인다.
-    scored.sort((a,b)=>{
-      if (!!a.isPareto !== !!b.isPareto) return a.isPareto ? -1 : 1;
-      return cost(a) - cost(b);
-    });
+    // 순수 1일비용 오름차순. 파레토 경계를 앞세우면 "싼데 아래에 있는" 역전이 생겨
+    // '가성비 순'이라는 이름과 화면이 어긋난다. 경계 여부는 배지로만 알린다.
+    // (채점 유형은 카드에 등급이 함께 붙으므로 품질을 같이 볼 수 있다)
+    scored.sort((a,b)=> cost(a) - cost(b));
   } else {
     scored.sort((a,b)=> b.quality - a.quality || cost(a) - cost(b));
   }
@@ -368,6 +367,7 @@ function card(p,d){
     : (g ? `<span class="cv-grade" style="background:${c[0]};color:${c[1]};border-color:${c[2]}">${g}</span>`
          : `<span class="cv-grade" style="background:transparent;color:#9AA0A6;border-color:#E4E4E1">–</span>`);
   // 가성비 경계 배지는 가성비 탭에서만. 성분 탭에서 띄우면 축이 섞여 보인다.
+  // 정렬에는 쓰지 않고 "같은 값이면 이보다 나은 선택이 없다"는 정보로만 남긴다.
   const pareto = (profile==='value' && p.isPareto) ? `<span class="cv-pareto">가성비 경계</span>` : '';
   return `<div class="cv-card" id="prod-${esc(p.id)}">
     <div class="cv-top"><span class="cv-rank">${p.rank}위${pareto}</span>${badge}</div>
@@ -411,7 +411,7 @@ function renderProfileBar(d){
   const scoreDesc  = d.tier==='none' ? '많이 든 순서' : '근거 함량·인증';
   document.getElementById('catProfileBar').innerHTML =
     `<button class="cat-pf${profile==='quality'?' active':''}" onclick="setProfile('quality')">${scoreLabel}<small>${scoreDesc}</small></button>` +
-    `<button class="cat-pf${profile==='value'?' active':''}" onclick="setProfile('value')">가성비 우선<small>${d.tier==='none'?'1일 비용':'같은 값이면 싼 쪽'}</small></button>`;
+    `<button class="cat-pf${profile==='value'?' active':''}" onclick="setProfile('value')">가성비 우선<small>1일 비용 낮은 순</small></button>`;
 }
 
 function render(d){
@@ -446,6 +446,8 @@ async function load(){
   document.getElementById('catStatus').textContent='불러오는 중…';
   document.getElementById('catCards').innerHTML='';
   try{
+    // [중요] 반드시 /sports-api 다. Cloudflare Pages가 .html을 자동으로 떼므로
+    // Function 이름(sports-api)과 화면 파일명(sports.html)이 겹치면 API가 화면을 가로챈다.
     let u = `${API}/sports-api?category=${encodeURIComponent(activeCat)}&weight=${weight}`;
     if(activeSub) u += `&sub=${encodeURIComponent(activeSub)}`;
     const res=await fetch(u);
