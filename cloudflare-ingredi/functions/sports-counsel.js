@@ -165,20 +165,26 @@ async function handle(context, headers) {
     };
     const key = env.ANTHROPIC_API_KEY || env.CLAUDE_API_KEY || env.ANTHROPIC_KEY;
     if (!key) { diag.ping = "skip: no key"; return new Response(JSON.stringify(diag), { headers }); }
-    const base = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
-      ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
-      : "https://api.anthropic.com";
-    diag.base = base.indexOf("gateway") !== -1 ? "gateway" : "direct";
-    try {
-      const r = await fetch(`${base}/v1/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: "user", content: "hi" }] })
-      });
-      diag.ping = { status: r.status, ok: r.ok };
-      if (!r.ok) diag.ping.detail = (await r.text()).slice(0, 300);
-    } catch (e) {
-      diag.ping = { threw: String(e && e.message || e).slice(0, 300) };
+    // 두 경로를 모두 핑 — 게이트웨이 403 사태(2026-08 Cloudflare 커뮤니티 보고)에서
+    // 직접 경로가 살아있는지를 한 화면에서 확인한다.
+    const bases = [];
+    if (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY) {
+      bases.push(["gateway", `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`]);
+    }
+    bases.push(["direct", "https://api.anthropic.com"]);
+    diag.ping = {};
+    for (const [name, base] of bases) {
+      try {
+        const r = await fetch(`${base}/v1/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+          body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: "user", content: "hi" }] })
+        });
+        diag.ping[name] = { status: r.status, ok: r.ok };
+        if (!r.ok) diag.ping[name].detail = (await r.text()).slice(0, 200);
+      } catch (e) {
+        diag.ping[name] = { threw: String(e && e.message || e).slice(0, 200) };
+      }
     }
     return new Response(JSON.stringify(diag, null, 2), { headers });
   }
@@ -223,10 +229,13 @@ async function handle(context, headers) {
   messages.push({ role: "user", content: userMsg });
 
   try {
-    // counsel2와 동일: AI Gateway 있으면 경유, 없으면 직접
-    const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
+    // [2026-09] AI Gateway→Anthropic 구간이 플랫폼 장애로 전요청 403을 내는 사태 확인
+    // (Cloudflare 커뮤니티 8/24 보고와 동일 증상, 설정 무관). 게이트웨이를 먼저 시도하되
+    // 401/403이면 직접 경로로 자동 폴백한다. 게이트웨이가 복구되면 저절로 원상복귀.
+    const GATEWAY_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
       ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
-      : "https://api.anthropic.com";
+      : null;
+    const DIRECT_BASE = "https://api.anthropic.com";
     const reqBody = JSON.stringify({
       model: MODEL,
       max_tokens: MAX_TOKENS,
@@ -235,15 +244,23 @@ async function handle(context, headers) {
       messages
     });
     const RETRY_STATUS = [429, 500, 502, 503, 504, 529];
-    let res = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      res = await fetch(`${ANTHROPIC_BASE}/v1/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-        body: reqBody
-      });
-      if (res.ok || RETRY_STATUS.indexOf(res.status) === -1) break;
-      await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+    const callBase = async (base) => {
+      let r = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        r = await fetch(`${base}/v1/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+          body: reqBody
+        });
+        if (r.ok || RETRY_STATUS.indexOf(r.status) === -1) break;
+        await new Promise(rs => setTimeout(rs, 600 * (attempt + 1)));
+      }
+      return r;
+    };
+    let res = GATEWAY_BASE ? await callBase(GATEWAY_BASE) : null;
+    // 게이트웨이가 401/403(차단)이거나 아예 못 불렀으면 직접 경로로 폴백
+    if (!res || res.status === 401 || res.status === 403) {
+      res = await callBase(DIRECT_BASE);
     }
     if (!res || !res.ok) {
       const t = res ? await res.text() : "no_response";
