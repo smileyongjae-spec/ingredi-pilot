@@ -234,10 +234,19 @@
 <script>
 /* ═══════════ 상태 ═══════════ */
 var API = window.location.origin + '/counsel2';
+// [도메인 분리] 스포츠 뉴트리션 상담은 근거 체계(ISSN)가 달라 별도 엔드포인트로 간다.
+// 파일명 규칙: Function은 sports-counsel(HTML과 이름 충돌 없음 확인).
+var SPORTS_API = window.location.origin + '/sports-counsel';
 var messages = [];          // [{role, content}]
 var busy = false;
 var searchLogged = false;
 var lastCategory = null;    // meta.category (한글) — 딥링크용
+var lastDomain = 'health';  // 'health' | 'sports' — 키워드 없는 후속 질문("얼마나 먹어?")의 연속성용
+
+// 도메인 판정: 메시지 단위로 한다(대화 단위 잠금 X — "유산균 어때? 크레아틴은?" 같은 전환 허용).
+// 둘 다 걸리면 추측하지 않고 사용자에게 고르게 한다(규제 근거가 갈리는 지점).
+var SPORTS_RE = /단백질|프로틴|웨이프로|게이너|크레아틴|BCAA|EAA|글루타민|카르니틴|부스터|프리\s*워크|아르기닌|시트룰린|베타알라닌|HMB|벌크업|린매스|근성장|근육량|근손실|헬스(?!\s*케어)|웨이트|삼대\s*운동|운동(?!\s*화)|오운완|보충제\s*추천|쉐이크|머슬/i;
+var HEALTH_RE = /오메가|EPA|DHA|루테인|지아잔틴|아스타잔틴|유산균|프로바이오|마이크로바이옴|비타민|눈\s*건강|시력|황반|안구|침침|장\s*건강|장이\s*안\s*좋|장이\s*불편|장\s*트러블|배변|변비|설사|소화|면역|혈행|중성지방|콜레스테롤|항산화|피로|영양제|건강기능식품|건기식|임산부|갱년기/i;
 
 var CAT_APP_PARAM = { '오메가3': '오메가3', '눈': '눈', '유산균': '마이크로바이옴', '비타민C': '비타민C' };
 
@@ -418,10 +427,23 @@ function addErrorTurn(text) {
 }
 
 /* ═══════════ 대화 진행 ═══════════ */
-function send(text) {
+function send(text, forcedDomain) {
   if (busy) return;
   text = (text || '').trim();
   if (!text) return;
+
+  // ── 도메인 라우팅 ──
+  var d;
+  if (forcedDomain === 'sports' || forcedDomain === 'health') {
+    d = forcedDomain;
+  } else {
+    var isS = SPORTS_RE.test(text), isH = HEALTH_RE.test(text);
+    if (isS && isH) { askDomain(text); return; }       // 진짜 모호할 때만 되묻는다
+    d = isS ? 'sports' : (isH ? 'health' : lastDomain); // 무신호 = 직전 도메인 이어감
+  }
+  lastDomain = d;
+  if (d === 'sports') { sendSports(text); return; }
+
   busy = true;
   document.getElementById('sendBtn').disabled = true;
   disableAllChips();
@@ -462,6 +484,84 @@ function send(text) {
   });
 }
 
+/* ═══════════ 스포츠 뉴트리션 (층 1: 지식 응답) ═══════════ */
+function sendSports(text) {
+  busy = true;
+  document.getElementById('sendBtn').disabled = true;
+  disableAllChips();
+
+  messages.push({ role: 'user', content: text });
+  addUserTurn(text);
+  addThinking();
+
+  fetch(SPORTS_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: text, history: messages.slice(0, -1) })
+  }).then(function (res) {
+    if (res.status === 429) { throw { rateLimited: true }; }
+    return res.json();
+  }).then(function (out) {
+    removeThinking();
+    var reply = (out && out.reply) ? String(out.reply) : '';
+    if (!reply) throw new Error('empty');
+    logFirstQuery(messages.length ? messages[0].content : text, '스포츠');
+    messages.push({ role: 'assistant', content: reply.slice(0, 1200) });
+    addSportsTurn(out);
+  }).catch(function (e) {
+    removeThinking();
+    if (e && e.rateLimited) {
+      addErrorTurn('질문이 너무 빨라요. 잠깐 숨 고르고 다시 물어봐 주세요.');
+    } else {
+      addErrorTurn('잠시 연결이 원활하지 않아요. 조금 뒤에 다시 물어봐 주세요.');
+    }
+    if (messages.length && messages[messages.length - 1].role === 'user') messages.pop();
+  }).finally(function () {
+    busy = false;
+    document.getElementById('sendBtn').disabled = false;
+  });
+}
+
+// 스포츠 응답 렌더. 건기식과 다른 근거 체계임을 매 턴 라벨로 밝힌다.
+function addSportsTurn(out) {
+  var h = '<div class="block-label">스포츠 뉴트리션 · ISSN 근거 기준</div>';
+  h += '<p class="voice">' + voiceHtml(out.reply) + '</p>';
+  var chips = out.chips || [];
+  if (chips.length) {
+    h += '<div class="chips">';
+    for (var i = 0; i < chips.length; i++) {
+      var c = chips[i] || {};
+      var label = String(c.label || '');
+      if (!label) continue;
+      var action = String(c.action || '');
+      if (action.indexOf('sports:') === 0) {
+        // 카테고리 이동 칩 — 목록 화면으로
+        var cat = action.slice(7);
+        h += '<a class="chip" href="/sports.html?category=' + encodeURIComponent(cat) + '">' + esc(label) + '</a>';
+      } else {
+        var prompt = action.indexOf('ask:') === 0 ? action.slice(4) : label;
+        h += '<button class="chip" type="button" data-prompt="' + esc(prompt) + '">' + esc(label) + '</button>';
+      }
+    }
+    h += '</div>';
+  }
+  var wrap = el('div', 'turn turn-assistant', h);
+  document.getElementById('thread').appendChild(wrap);
+  scrollToBottom();
+}
+
+// 도메인이 모호한 질문 — 추측하지 않고 고르게 한다. 선택 즉시 그 도메인으로 재전송.
+function askDomain(text) {
+  var h = '<p class="clarify-q">질문이 두 영역에 걸쳐 있어요. 어느 쪽에 가까운지 골라주시면 맞는 기준으로 답해드릴게요.</p>' +
+    '<div class="chips">' +
+    '<button class="chip" type="button" data-domain="sports" data-pending="' + esc(text) + '">💪 운동·근육 보충제</button>' +
+    '<button class="chip" type="button" data-domain="health" data-pending="' + esc(text) + '">🌿 건강기능식품</button>' +
+    '</div>';
+  var wrap = el('div', 'turn turn-assistant', h);
+  document.getElementById('thread').appendChild(wrap);
+  scrollToBottom();
+}
+
 function disableAllChips() {
   var btns = document.querySelectorAll('.chip, .fu-btn');
   for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
@@ -477,6 +577,14 @@ window.submitComposer = submitComposer;
 
 // 칩·후속 버튼 클릭 (이벤트 위임)
 document.addEventListener('click', function (e) {
+  // 도메인 선택 칩 — 보류된 질문을 고른 도메인으로 재전송
+  var dchip = e.target.closest && e.target.closest('[data-domain]');
+  if (dchip && !dchip.disabled) {
+    var pend = dchip.getAttribute('data-pending') || '';
+    disableAllChips();
+    if (pend) send(pend, dchip.getAttribute('data-domain'));
+    return;
+  }
   var b = e.target.closest && e.target.closest('[data-prompt]');
   if (!b || b.disabled) return;
   send(b.getAttribute('data-prompt'));
@@ -493,6 +601,7 @@ document.getElementById('composerInput').addEventListener('keydown', function (e
 function resetThread() {
   messages = [];
   lastCategory = null;
+  lastDomain = 'health';
   document.getElementById('thread').innerHTML = '';
   document.getElementById('threadFooter').style.display = 'none';
   renderIntro();
