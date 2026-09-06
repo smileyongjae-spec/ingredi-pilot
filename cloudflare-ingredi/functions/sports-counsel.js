@@ -160,7 +160,8 @@ async function handle(context, headers) {
       env: {
         ANTHROPIC_API_KEY: !!env.ANTHROPIC_API_KEY,
         CF_ACCOUNT_ID: !!env.CF_ACCOUNT_ID,
-        CF_AI_GATEWAY: !!env.CF_AI_GATEWAY
+        CF_AI_GATEWAY: !!env.CF_AI_GATEWAY,
+        CF_AIG_TOKEN: !!env.CF_AIG_TOKEN
       }
     };
     const key = env.ANTHROPIC_API_KEY || env.CLAUDE_API_KEY || env.ANTHROPIC_KEY;
@@ -185,6 +186,28 @@ async function handle(context, headers) {
       diag.ping.direct_badkey = { status: rb.status, detail: (await rb.text()).slice(0, 160) };
     } catch (e) {
       diag.ping.direct_badkey = { threw: String(e && e.message || e).slice(0, 160) };
+    }
+    // [BYOK 경로] 게이트웨이에 저장한 키(Provider Keys) + 게이트웨이 토큰으로 호출.
+    // x-api-key를 보내지 않는다 — 게이트웨이가 저장된 키를 주입한다.
+    // 일반 통과 방식이 발신지 차단으로 막힌 상황에서 유일하게 열려 있을 수 있는 공식 경로.
+    if (env.CF_AIG_TOKEN && env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY) {
+      try {
+        const rk = await fetch(`https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic/v1/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`,
+            "anthropic-version": "2023-06-01"
+          },
+          body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: "user", content: "hi" }] })
+        });
+        diag.ping.gateway_byok = { status: rk.status, ok: rk.ok };
+        if (!rk.ok) diag.ping.gateway_byok.detail = (await rk.text()).slice(0, 200);
+      } catch (e) {
+        diag.ping.gateway_byok = { threw: String(e && e.message || e).slice(0, 200) };
+      }
+    } else {
+      diag.ping.gateway_byok = "skip: CF_AIG_TOKEN 미설정";
     }
     for (const [name, base] of bases) {
       try {
@@ -270,8 +293,32 @@ async function handle(context, headers) {
       }
       return r;
     };
-    let res = GATEWAY_BASE ? await callBase(GATEWAY_BASE) : null;
-    // 게이트웨이가 401/403(차단)이거나 아예 못 불렀으면 직접 경로로 폴백
+    // [v1.5] 경로 우선순위: BYOK(저장 키) → 게이트웨이 통과 → 직접.
+    // 2026-09 현재 Anthropic이 CF Workers 발신을 차단해 뒤 두 경로는 403이 나며,
+    // BYOK만 공식 제휴 채널로 열려 있다. 차단이 풀리면 뒤 경로들이 자동 폴백으로 남는다.
+    const callByok = async () => {
+      if (!(env.CF_AIG_TOKEN && GATEWAY_BASE)) return null;
+      let r = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        r = await fetch(`${GATEWAY_BASE}/v1/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`,
+            "anthropic-version": "2023-06-01"
+          },
+          body: reqBody
+        });
+        if (r.ok || RETRY_STATUS.indexOf(r.status) === -1) break;
+        await new Promise(rs => setTimeout(rs, 600 * (attempt + 1)));
+      }
+      return r;
+    };
+    let res = await callByok();
+    if (!res || res.status === 401 || res.status === 403) {
+      const r2 = GATEWAY_BASE ? await callBase(GATEWAY_BASE) : null;
+      if (r2) res = r2;
+    }
     if (!res || res.status === 401 || res.status === 403) {
       res = await callBase(DIRECT_BASE);
     }
