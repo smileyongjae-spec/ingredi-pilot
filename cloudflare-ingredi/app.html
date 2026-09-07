@@ -203,6 +203,7 @@
     .icon-eye   { background: var(--cat-eye-bg); } .icon-eye svg   { color: var(--cat-eye); }
     .icon-prob  { background: var(--cat-biome-bg); } .icon-prob svg  { color: var(--cat-biome); }
     .icon-vitc  { background: var(--cat-vitc-bg); } .icon-vitc svg  { color: var(--cat-vitc); }
+    .icon-milk  { background: var(--green-light); } .icon-milk svg  { color: var(--green-primary); }
 
     /* ── 도메인 구분 (건강기능식품 / 스포츠 뉴트리션) ──
        두 섹션은 근거 체계가 다르다. 식약처 인정 기능성 vs ISSN 지침.
@@ -535,6 +536,10 @@
         <div class="profile-icon-box icon-vitc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></div>
         <div class="profile-text"><div class="profile-label">비타민C</div><div class="profile-desc">항산화·면역</div></div>
       </div>
+      <div class="profile-card" onclick="openCategory('밀크씨슬')">
+        <div class="profile-icon-box icon-milk"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V9"/><path d="M12 9C12 5 9 3 5 3c0 4 3 6 7 6z"/><path d="M12 13c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M9 21h6"/></svg></div>
+        <div class="profile-text"><div class="profile-label">밀크씨슬</div><div class="profile-desc">간 건강·실리마린</div></div>
+      </div>
     </div>
 
     <h2 class="section-title tools-title">스포츠 뉴트리션</h2>
@@ -865,8 +870,13 @@ const CATS = [
   { key:"오메가3",       label:"오메가3" },
   { key:"눈",           label:"눈 건강" },
   { key:"마이크로바이옴", label:"유산균" },
-  { key:"비타민C",       label:"비타민C" }
+  { key:"비타민C",       label:"비타민C" },
+  { key:"밀크씨슬",      label:"밀크씨슬" }
 ];
+// ── 무채점 카테고리 ──
+// 밀크씨슬은 등급·품질점수·프로필 정렬이 없다. 원료사는 명기만 하고 점수 축으로 쓰지 않는다.
+// 서버(recommend2 v7.4)가 2단 정렬(함량 표기 여부 → 1일비용 오름차순)로 내려준 순서를 그대로 쓴다.
+const UNSCORED_CATS = { "밀크씨슬": true };
 // [배경, 글자, 테두리] — A만 채우고 나머지는 물러선다.
 // 등급은 순서형이므로 색상(hue)을 바꾸면 범주로 읽힌다. 낮은 등급에 빨강·갈색을 쓰면
 // "사지 마라"는 판정이 되므로, 회색으로 "우리 지표에서 앞서지 않았다"만 말한다.
@@ -1044,8 +1054,8 @@ function capTier(basis, cap){
 function tierWord(pct){ return pct<=25 ? "top" : pct<=75 ? "mid" : "low"; }
 
 // ── 비교 문장 3종 ────────────────────────────────
-const CAT_UNIT_NOUN = { "오메가3":"오메가3", "눈":"눈 영양제", "마이크로바이옴":"유산균", "비타민C":"비타민C" };
-const PRIMARY_NOUN  = { "오메가3":"EPA+DHA", "눈":"루테인·지아잔틴", "마이크로바이옴":"보장균수", "비타민C":"비타민C" };
+const CAT_UNIT_NOUN = { "오메가3":"오메가3", "눈":"눈 영양제", "마이크로바이옴":"유산균", "비타민C":"비타민C", "밀크씨슬":"밀크씨슬" };
+const PRIMARY_NOUN  = { "오메가3":"EPA+DHA", "눈":"루테인·지아잔틴", "마이크로바이옴":"보장균수", "비타민C":"비타민C", "밀크씨슬":"실리마린" };
 const UNDERLINED    = { "오메가3":true, "눈":true, "마이크로바이옴":true, "비타민C":false };
 
 const ARROW_UP   = '<svg class="cl-ar up" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>';
@@ -1136,7 +1146,27 @@ const HOWTO_COMMON = [
   ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니에요."]
 ];
 
+// 무채점 카테고리(밀크씨슬)는 등급·프로필 설명이 거짓말이 되므로 전용 문구를 쓴다
+const HOWTO_UNSCORED = [
+  ["등급이 없는 이유", "밀크씨슬은 제품 간 품질을 가릴 검증 축이 충분하지 않아 등급을 매기지 않아요. 모든 건강기능식품을 같은 잣대로 채점하는 건 정직하지 않다고 생각해요."],
+  ["정렬 순서", "실리마린(또는 밀크씨슬 추출물) 함량을 표기한 제품을 앞에 두고, 그 안에서 하루 비용이 낮은 순서로 보여드려요. 함량을 밝히지 않은 제품이 싸다는 이유만으로 위에 오지 않게 하기 위해서예요."],
+  ["원료사", "원료사는 참고 정보로만 표기해요. 점수나 순위에는 반영하지 않아요."],
+  ["화살표", "↗ 좋은 편, → 보통, ↘ 아쉬운 편이에요."],
+  ["하루 비용", "판매가를 실제 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
+  ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니에요."]
+];
+
 function howToRead(cat){
+  if (UNSCORED_CATS[cat]) {
+    const rows = HOWTO_UNSCORED.map(([h, b]) =>
+      `<div class="ht-row"><div class="ht-h">${escapeHtml(h)}</div><div class="ht-b">${escapeHtml(b)}</div></div>`).join("");
+    return `<div class="ht">
+    <button class="ht-btn" onclick="toggleHowTo(this)" aria-expanded="false">
+      <span>순서와 비교, 이렇게 정해요</span><span class="ht-chev">▾</span>
+    </button>
+    <div class="ht-body" hidden>${rows}</div>
+  </div>`;
+  }
   const items = HOWTO_COMMON.slice();
   const key = PRIMARY_TERM[cat];
   const t = key && TERM_INFO[key];
@@ -1172,7 +1202,8 @@ function compareBlock(cat, basis, p, m){
 
 function renderCardV8(p, ctx){
   const cat = ctx.cat, m = ctx.metrics, st = ctx.stats, uid = ctx.idx;
-  const grade = p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null);
+  const unscored = !!UNSCORED_CATS[cat];   // 밀크씨슬: 등급 배지 없음, 원료사 명기
+  const grade = unscored ? null : (p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null));
   const colors = GRADE[grade] || ["transparent","#9AA0A6","#E4E4E1"];
   const gb = colors[0], gt = colors[1], gbd = colors[2];
   const pv = num(p.primaryValue);
@@ -1228,16 +1259,20 @@ function renderCardV8(p, ctx){
   const basis = ctx.basis || buildBasis([p]);
   const rankLabel = `${(ctx.idx||0)+1}위`;
   const primNoun = PRIMARY_NOUN[cat] || m.primary.label;
-  const hasLead = cost>0 && pv>0;
-  const headline = `하루 <b>${fmt(cost)}원</b>에<br>${termLink(cat, primNoun)} <b>${fmt(pv)}${escapeHtml(m.primary.unit)}</b>.`;
+  // 밀크씨슬: 실리마린 미표기지만 원물(추출물) 함량은 표기한 제품 — 있는 값으로 리드를 쓴다
+  const rawMg = num(p.extra && p.extra["밀크씨슬_mg"]);
+  const leadNoun = (pv>0) ? termLink(cat, primNoun) : "밀크씨슬 추출물";
+  const leadVal  = (pv>0) ? pv : rawMg;
+  const hasLead = cost>0 && leadVal>0;
+  const headline = `하루 <b>${fmt(cost)}원</b>에<br>${leadNoun} <b>${fmt(leadVal)}${escapeHtml(m.primary.unit)}</b>.`;
 
   return `<div class="cv-card" id="prod-${escapeHtml(String(p.id||''))}">
     <div class="cv-top">
       <span class="cv-rank">${rankLabel}</span>
       <span class="cv-gwrap">
-        ${grade
+        ${unscored ? "" : (grade
           ? `<span class="cv-grade" style="background:${gb};color:${gt};border-color:${gbd}">${grade}</span>`
-          : `<span class="cv-grade cv-grade-na">–</span>`}</span>
+          : `<span class="cv-grade cv-grade-na">–</span>`)}</span>
     </div>
     <div class="cv-row">
       <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
@@ -1247,11 +1282,12 @@ function renderCardV8(p, ctx){
     ${eyeSub}
     ${compareBlock(cat, basis, p, m)}
     ${belowPrimary}
-    <div class="cv-voc">
+    ${(unscored && !vocChips) ? "" : `<div class="cv-voc">
       <div class="cv-voc-h"><span class="cv-reviewN">리뷰 ${fmt(num(p.reviewCount))}개 중</span>${vocTag}</div>
       <div class="cv-vchips">${vocChips}</div>
-    </div>
+    </div>`}
     ${price>0 ? `<div class="cv-price"><span class="lbl">판매가</span><span class="val">${fmt(price)}원${monthBadge}</span></div>` : ""}
+    ${(unscored && p.supplier && String(p.supplier).trim() !== "-") ? `<div class="cv-form"><span class="lbl">원료사</span><span class="fval">${escapeHtml(String(p.supplier))}</span></div>` : ""}
     ${tagsHtml ? `<div class="cv-certrow"><span class="lbl">인증</span><div class="cv-tagrow">${tagsHtml}</div></div>` : ""}
     ${(p.form || coldBadge) ? `<div class="cv-form"><span class="lbl">${p.form ? "제형" : "보관"}</span>${p.form ? `<span class="fval">${escapeHtml(String(p.form))}</span>` : ""}${coldBadge}</div>` : ""}
     ${buyBtn}
@@ -1260,14 +1296,20 @@ function renderCardV8(p, ctx){
 
 function renderRestCardV8(p, ctx){
   const m = ctx.metrics;
-  const grade = p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null);
+  const unscored = !!UNSCORED_CATS[ctx.cat];
+  const grade = unscored ? null : (p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null));
   const gc = GRADE[grade] || ["transparent","#9AA0A6","#E4E4E1"];
-  const gradeBadge = grade
+  const gradeBadge = unscored ? "" : (grade
     ? `<span class="cv-grade" style="background:${gc[0]};color:${gc[1]};border-color:${gc[2]}">${grade}</span>`
-    : `<span class="cv-grade cv-grade-na">–</span>`;
+    : `<span class="cv-grade cv-grade-na">–</span>`);
   const pv = num(p.primaryValue);
   const img = p.image ? escapeHtml(p.image) : PLACEHOLDER;
-  const sub = `${escapeHtml(m.primary.label)} ${fmt(pv)}${escapeHtml(m.primary.unit)}`;
+  // 밀크씨슬: 실리마린 미표기면 원물 함량으로, 그것도 없으면 "함량 미표기"로 정직하게 적는다
+  const rawMg = num(p.extra && p.extra["밀크씨슬_mg"]);
+  const sub = (pv>0)
+    ? `${escapeHtml(m.primary.label)} ${fmt(pv)}${escapeHtml(m.primary.unit)}`
+    : (unscored ? (rawMg>0 ? `밀크씨슬 추출물 ${fmt(rawMg)}mg` : `함량 미표기`)
+                : `${escapeHtml(m.primary.label)} ${fmt(pv)}${escapeHtml(m.primary.unit)}`);
   const full = renderCardV8(p, ctx);
   return `<div class="cr-card" id="cr-${ctx.idx}">
     <div class="cr-row" onclick="toggleCatExpand(${ctx.idx})">
@@ -1293,11 +1335,18 @@ function renderCategory(data){
   const subKey = subs ? (activeSub[cat] || subs[0].key) : null;
   const filtered = subs ? all.filter(p=>matchSub(cat, subKey, p)) : all;
   renderSubBar(cat);
+  const unscored = !!UNSCORED_CATS[cat];
+  // 무채점 카테고리는 프로필(성분/가성비) 선택이 의미 없어 바를 숨긴다
+  const pfBar = document.getElementById('catProfileBar');
+  if (pfBar) pfBar.style.display = unscored ? 'none' : '';
   const stats = buildStats(filtered);
   const basis = buildBasis(all);   // 비교 기준은 서브필터와 무관하게 카테고리 전체
-  const products = applyProfile(filtered, activeProfile);
+  // 무채점: 서버의 2단 정렬(함량 표기 → 1일비용 오름차순)을 그대로 쓴다
+  const products = unscored ? filtered.slice() : applyProfile(filtered, activeProfile);
   const subLabel = subs ? ` · ${((subs.find(s=>s.key===subKey)||{}).label)||""}` : "";
-  document.getElementById('catMeta').textContent = `${cat}${subLabel} · ${filtered.length}개 · ${profileOf(activeProfile).label} 정렬`;
+  document.getElementById('catMeta').textContent = unscored
+    ? `${cat} · ${filtered.length}개 · 가성비 정렬 (함량 표기 우선)`
+    : `${cat}${subLabel} · ${filtered.length}개 · ${profileOf(activeProfile).label} 정렬`;
   document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
   document.getElementById('catCompareCta').innerHTML = "";
   const el = document.getElementById('catCards');
