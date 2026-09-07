@@ -15,8 +15,17 @@
 //      - (c) ctx 전달 → airtable.js v6 의 SWR·비동기 KV 쓰기 활성화.
 //            만료돼도 옛 값을 즉시 반환하므로 사용자가 Airtable을 기다리지 않는다.
 //      기대: 미스 경로 5.3초 → 2초 미만, 캐시 만료 시 체감 지연 0
+// [v7.4] 밀크씨슬 카테고리 추가 — 건기식 첫 "무채점" 카테고리.
+//      - 등급·품질점수·파레토 없음. 원료사는 명기만 하고 점수 축으로 쓰지 않는다.
+//        (근거: 모든 건기식을 동일 기준으로 채점하는 것은 취지에 맞지 않는다 — 검증 가능한
+//         축이 부족한 성분에 등급을 주면 그 등급이 거짓말이 된다. 스포츠 뉴트리션의
+//         BCAA·글루타민 무채점 처리와 같은 원칙.)
+//      - 정렬 = 2단: ① 함량 표기 여부(실리마린_mg 또는 밀크씨슬_mg) ② 1일비용 오름차순.
+//        순수 가격순은 "함량을 안 밝힌 제품"이 최상단에 오는 함정이 있다 (스포츠에서 실측).
+//      - 제품명 필드가 기존 테이블(제품명)과 달리 네이버_제품명이라 폴백을 추가했다.
+//      - 가격_원·리뷰수가 절반만 채워져 있어 쿠팡가격·쿠팡리뷰수로 폴백한다.
 // File path: functions/recommend2.js
-// URL: /recommend2?category=<오메가3|눈|마이크로바이옴|비타민C>
+// URL: /recommend2?category=<오메가3|눈|마이크로바이옴|비타민C|밀크씨슬>
 //
 // 단일 소스: *_쿠팡업데이트 테이블이 V_Score·등급 + 제품링크/쿠팡 URL/coupang_deeplink 를
 //            모두 보유한 완전한 테이블이므로, 조인 없이 이 테이블 하나만 읽는다.
@@ -30,14 +39,17 @@ const CATEGORIES = {
   "오메가3":        { table: "오메가3_쿠팡업데이트",        primary: { field: "EPA_DHA_mg",     label: "EPA+DHA",  unit: "mg" }, extra: ["EPA_mg", "DHA_mg", "캡슐당순도"] },
   "눈":            { table: "눈_쿠팡업데이트",            primary: { field: "루테인_mg",       label: "루테인",    unit: "mg" }, extra: ["지아잔틴_mg", "아스타잔틴_mg", "EPA_DHA_mg", "베타카로틴_mg", "비타민A"] },
   "마이크로바이옴":  { table: "마이크로바이옴_쿠팡업데이트",  primary: { field: "보장균수_억",     label: "보장균수",  unit: "억" }, extra: ["프리바이오틱스", "포스트바이오틱스", "다중코팅", "냉장유통"] },
-  "비타민C":        { table: "비타민C_쿠팡업데이트",        primary: { field: "비타민C함량_mg",  label: "비타민C",   unit: "mg" }, extra: ["제형구분"] }
+  "비타민C":        { table: "비타민C_쿠팡업데이트",        primary: { field: "비타민C함량_mg",  label: "비타민C",   unit: "mg" }, extra: ["제형구분"] },
+  // [v7.4] 무채점 카테고리. 테이블명이 다르면 아래 table 값만 고치면 된다.
+  "밀크씨슬":       { table: "밀크씨슬_2026.09.04",         primary: { field: "실리마린_mg",     label: "실리마린",  unit: "mg" }, extra: ["밀크씨슬_mg"], unscored: true }
 };
 
 const CATEGORY_ALIASES = {
   "omega3": "오메가3", "omega": "오메가3", "오메가3": "오메가3", "오메가": "오메가3",
   "eye": "눈", "lutein": "눈", "눈": "눈",
   "probiotics": "마이크로바이옴", "유산균": "마이크로바이옴", "microbiome": "마이크로바이옴", "마이크로바이옴": "마이크로바이옴",
-  "vitaminc": "비타민C", "vitamin_c": "비타민C", "vitc": "비타민C", "비타민c": "비타민C", "비타민C": "비타민C"
+  "vitaminc": "비타민C", "vitamin_c": "비타민C", "vitc": "비타민C", "비타민c": "비타민C", "비타민C": "비타민C",
+  "milkthistle": "밀크씨슬", "milk_thistle": "밀크씨슬", "밀크씨슬": "밀크씨슬", "밀크시슬": "밀크씨슬", "실리마린": "밀크씨슬"
 };
 
 const RAW_COUPANG_FIELDS = ["쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크"];
@@ -229,18 +241,18 @@ export async function onRequest(context) {
 
     return {
       id: readProductId(f, r.id),
-      name: str(f.제품명),
+      name: str(f.제품명) || str(f.네이버_제품명),   // [v7.4] 밀크씨슬 테이블은 네이버_제품명
       image: cleanImage(f.이미지URL),
       link: outLink,
       isAffiliate: !!partnersLink,
       form: str(f.제형),
       supplier: str(f.원료사),
       certs: str(f.인증),
-      price: num(f.가격_원),
+      price: num(f.가격_원) || num(f.쿠팡가격),      // [v7.4] 밀크씨슬: 가격_원 49% → 쿠팡가격 폴백
       dailyCost: Math.round(num(f["1일비용_원"])),
       dailyCapsules: num(f["1일캡슐수"]),
       capsuleMg: num(f.캡슐용량_mg),
-      reviewCount: num(f.리뷰수),
+      reviewCount: num(f.리뷰수) || num(f.쿠팡리뷰수),
       function: str(f.주된기능성),
       vScore: num(f.V_Score),
       grade: str(f.등급),
@@ -265,28 +277,47 @@ export async function onRequest(context) {
   // [v7] 품질점수 · 절대등급 · 가성비(파레토) 경계
   const tScore = Date.now();
   const qcfg = QUALITY_CFG[catKey];
-  for (const it of items) {
-    // 근거 원값: 눈은 루테인+지아잔틴 합, 나머지는 primaryValue 그대로
-    const raw = (catKey === "눈")
-      ? it.primaryValue + num(it.extra && it.extra["지아잔틴_mg"])
-      : it.primaryValue;
-    const core = Math.min(raw / qcfg.anchor, 1) * 100;
-    const q = qcfg.calc(core, it.scores);
-    it.quality = (q == null) ? null : Math.round(q * 10) / 10;
-    it.qualityGrade = qualityGradeOf(it.quality);
-  }
-  // 파레토 경계: "이보다 싸면서 더 좋은 제품이 없는" 제품 (동률은 둘 다 경계에 남는다)
-  for (const it of items) {
-    it.isPareto = false;
-    if (it.quality == null || !(it.dailyCost > 0)) continue;
-    it.isPareto = !items.some(o =>
-      o !== it && o.quality != null && o.dailyCost > 0 &&
-      o.dailyCost <= it.dailyCost && o.quality >= it.quality &&
-      (o.dailyCost < it.dailyCost || o.quality > it.quality)
-    );
+  if (cfg.unscored || !qcfg) {
+    // [v7.4] 무채점 카테고리 (밀크씨슬): 등급·품질점수·파레토를 만들지 않는다.
+    for (const it of items) { it.quality = null; it.qualityGrade = null; it.isPareto = false; }
+  } else {
+    for (const it of items) {
+      // 근거 원값: 눈은 루테인+지아잔틴 합, 나머지는 primaryValue 그대로
+      const raw = (catKey === "눈")
+        ? it.primaryValue + num(it.extra && it.extra["지아잔틴_mg"])
+        : it.primaryValue;
+      const core = Math.min(raw / qcfg.anchor, 1) * 100;
+      const q = qcfg.calc(core, it.scores);
+      it.quality = (q == null) ? null : Math.round(q * 10) / 10;
+      it.qualityGrade = qualityGradeOf(it.quality);
+    }
+    // 파레토 경계: "이보다 싸면서 더 좋은 제품이 없는" 제품 (동률은 둘 다 경계에 남는다)
+    for (const it of items) {
+      it.isPareto = false;
+      if (it.quality == null || !(it.dailyCost > 0)) continue;
+      it.isPareto = !items.some(o =>
+        o !== it && o.quality != null && o.dailyCost > 0 &&
+        o.dailyCost <= it.dailyCost && o.quality >= it.quality &&
+        (o.dailyCost < it.dailyCost || o.quality > it.quality)
+      );
+    }
   }
 
-  items.sort((a, b) => b.vScore - a.vScore);
+  if (cfg.unscored) {
+    // [v7.4] 2단 정렬: ① 함량 표기 여부(실리마린 또는 원물 함량) ② 1일비용 오름차순 ③ 리뷰수.
+    //   순수 가격순은 함량 미표기 제품을 최상단에 올린다 — 스포츠 뉴트리션에서 확인한 함정.
+    //   비용 미상은 각 그룹 맨 뒤(Infinity). Infinity-Infinity = NaN 은 || 체인에서 다음 축으로 넘어간다.
+    for (const it of items) {
+      it.contentNoted = it.primaryValue > 0 || num(it.extra && it.extra["밀크씨슬_mg"]) > 0;
+    }
+    items.sort((a, b) =>
+      ((b.contentNoted ? 1 : 0) - (a.contentNoted ? 1 : 0)) ||
+      ((a.dailyCost > 0 ? a.dailyCost : Infinity) - (b.dailyCost > 0 ? b.dailyCost : Infinity)) ||
+      (b.reviewCount - a.reviewCount)
+    );
+  } else {
+    items.sort((a, b) => b.vScore - a.vScore);
+  }
   items.forEach((it, i) => { it.rank = i + 1; });
   const msScore = Date.now() - tScore;
 
@@ -341,8 +372,9 @@ export async function onRequest(context) {
       capsule: { label: "캡슐 크기", unit: "mg", higherBetter: false, dist: distributions.capsule }
     },
     qualityMeta: {
-      anchorLabel: { "오메가3":"EPA+DHA 1,000mg", "눈":"루테인+지아잔틴 20mg", "마이크로바이옴":"보장균수 100억", "비타민C":"비타민C 1,000mg" }[catKey],
-      cuts: { A: 85, B: 70, C: 55, D: 40 }
+      anchorLabel: { "오메가3":"EPA+DHA 1,000mg", "눈":"루테인+지아잔틴 20mg", "마이크로바이옴":"보장균수 100억", "비타민C":"비타민C 1,000mg" }[catKey] || null,
+      cuts: { A: 85, B: 70, C: 55, D: 40 },
+      unscored: !!cfg.unscored   // [v7.4] 무채점 카테고리 표시 (밀크씨슬)
     },
     total: items.length,
     affiliateCount,
