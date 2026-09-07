@@ -1,4 +1,7 @@
-// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3.2)
+// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3.3)
+// [v3.3] 대상 테이블 2개 추가 — 헬스제품_단백질_부스터_2026.09.04(스포츠 뉴트리션),
+//        밀크씨슬_2026.09.04. 이미 딥링크가 있는 레코드는 건너뛰므로(멱등) 기존 4개 테이블엔 영향 없음.
+//        초기 대량 변환은 ?table=<테이블명> 로 하나씩 호출 권장 (하위요청 예산 여유 확보).
 // File path: functions/coupang-convert.js
 // URL: /coupang-convert?secret=<CACHE_REFRESH_SECRET>[&dryRun=1][&limit=200][&table=비타민C_쿠팡업데이트]
 //
@@ -23,7 +26,11 @@
 
 const COUPANG_DOMAIN = "https://api-gateway.coupang.com";
 const DEEPLINK_PATH = "/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink";
-const DEFAULT_TABLES = ["오메가3_쿠팡업데이트", "눈_쿠팡업데이트", "마이크로바이옴_쿠팡업데이트", "비타민C_쿠팡업데이트"];
+const DEFAULT_TABLES = [
+  "오메가3_쿠팡업데이트", "눈_쿠팡업데이트", "마이크로바이옴_쿠팡업데이트", "비타민C_쿠팡업데이트",
+  "헬스제품_단백질_부스터_2026.09.04",   // [v3.3] 스포츠 뉴트리션 (sports-api.js 와 동일 테이블)
+  "밀크씨슬_2026.09.04"                  // [v3.3] 밀크씨슬 (recommend2.js v7.4 와 동일 테이블)
+];
 const RAW_FIELDS = ["쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크"]; // raw 쿠팡 링크 컬럼 후보(공백 표기 차이 흡수)
 const F_DEEP = "coupang_deeplink";
 const CHUNK = 20;           // Deeplink API 1회 요청당 URL 수 (API 상한: 20)
