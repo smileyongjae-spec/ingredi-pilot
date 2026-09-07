@@ -1,4 +1,10 @@
-// functions/counsel2.js  [v15.23 — 밀크씨슬(무채점) 카테고리 + BYOK 최우선 경로]
+// functions/counsel2.js  [v15.24 — 릴레이 최우선 경로 + 밀크씨슬(무채점) 카테고리]
+//   - v15.24: [2026-09-07] BYOK(게이트웨이)까지 Anthropic 발신지 차단에 걸리는 것이 확인됨
+//             (diag: gateway_byok 403 "Request not allowed" — 아침 200 → 오후 403, 간헐).
+//             Cloudflare에서 나가는 세 경로가 전부 차단 대상이므로, Cloudflare 밖 릴레이
+//             (Deno Deploy, relay/main.ts)를 최우선 경로로 추가. RELAY_BASE·RELAY_SECRET
+//             env 미설정이면 이 경로는 건너뛰어 기존과 완전히 동일하게 동작한다.
+//             최종 우선순위: 릴레이 → BYOK → 게이트웨이 통과 → 직접.
 //   - v15.23: 밀크씨슬 추가 — 건기식 첫 무채점 카테고리. 등급·품질점수 없음, 원료사는 명기만.
 //             라우팅(밀크씨슬·실리마린·간 증상어) / 2단 정렬(함량 표기 → 1일비용) / 무채점 화법 규칙 /
 //             부정 평결 대안 게이트 = 함량 표기 제품(앵커 게이트 미적용). 간 질환 맥락은 기존 M 우선.
@@ -1152,10 +1158,26 @@ export async function onRequest(context) {
     });
     const RETRY_STATUS = [429, 500, 502, 503, 504, 529];
     let resp = null;
-    // [v15.22] BYOK 최우선 — 게이트웨이에 저장한 키(Provider Keys) + 게이트웨이 토큰으로 호출.
-    // Anthropic의 CF Workers 발신 차단이 "간헐적"이라 직접 경로는 러시안룰렛이다.
-    // BYOK는 CF↔Anthropic 공식 채널이라 차단과 무관하게 안정적. x-api-key는 보내지 않는다.
-    if (env.CF_AIG_TOKEN && env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY) {
+    // [v15.24] 릴레이 최우선 — Cloudflare 밖(Deno Deploy)에서 Anthropic을 대신 호출한다.
+    // Anthropic의 발신지 차단이 게이트웨이 대역까지 미치는 것이 확인돼(2026-09-07 diag),
+    // Cloudflare에서 직접 나가는 경로는 전부 신뢰할 수 없다. 요청 본문은 그대로 전달되므로
+    // 프롬프트 캐싱(cache_control)도 동일하게 작동한다(같은 API 키로 호출되기 때문).
+    if (env.RELAY_BASE && env.RELAY_SECRET) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          resp = await fetch(env.RELAY_BASE, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-relay-secret": env.RELAY_SECRET },
+            body: reqBody
+          });
+        } catch (_) { resp = null; }
+        if (resp && (resp.ok || RETRY_STATUS.indexOf(resp.status) === -1)) break;
+        await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+      }
+    }
+    // [v15.22] BYOK — 게이트웨이에 저장한 키(Provider Keys) + 게이트웨이 토큰으로 호출.
+    // 릴레이 미설정이거나 실패 시의 1차 폴백. x-api-key는 보내지 않는다.
+    if ((!resp || !resp.ok) && env.CF_AIG_TOKEN && env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY) {
       for (let attempt = 0; attempt < 3; attempt++) {
         resp = await fetch(`https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic/v1/messages`, {
           method: "POST",
