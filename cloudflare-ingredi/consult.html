@@ -242,6 +242,11 @@ var busy = false;
 var searchLogged = false;
 var lastCategory = null;    // meta.category (한글) — 딥링크용
 var lastDomain = 'health';  // 'health' | 'sports' — 키워드 없는 후속 질문("얼마나 먹어?")의 연속성용
+// 세션 도메인 잠금 — 첫 턴이 나가거나 사용자가 분기 버튼으로 골랐으면 true.
+// 잠긴 뒤에는 애매한 문장(운동+영양제 동시 등장)도 되묻지 않고 현재 도메인으로 이어간다.
+// (버그: "운동전후 영양제" → 스포츠 선택 → 목표 답변에 '운동'과 '영양제'가 다시 공존 → 분기 질문 재출현)
+// 반대쪽 신호만 있는 문장("아니 유산균 얘기야")은 기존대로 자연 전환된다. '새 상담'에서 해제.
+var domainLocked = false;
 
 // 도메인 판정: 메시지 단위로 한다(대화 단위 잠금 X — "유산균 어때? 크레아틴은?" 같은 전환 허용).
 // 둘 다 걸리면 추측하지 않고 사용자에게 고르게 한다(규제 근거가 갈리는 지점).
@@ -438,10 +443,15 @@ function send(text, forcedDomain) {
     d = forcedDomain;
   } else {
     var isS = SPORTS_RE.test(text), isH = HEALTH_RE.test(text);
-    if (isS && isH) { askDomain(text); return; }       // 진짜 모호할 때만 되묻는다
-    d = isS ? 'sports' : (isH ? 'health' : lastDomain); // 무신호 = 직전 도메인 이어감
+    if (isS && isH) {
+      if (!domainLocked) { askDomain(text); return; }  // 되묻기는 세션에 도메인이 아직 없을 때만
+      d = lastDomain;                                    // 잠긴 뒤의 애매한 문장은 현재 도메인 유지
+    } else {
+      d = isS ? 'sports' : (isH ? 'health' : lastDomain); // 한쪽 신호만 = 전환 / 무신호 = 이어감
+    }
   }
   lastDomain = d;
+  domainLocked = true;
   if (d === 'sports') { sendSports(text); return; }
 
   busy = true;
@@ -599,6 +609,7 @@ document.getElementById('composerInput').addEventListener('keydown', function (e
 });
 
 function resetThread() {
+  domainLocked = false;   // 새 상담 = 도메인 다시 판정
   messages = [];
   lastCategory = null;
   lastDomain = 'health';
