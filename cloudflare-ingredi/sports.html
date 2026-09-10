@@ -115,6 +115,7 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
   padding:15px 16px 14px; margin-bottom:14px; box-shadow:var(--shadow-sm); }
 .cv-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
 .cv-rank { font-size:12px; font-weight:700; color:var(--ink-soft); }
+.cv-hold { font-size:11px; font-weight:700; color:#6E7177; border:1px solid #E1E2E4; border-radius:8px; padding:3px 8px; white-space:nowrap; }
 .cv-grade { width:28px; height:28px; border-radius:50%; border:1px solid; font-size:13px;
   font-weight:700; display:flex; align-items:center; justify-content:center; }
 .cv-row { display:flex; align-items:center; gap:13px; }
@@ -351,6 +352,15 @@ function compare(p,d){
   return `<div class="cl-block"><div class="cl-head">${esc(label)} ${d.total}개 제품과 비교하면</div>${out.join('')}</div>`;
 }
 
+
+// 채점 유형인데 점수가 없는 제품의 사유 — 판단이 아니라 사실 진술. "–"만 보이면 사용자는 이유를 모른다.
+function holdReason(p, d){
+  if (d.tier === 'none' || p.qualityGrade) return '';
+  const pv = p.primary && p.primary.v;
+  if (!(pv > 0)) return '함량 미표기';
+  if (p.purityScore == null && (d.sub === '웨이프로틴' || d.sub === '웨이트게이너')) return '정제도 미표기';
+  return '자료 부족';
+}
 function card(p,d){
   const g=p.qualityGrade, c=GRADE[g]||['transparent','#9AA0A6','#E4E4E1'];
   const img=p.image?esc(p.image):PLACEHOLDER;
@@ -373,7 +383,7 @@ function card(p,d){
   // 무채점 유형은 등급 배지 자리를 비운다. 회색 배지나 "미부여" 표기를 넣지 않는다.
   const badge = (d.tier==='none') ? ''
     : (g ? `<span class="cv-grade" style="background:${c[0]};color:${c[1]};border-color:${c[2]}">${g}</span>`
-         : `<span class="cv-grade" style="background:transparent;color:#9AA0A6;border-color:#E4E4E1">–</span>`);
+         : `<span class="cv-hold" title="등급을 매기려면 이 항목의 표기가 필요해요">평가 보류 · ${holdReason(p,d)}</span>`);
   // 가성비 경계 배지는 가성비 탭에서만. 성분 탭에서 띄우면 축이 섞여 보인다.
   // 정렬에는 쓰지 않고 "같은 값이면 이보다 나은 선택이 없다"는 정보로만 남긴다.
   const pareto = (profile==='value' && p.isPareto) ? `<span class="cv-pareto">가성비 경계</span>` : '';
@@ -401,7 +411,7 @@ function restCard(p,d,i){
                    : (p.dailyCost>0?`하루 ${fmt(p.dailyCost)}원`:'정보 준비중');
   const badge = (d.tier==='none') ? ''
     : (g?`<span class="cv-grade" style="background:${c[0]};color:${c[1]};border-color:${c[2]}">${g}</span>`
-        :`<span class="cv-grade" style="background:transparent;color:#9AA0A6;border-color:#E4E4E1">–</span>`);
+        :`<span class="cv-hold">보류</span>`);
   return `<div class="cr-card" id="cr-${i}">
     <div class="cr-row" onclick="tog(${i})">
       <span class="cr-rank">${p.rank}위</span>
