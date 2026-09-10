@@ -35,6 +35,14 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
 .dom { background:var(--green-tint); border:1px solid var(--green-hover); border-radius:12px;
   padding:13px 15px; margin:-6px 0 16px; }
 .dom-t { font-size:13.5px; font-weight:700; color:var(--green-deep); margin-bottom:3px; }
+/* 제품 비교 CTA — app.html(건기식)과 동일 컴포넌트. compare.html v2가 스포츠 성분유형 비교를 지원한다. */
+.cat-compare-cta { margin:6px 2px 20px; background:var(--green-tint); border:1px solid var(--green-hover); border-radius:14px; padding:15px; }
+.ccta-head { display:flex; align-items:center; gap:10px; margin-bottom:11px; }
+.ccta-icon { width:38px; height:38px; border-radius:10px; background:var(--green-light); color:var(--green-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ccta-title { font-size:14px; font-weight:800; color:var(--green-deep); }
+.ccta-sub { font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+.cat-compare-cta a { display:block; text-align:center; padding:13px; border-radius:11px; background:var(--green-primary); color:var(--surface); font-weight:700; font-size:14.5px; text-decoration:none; transition:.15s; }
+.cat-compare-cta a:hover { background:var(--green-deep); }
 .dom-b { font-size:12px; color:var(--ink-soft); line-height:1.55; word-break:keep-all; }
 
 .cat-tabbar { position:sticky; top:0; z-index:9; background:var(--paper); display:flex; gap:7px;
@@ -437,7 +445,12 @@ function render(d){
   const restHtml = rest.length
     ? `<div class="cat-resthead">그 외 ${rest.length}개 제품</div>` + rest.map((p,i)=>restCard(p,d,i+3)).join('')
     : '';
-  el.innerHTML = top + restHtml;
+  // 비교 CTA — 같은 성분유형끼리 2~3개 나란히. 무채점 유형도 함량·비용 비교는 가능하다.
+  const subKey = d.sub || activeSub;
+  const cta = (d.products.length >= 2 && subKey)
+    ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">${d.tier === 'none' ? '함량 · 하루 비용 · 제형을 한눈에' : '등급 · 함량 · 하루 비용 · 인증을 한눈에'}</div></div></div><a href="/compare.html?domain=sports&category=${encodeURIComponent(subKey)}">제품 비교하기 →</a></div>`
+    : '';
+  el.innerHTML = top + cta + restHtml;
   if (showTierAfter) { showTier(d); showTierAfter = false; }
 }
 window.showTier = showTier;
