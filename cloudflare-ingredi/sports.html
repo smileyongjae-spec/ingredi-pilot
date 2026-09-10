@@ -175,6 +175,89 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
 .disclosure { border-top:.5px solid var(--line-soft); margin-top:20px; padding:14px 8px 4px; }
 .disclosure-text { font-size:11px; line-height:1.6; color:var(--ink-faint); text-align:center; margin:0; }
 .disclosure-text strong { color:var(--ink-soft); font-weight:600; }
+/* ── 이식: app.html 등급 설명 아코디언 + 의견 보내기 (동일 컴포넌트) ── */
+.ht { margin: 6px 2px 14px; }
+    .ht { margin-bottom: 14px; }
+.ht-btn { width:100%; display:flex; align-items:center; justify-content:space-between;
+          padding:13px 15px; background:var(--green-tint); border:1px solid var(--green-mid);
+          border-radius:11px; font-size:13.5px; font-weight:700; color:var(--green-primary);
+          cursor:pointer; font-family:inherit; }
+.ht-btn:active { background: var(--green-light); }
+.ht-chev { color: var(--green-primary); font-size: 17px; line-height:1; }
+.ht-body { margin-top:8px; background:var(--paper); border:1px solid var(--line-soft);
+           border-radius:11px; padding:4px 14px; }
+.ht-row { padding:11px 0; border-bottom:1px solid var(--line-soft); }
+.ht-row:last-child { border-bottom:none; }
+.ht-h { font-size:12px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+.ht-b { font-size:12px; line-height:1.6; color:var(--ink-soft); word-break:keep-all; }
+    @keyframes fbFade { from { opacity: 0; } to { opacity: 1; } }
+.feedback { margin-top: 16px; padding: 0 8px; }
+.feedback-trigger {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; padding: 13px;
+  background: var(--surface); border: 1.5px solid var(--green-primary);
+  border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  color: var(--green-primary); cursor: pointer;
+  transition: background 0.15s ease;
+}
+.feedback-trigger:hover { background: var(--green-light); }
+.feedback-trigger:active { transform: scale(0.98); }
+.feedback-trigger svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.feedback-modal {
+  display: none; position: fixed; top: 0; bottom: 0; left: 50%;
+  transform: translateX(-50%); width: 100%; max-width: 480px; z-index: 200;
+  background: var(--paper); flex-direction: column;
+}
+.feedback-modal.active { display: flex; animation: fbFade 0.2s ease; }
+.feedback-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: max(16px, env(safe-area-inset-top)) 18px 16px;
+  border-bottom: 1px solid var(--line-soft); background: var(--paper);
+}
+.feedback-modal-title { display: flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 700; color: var(--green-deep); }
+.feedback-modal-title svg { width: 18px; height: 18px; color: var(--green-primary); flex-shrink: 0; }
+.feedback-modal-close { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--ink-faint); cursor: pointer; border-radius: 8px; }
+.feedback-modal-close:hover { background: var(--line-soft); }
+.feedback-modal-close svg { width: 20px; height: 20px; }
+.feedback-modal-body { flex: 1; display: flex; flex-direction: column; padding: 18px; overflow-y: auto; }
+.feedback-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; margin-bottom: 12px; }
+.feedback-textarea {
+  flex: 1; width: 100%; min-height: 200px; resize: none;
+  padding: 14px; background: var(--surface);
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 15px; color: var(--ink); line-height: 1.6;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.feedback-textarea::placeholder { color: var(--ink-faint); }
+.feedback-textarea:focus { outline: none; border-color: var(--green-primary); box-shadow: 0 0 0 3px rgba(45,95,63,0.08); }
+.feedback-err { font-size: 13px; color: var(--warn); margin-top: 10px; }
+.feedback-modal-foot {
+  display: flex; gap: 8px;
+  padding: 14px 18px max(14px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-soft); background: var(--paper);
+}
+.feedback-btn {
+  flex: 1; padding: 14px; border: none; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.feedback-btn.cancel { background: var(--green-light); color: var(--green-deep); }
+.feedback-btn.cancel:hover { background: var(--green-hover); }
+.feedback-btn.send { background: var(--green-primary); color: var(--surface); }
+.feedback-btn.send:hover { background: var(--green-deep); }
+.feedback-btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
+.feedback-done {
+  display: none; position: fixed; top: 0; bottom: 0; left: 50%;
+  transform: translateX(-50%); width: 100%; max-width: 480px; z-index: 201;
+  background: var(--paper); flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; padding: 40px; text-align: center;
+}
+.feedback-done.active { display: flex; animation: fbFade 0.2s ease; }
+.feedback-done-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--green-light); display: flex; align-items: center; justify-content: center; }
+.feedback-done-icon svg { width: 30px; height: 30px; color: var(--green-primary); }
+.feedback-done-text { font-size: 16px; font-weight: 600; color: var(--green-deep); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -216,6 +299,38 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
     <div class="disclosure">
       <p class="disclosure-text" id="catDisclaimer"></p>
       <p class="disclosure-text" style="margin-top:8px"><strong>ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다.</strong> 단, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있으며 이는 추천 결과에 영향을 주지 않습니다.</p>
+    </div>
+    <div class="feedback" data-fb="sports">
+      <button class="feedback-trigger" type="button" onclick="fbOpen('sports')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        ingredi 서비스 의견 보내기
+      </button>
+      <div class="feedback-modal" id="fbForm-sports">
+        <div class="feedback-modal-head">
+          <div class="feedback-modal-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            ingredi 서비스 의견 보내기
+          </div>
+          <button class="feedback-modal-close" type="button" aria-label="닫기" onclick="fbCancel('sports')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="feedback-modal-body">
+          <div class="feedback-desc">서비스 개선사항이나 버그, 바라는 점을 들려주세요</div>
+          <textarea class="feedback-textarea" id="fbText-sports" placeholder="자유롭게 적어주세요"></textarea>
+          <div class="feedback-err" id="fbErr-sports"></div>
+        </div>
+        <div class="feedback-modal-foot">
+          <button class="feedback-btn cancel" type="button" onclick="fbCancel('sports')">취소</button>
+          <button class="feedback-btn send" type="button" id="fbSend-sports" onclick="fbSubmit('sports')">보내기</button>
+        </div>
+      </div>
+      <div class="feedback-done" id="fbDone-sports">
+        <div class="feedback-done-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="feedback-done-text">소중한 의견 감사합니다.<br>서비스 개선에 바로 반영할게요.</div>
+      </div>
     </div>
   </main>
 </div>
@@ -361,6 +476,87 @@ function holdReason(p, d){
   if (p.purityScore == null && (d.sub === '웨이프로틴' || d.sub === '웨이트게이너')) return '정제도 미표기';
   return '자료 부족';
 }
+
+// ── 등급·비교 기준 설명 (app.html 아코디언 이식, ISSN 도메인 문구) ──
+function toggleHowTo(btn){
+  const box = btn.parentNode.querySelector('.ht-body');
+  const open = box.hasAttribute('hidden');
+  if (open) box.removeAttribute('hidden'); else box.setAttribute('hidden','');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.querySelector('.ht-chev').textContent = open ? '▴' : '▾';
+}
+window.toggleHowTo = toggleHowTo;
+function howToRead(d){
+  const scored = d.tier !== 'none';
+  const rows = scored ? [
+    ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — ISSN 근거 용량(앵커)을 얼마나 채웠는지와 정제도·인증으로 정하고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
+    ["ISSN 근거 기준", "국제스포츠영양학회(ISSN) 포지션 스탠드의 권장 용량을 앵커로 써요" + (d.anchorLabel ? ` — 이 성분은 ${esc(d.anchorLabel)}.` : ".") + (d.perKg ? " 체중에 비례하는 권장이라 입력한 체중으로 계산해요." : "")],
+    ["평가 보류", "함량이나 정제도 같은 산식 입력이 표기돼 있지 않으면 등급을 매기지 않고 '평가 보류'로 표시해요. 모르는 값을 0으로 넣어 등급을 주면 그 등급이 거짓이 되니까요."],
+    ["성분 우선 · 가성비 우선", "성분 우선은 품질점수가 높은 순, 가성비 우선은 가격 대비 최선인 제품을 앞에 두는 순서예요. 어느 쪽이든 품질을 재는 기준은 같아요."],
+    ["하루 비용", "판매가를 표기 섭취량 기준 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
+    ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니라서 비중을 낮게 둬요."],
+    ["일반식품", "스포츠 보충제는 대부분 일반식품이라 식약처 기능성 표시가 없어요. 별도로 인정받은 제품만 카드에 따로 표시해요."]
+  ] : [
+    ["등급이 없는 이유", "이 성분은 ISSN 별도 지침이 없어서 등급을 매기지 않아요. 근거가 얇은 성분에 등급을 주면 등급 체계 전체의 신뢰가 흔들리니까요."],
+    ["정렬 순서", "함량을 표기한 제품을 앞에 두고, 그 안에서 하루 비용이 낮은 순으로 보여드려요. 함량을 밝히지 않은 제품이 싸다는 이유만으로 위에 오지 않게 하기 위해서예요."],
+    ["하루 비용", "판매가를 표기 섭취량 기준 복용 일수로 나눈 값이에요."],
+    ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니에요."]
+  ];
+  const body = rows.map(([h,b]) => `<div class="ht-row"><div class="ht-h">${esc(h)}</div><div class="ht-b">${b}</div></div>`).join('');
+  return `<div class="ht"><button class="ht-btn" onclick="toggleHowTo(this)" aria-expanded="false"><span>${scored ? '등급과 비교, 이렇게 정해요' : '순서와 비교, 이렇게 정해요'}</span><span class="ht-chev">▾</span></button><div class="ht-body" hidden>${body}</div></div>`;
+}
+const FB_SCREEN = { sports: "sports" };
+function fbLock(on){ document.body.style.overflow = on ? "hidden" : ""; }
+function fbOpen(id){
+  const modal = document.getElementById("fbForm-" + id);
+  const ta = document.getElementById("fbText-" + id);
+  if (modal) modal.classList.add("active");
+  fbLock(true);
+  if (ta) ta.focus();
+}
+function fbCancel(id){
+  const modal = document.getElementById("fbForm-" + id);
+  const ta = document.getElementById("fbText-" + id);
+  const err = document.getElementById("fbErr-" + id);
+  if (modal) modal.classList.remove("active");
+  if (ta) ta.value = "";
+  if (err) err.textContent = "";
+  fbLock(false);
+}
+async function fbSubmit(id){
+  const ta = document.getElementById("fbText-" + id);
+  const err = document.getElementById("fbErr-" + id);
+  const btn = document.getElementById("fbSend-" + id);
+  const content = ((ta && ta.value) || "").trim();
+  if (err) err.textContent = "";
+  if (!content){ if (ta) ta.focus(); return; }
+  if (btn){ btn.disabled = true; btn.textContent = "보내는 중…"; }
+  const payload = { 내용: content, 화면: FB_SCREEN[id] || id };
+  if (id === "sports") payload.카테고리 = "스포츠/" + activeCat + (activeSub ? "/" + activeSub : "");
+  try {
+    const res = await fetch("/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_e) {}
+    if (!res.ok || !data.ok) throw new Error((data && data.error) || "전송 실패");
+    const modal = document.getElementById("fbForm-" + id);
+    const done = document.getElementById("fbDone-" + id);
+    if (modal) modal.classList.remove("active");
+    if (done) done.classList.add("active");
+    if (ta) ta.value = "";
+    if (btn){ btn.disabled = false; btn.textContent = "보내기"; }
+    setTimeout(function(){ if (done) done.classList.remove("active"); fbLock(false); }, 1800);
+  } catch (e) {
+    if (err) err.textContent = "전송에 실패했어요. 잠시 후 다시 시도해주세요.";
+    if (btn){ btn.disabled = false; btn.textContent = "보내기"; }
+  }
+}
+window.fbOpen = fbOpen;
+window.fbCancel = fbCancel;
+window.fbSubmit = fbSubmit;
 function card(p,d){
   const g=p.qualityGrade, c=GRADE[g]||['transparent','#9AA0A6','#E4E4E1'];
   const img=p.image?esc(p.image):PLACEHOLDER;
@@ -460,7 +656,7 @@ function render(d){
   const cta = (d.products.length >= 2 && subKey)
     ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">${d.tier === 'none' ? '함량 · 하루 비용 · 제형을 한눈에' : '등급 · 함량 · 하루 비용 · 인증을 한눈에'}</div></div></div><a href="/compare.html?domain=sports&category=${encodeURIComponent(subKey)}">제품 비교하기 →</a></div>`
     : '';
-  el.innerHTML = top + cta + restHtml;
+  el.innerHTML = howToRead(d) + top + cta + restHtml;
   if (showTierAfter) { showTier(d); showTierAfter = false; }
 }
 window.showTier = showTier;
