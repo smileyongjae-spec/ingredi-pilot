@@ -490,11 +490,13 @@ function goCompare(){
   rows += row("가격", p=> cell(num(p.price)?fmt(num(p.price)):"—", num(p.price)?"원":"", bestPrice!==null && num(p.price)===bestPrice));
   if (!isSports) rows += row("캡슐<br>크기", p=> num(p.capsuleMg)>0 ? cell(fmt(num(p.capsuleMg)),"mg", bestCap!==null && num(p.capsuleMg)===bestCap) : cell("가루 형태","",false));
   rows += row("제형", p=> cell(esc(p.form||"—"),"",false));
-  if (isSports) rows += row("맛", p=> cell(esc(p.flavor||"—"),"",false));
+  const anyHas = fn => prods.some(p => { const v = fn(p); return v && String(v).trim() !== "" && String(v).trim() !== "-"; });
+  if (isSports && anyHas(p=>p.flavor)) rows += row("맛", p=> cell(esc(p.flavor||"—"),"",false));
   rows += row("인증", p=> { const c = String(p.certs||"").split(/[,\/·]/).map(x=>x.trim()).filter(Boolean).slice(0,4);
     return cell(c.length ? esc(c.join(" · ")) : "—","",false); });
   if (activeCat === "밀크씨슬") rows += row("원료사" + sub("참고 정보"), p=> cell(esc((p.supplier && String(p.supplier).trim() !== "-") ? p.supplier : "—"),"",false));
-  if (isSports) rows += row("식약처<br>기능성" + sub("별도 인정 시"), p=> cell(esc(String(p.function||"—").slice(0,40)),"",false));
+  // 스포츠 보충제는 일반식품이 원칙 — 식약처 기능성 행은 선택 제품 중 하나라도 별도 인정을 받았을 때만 표시
+  if (isSports) { if (anyHas(p=>p.function)) rows += row("식약처<br>기능성" + sub("별도 인정"), p=> cell(esc(String(p.function||"—").slice(0,40)),"",false)); }
   else rows += row("주된 기능성", p=> cell(esc(String(p.function||"—").slice(0,40)),"",false));
 
   const cart = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
