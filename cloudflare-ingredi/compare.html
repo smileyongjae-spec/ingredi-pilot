@@ -49,6 +49,8 @@
   .domtoggle button.active{background:var(--surface);color:var(--green-deep);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .tiernote{font-size:12px;color:var(--ink-soft);line-height:1.5;background:var(--green-tint,#EEF3EE);border-radius:10px;padding:9px 12px;margin:0 0 10px}
   .pgrade.na,.pc-grade.na{display:none}
+  .pgrade.hold{width:auto;height:auto;border-radius:8px;padding:3px 8px;font-size:11px;color:#6E7177;border-color:#E1E2E4;background:transparent}
+  .pc-hold{display:inline-block;font-size:11px;font-weight:700;color:#6E7177;border:1px solid #E1E2E4;border-radius:8px;padding:3px 8px;margin:4px 0 2px;white-space:nowrap}
 
   .seltray{position:sticky;top:65px;z-index:10;background:var(--paper);padding:6px 0 12px;border-bottom:1px solid var(--line-soft)}
   .selchips{display:flex;gap:7px;flex-wrap:wrap;min-height:34px}
@@ -292,6 +294,12 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;"
 function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
 function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
 function gradeLetter(p){ return p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null); }
+// 채점 카테고리인데 점수가 없는 제품의 사유(사실 진술). 스포츠 단백질류는 정제도 미표기가 대부분.
+function holdReason(p){
+  if (!(num(p.primaryValue) > 0)) return "함량 미표기";
+  if (curData && curData._domain === "sports" && p.purityScore == null && /웨이프로틴|웨이트게이너/.test(activeCat)) return "정제도 미표기";
+  return "자료 부족";
+}
 function gradeOf(p){ return GRADE[gradeLetter(p)] || ["transparent","#9AA0A6","#E4E4E1"]; }
 function prodById(id){ return (curData?curData.products:[]).find(p=>String(p.id)===String(id)); }
 
@@ -328,7 +336,7 @@ function normalize(data, domain){
     quality: p.quality, qualityGrade: p.qualityGrade,
     primaryValue: p.primary && p.primary.v != null ? p.primary.v : 0,
     dailyCost: p.dailyCost, price: p.price, capsuleMg: 0,
-    form: p.form, certs: p.certs, function: p.mfdsFunction || "", supplier: p.supplier, flavor: p.flavor, extra: {}
+    form: p.form, certs: p.certs, function: p.mfdsFunction || "", supplier: p.supplier, flavor: p.flavor, purityScore: p.purityScore, extra: {}
   }));
   return { _domain: "sports", category: data.sub, products,
     metrics: { primary: { label: pl, unit: pu, higherBetter: true } },
@@ -395,7 +403,9 @@ function renderList(filter){
     const dim = atMax && !isSel ? " dim" : "";
     const img = p.image ? esc(p.image) : PLACEHOLDER;
     const sub = num(p.primaryValue) > 0 ? `${esc(m.label)} ${fmt(num(p.primaryValue))}${esc(m.unit)}` : `함량 미표기`;
-    const badge = unscored ? "" : `<span class="pgrade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}</span>`;
+    const badge = unscored ? "" : (gradeLetter(p)
+      ? `<span class="pgrade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}</span>`
+      : `<span class="pgrade hold" title="${holdReason(p)}">보류</span>`);
     return `<div class="prow${isSel?' sel':''}${dim}" onclick="toggleSel('${esc(String(p.id))}')">
       <div class="pcheck">${isSel?'✓':''}</div>
       <img class="pthumb" src="${img}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
@@ -471,7 +481,9 @@ function goCompare(){
     const pct = unscored ? null : overallPct(curData._all, p);
     return `<th class="ch-prod"><div class="pc">
       <img class="pc-thumb" src="${img}" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
-      ${unscored ? "" : `<span class="pc-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}</span>`}
+      ${unscored ? "" : (gradeLetter(p)
+          ? `<span class="pc-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}</span>`
+          : `<span class="pc-hold">평가 보류 · ${holdReason(p)}</span>`)}
       <div class="pc-name">${esc(p.name)}</div>
       ${pct!==null ? `<div class="pc-pct">종합 상위 ${pct}%</div>` : ""}
       <button class="pc-rm" onclick="removeFromCompare('${esc(String(p.id))}')">빼기</button>
