@@ -391,7 +391,7 @@ export async function onRequest(context) {
     total: items.length,
     affiliateCount,
     products: items,
-    disclaimer: "\u00A0\uBCF8 V-Score\uB294 \uACF5\uAC1C\uB41C \uC81C\uD488 \uB370\uC774\uD130 \uAE30\uBC18\uC758 \uAC1D\uAD00\uC801 \uC9C0\uD45C\uC774\uBA70, \uAC1C\uC778\uC758 \uAC74\uAC15 \uC0C1\uD0DC\u00B7\uC57D\uBB3C\u00B7\uC54C\uB808\uB974\uAE30\uC5D0 \ub530\ub77c \uCD5C\uC801 \uC81C\ud488\uC740 \ub2E4\ub97c \uC218 \uC788\uC2B5\ub2C8\ub2E4."
+    disclaimer: " 본 등급과 순위는 공개된 제품 데이터(표기 함량·제형·인증) 기반의 객관적 지표이며, 개인의 건강 상태·약물·알레르기에 따라 최적 제품은 다를 수 있습니다."
   };
 
   // ── [v7.2] 진단 블록 ──
