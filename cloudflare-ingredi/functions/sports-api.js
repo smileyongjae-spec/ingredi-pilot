@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: 스포츠 뉴트리션 추천 (v1.0)
+// Cloudflare Pages Function: 스포츠 뉴트리션 추천 (v1.1 — 가격 컬럼 폴백: 가격_원 → 쿠팡가격)
 // URL: /sports?category=<단백질|크레아틴|아미노산|부스터|카르니틴>&sub=<서브필터>&weight=<kg>
 //
 // [규제 분리] 기존 4개 카테고리(recommend2.js)는 식약처 인정 기능성 기준.
@@ -260,7 +260,7 @@ export async function onRequest(context) {
       image: img(f["이미지URL"]),
       link: deeplink || coupang || naver,
       isAffiliate: !!deeplink,
-      price: N(f["가격_원"]),
+      price: N(f["가격_원"]) || N(f["쿠팡가격"]),   // [v1.1] 09.04 테이블은 가격_원 없이 쿠팡가격만 있음 → 비교표 가격이 전부 "—"였던 원인
       dailyCost: dailyCost(f),
       reviewCount: N(f["리뷰수"]) || 0,
       form: S(f["제형"]),
