@@ -43,7 +43,7 @@
   .tabs::-webkit-scrollbar{display:none}
   .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:14px;font-family:inherit;font-weight:600;padding:9px 16px;border-radius:22px;cursor:pointer;white-space:nowrap;transition:.15s}
   .tab.active{background:var(--green-deep);color:var(--surface);border-color:var(--green-deep)}
-  /* [v2] 도메인 토글(건강기능식품 / 스포츠 뉴트리션) — 카테고리 탭 위의 상위 스위치 */
+  /* [v2] 도메인 토글(건강기능식품 / 운동 보충제) — 카테고리 탭 위의 상위 스위치 */
   .domtoggle{display:flex;gap:6px;padding:2px;background:var(--green-tint,#EEF3EE);border-radius:12px;margin:0 0 10px}
   .domtoggle button{flex:1;border:0;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:13.5px;font-weight:700;padding:9px 6px;border-radius:10px;cursor:pointer;transition:.15s}
   .domtoggle button.active{background:var(--surface);color:var(--green-deep);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -172,7 +172,7 @@ const DOMAINS = {
       { key:"마이크로바이옴", label:"유산균" }, { key:"비타민C", label:"비타민C" },
       { key:"밀크씨슬", label:"밀크씨슬" }
     ] },
-  sports: { label: "스포츠 뉴트리션", api: window.location.origin + "/sports-api",
+  sports: { label: "운동 보충제", api: window.location.origin + "/sports-api",
     tabs: [
       { key:"웨이프로틴", cat:"단백질", label:"웨이프로틴" }, { key:"웨이트게이너", cat:"단백질", label:"게이너" },
       { key:"크레아틴", cat:"크레아틴", label:"크레아틴" },
