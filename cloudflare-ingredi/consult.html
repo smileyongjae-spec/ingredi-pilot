@@ -235,7 +235,7 @@
 <script>
 /* ═══════════ 상태 ═══════════ */
 var API = window.location.origin + '/counsel2';
-// [도메인 분리] 스포츠 뉴트리션 상담은 근거 체계(ISSN)가 달라 별도 엔드포인트로 간다.
+// [도메인 분리] 운동 보충제 상담은 근거 체계(ISSN)가 달라 별도 엔드포인트로 간다.
 // 파일명 규칙: Function은 sports-counsel(HTML과 이름 충돌 없음 확인).
 var SPORTS_API = window.location.origin + '/sports-counsel';
 var messages = [];          // [{role, content}]
@@ -528,7 +528,7 @@ function send(text, forcedDomain) {
   });
 }
 
-/* ═══════════ 스포츠 뉴트리션 (층 1: 지식 응답) ═══════════ */
+/* ═══════════ 운동 보충제 (층 1: 지식 응답) ═══════════ */
 function sendSports(text) {
   busy = true;
   document.getElementById('sendBtn').disabled = true;
@@ -568,7 +568,7 @@ function sendSports(text) {
 
 // 스포츠 응답 렌더. 건기식과 다른 근거 체계임을 매 턴 라벨로 밝힌다.
 function addSportsTurn(out) {
-  var h = '<div class="block-label">스포츠 뉴트리션 · ISSN 근거 기준</div>';
+  var h = '<div class="block-label">운동 보충제 · ISSN 근거 기준</div>';
   h += '<p class="voice">' + voiceHtml(out.reply) + '</p>';
   var chips = out.chips || [];
   if (chips.length) {
