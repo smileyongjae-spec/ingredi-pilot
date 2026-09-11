@@ -177,7 +177,7 @@ const DOMAINS = {
     ] },
   sports: { label: "운동 보충제", api: window.location.origin + "/sports-api",
     tabs: [
-      { key:"웨이프로틴", cat:"단백질", label:"웨이프로틴" }, { key:"웨이트게이너", cat:"단백질", label:"게이너" },
+      { key:"웨이프로틴", cat:"단백질", label:"단백질 파우더" }, { key:"웨이트게이너", cat:"단백질", label:"게이너" },
       { key:"크레아틴", cat:"크레아틴", label:"크레아틴" },
       { key:"EAA", cat:"아미노산", label:"EAA" }, { key:"HMB", cat:"아미노산", label:"HMB" },
       { key:"BCAA", cat:"아미노산", label:"BCAA" }, { key:"글루타민", cat:"아미노산", label:"글루타민" },
@@ -339,7 +339,7 @@ function normalize(data, domain){
     quality: p.quality, qualityGrade: p.qualityGrade,
     primaryValue: p.primary && p.primary.v != null ? p.primary.v : 0,
     dailyCost: p.dailyCost, price: p.price, capsuleMg: 0,
-    form: p.form, certs: p.certs, function: p.mfdsFunction || "", supplier: p.supplier, flavor: p.flavor, purityScore: p.purityScore, extra: {}
+    form: p.form, certs: p.certs, function: p.mfdsFunction || "", supplier: p.supplier, flavor: p.flavor, purityScore: p.purityScore, proteinSource: p.proteinSource || null, extra: {}
   }));
   return { _domain: "sports", category: data.sub, products,
     metrics: { primary: { label: pl, unit: pu, higherBetter: true } },
@@ -497,15 +497,16 @@ function goCompare(){
   function sub(t){ return `<div style="font-weight:400;font-size:10px;color:var(--ink-faint);margin-top:2px;line-height:1.3">${t}</div>`; }
 
   let rows = "";
+  const anyHas = fn => prods.some(p => { const v = fn(p); return v && String(v).trim() !== "" && String(v).trim() !== "-"; });
   // 함량: 미표기(0)는 "미표기"로 정직하게, best 표시도 표기 제품끼리만
   rows += row((isSports ? "지표" : "효능성분<br>함량") + sub(esc(m.label)), p=> num(p.primaryValue)>0
     ? cell(fmt(num(p.primaryValue)), esc(m.unit), num(p.primaryValue)===bestPrim && bestPrim>0)
     : cell("미표기","",false));
   rows += row("1일 비용", p=> cell(num(p.dailyCost)?fmt(num(p.dailyCost)):"—", num(p.dailyCost)?"원":"", bestCost!==null && num(p.dailyCost)===bestCost));
   rows += row("가격", p=> cell(num(p.price)?fmt(num(p.price)):"—", num(p.price)?"원":"", bestPrice!==null && num(p.price)===bestPrice));
+  if (isSports && anyHas(p=>p.proteinSource)) rows += row("단백질<br>원료", p=> cell(esc(p.proteinSource||"—"),"",false));
   if (!isSports) rows += row("캡슐<br>크기", p=> num(p.capsuleMg)>0 ? cell(fmt(num(p.capsuleMg)),"mg", bestCap!==null && num(p.capsuleMg)===bestCap) : cell("가루 형태","",false));
   rows += row("제형", p=> cell(esc(p.form||"—"),"",false));
-  const anyHas = fn => prods.some(p => { const v = fn(p); return v && String(v).trim() !== "" && String(v).trim() !== "-"; });
   if (isSports && anyHas(p=>p.flavor)) rows += row("맛", p=> cell(esc(p.flavor||"—"),"",false));
   rows += row("인증", p=> { const c = String(p.certs||"").split(/[,\/·]/).map(x=>x.trim()).filter(Boolean).slice(0,4);
     return cell(c.length ? esc(c.join(" · ")) : "—","",false); });
