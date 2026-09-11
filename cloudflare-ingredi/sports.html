@@ -593,6 +593,7 @@ function card(p,d){
     ${compare(p,d)}
     ${price>0?`<div class="cv-price"><span class="lbl">판매가</span><span class="val">${fmt(price)}원${mo}</span></div>`:''}
     ${tags.length?`<div class="cv-certrow"><span class="lbl">인증</span><div class="cv-tagrow">${tags.join('')}</div></div>`:''}
+    ${p.proteinSource?`<div class="cv-form"><span class="lbl">원료</span><span class="fval">${esc(p.proteinSource)}</span></div>`:''}
     ${clean(p.form)?`<div class="cv-form"><span class="lbl">제형</span><span class="fval">${esc(clean(p.form))}</span>${clean(p.flavor)?`<span class="fval">${esc(clean(p.flavor))}</span>`:''}</div>`:''}
     <div class="cv-foot"><span class="cv-rev">리뷰 ${fmt(p.reviewCount)}개</span></div>
     ${buy}
