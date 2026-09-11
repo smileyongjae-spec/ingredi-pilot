@@ -50,7 +50,7 @@
   .tiernote{font-size:12px;color:var(--ink-soft);line-height:1.5;background:var(--green-tint,#EEF3EE);border-radius:10px;padding:9px 12px;margin:0 0 10px}
   .pgrade.na,.pc-grade.na{display:none}
   .pgrade.hold{width:auto;height:auto;border-radius:8px;padding:3px 8px;font-size:11px;color:#6E7177;border-color:#E1E2E4;background:transparent}
-  .pc-hold{display:inline-block;font-size:11px;font-weight:700;color:#6E7177;border:1px solid #E1E2E4;border-radius:8px;padding:3px 8px;margin:4px 0 2px;white-space:nowrap}
+  .pc-hold{display:inline-block;font-size:10.5px;font-weight:700;color:#6E7177;border:1px solid #E1E2E4;border-radius:8px;padding:3px 7px;white-space:nowrap}
 
   .seltray{position:sticky;top:65px;z-index:10;background:var(--paper);padding:6px 0 12px;border-bottom:1px solid var(--line-soft)}
   .selchips{display:flex;gap:7px;flex-wrap:wrap;min-height:34px}
@@ -95,14 +95,17 @@
   table.cmp{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed}
   table.cmp th,table.cmp td{vertical-align:top;text-align:left}
   .ch-head{position:sticky;left:0;background:var(--paper);z-index:2;width:52px;min-width:52px;font-size:12px;color:var(--ink-faint);font-weight:600;padding:12px 6px 12px 2px;border-bottom:1px solid var(--line-soft)}
-  .ch-prod{padding:0 4px 12px}
-  .pc{background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:9px 7px;box-shadow:var(--shadow-sm)}
+  .ch-prod{padding:0 4px 12px;vertical-align:top;height:1px}
+  .pc{background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:9px 7px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;height:100%;box-sizing:border-box}
+  /* 카드 높이 통일 — 등급 원형(26px)·보류 라벨(22px)·배지 없음(무채점)이 섞여도, 상위% 줄 유무가 달라도 같은 규격 */
+  .pc-badge{height:30px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+  .pc-badge .pc-grade,.pc-badge .pc-hold{margin:0}
   .pc-thumb{width:100%;max-width:60px;aspect-ratio:1;height:auto;border-radius:9px;object-fit:cover;background:var(--green-tint);border:1px solid var(--line-soft);display:block;margin-bottom:7px}
   .pc-grade{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;
             font-size:12.5px;font-weight:700;border:1px solid;margin:0 auto 5px}
-  .pc-pct{font-size:10.5px;color:var(--ink-faint);margin-top:4px}
+  .pc-pct{font-size:10.5px;color:var(--ink-faint);margin-top:4px;height:16px;line-height:16px}
   .pc-name{font-size:11.5px;font-weight:700;color:var(--green-deep);line-height:1.3;height:45px;overflow:hidden;overflow-wrap:anywhere}
-  .pc-rm{display:block;width:100%;margin-top:7px;padding:5px;background:var(--green-light);color:var(--green-deep);border:none;border-radius:7px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
+  .pc-rm{display:block;width:100%;margin-top:auto;padding-top:5px;padding:5px;background:var(--green-light);color:var(--green-deep);border:none;border-radius:7px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
   .rlabel{position:sticky;left:0;background:var(--paper);z-index:2;font-size:11px;color:var(--ink-faint);font-weight:600;padding:11px 4px 11px 2px;border-top:1px solid var(--line-soft);line-height:1.25}
   .rcell{padding:11px 4px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
   .rcell .v{font-weight:700;color:var(--green-deep)}
@@ -481,11 +484,11 @@ function goCompare(){
     const pct = unscored ? null : overallPct(curData._all, p);
     return `<th class="ch-prod"><div class="pc">
       <img class="pc-thumb" src="${img}" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
-      ${unscored ? "" : (gradeLetter(p)
+      <div class="pc-badge">${unscored ? "" : (gradeLetter(p)
           ? `<span class="pc-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}</span>`
-          : `<span class="pc-hold">평가 보류 · ${holdReason(p)}</span>`)}
+          : `<span class="pc-hold">평가 보류 · ${holdReason(p)}</span>`)}</div>
       <div class="pc-name">${esc(p.name)}</div>
-      ${pct!==null ? `<div class="pc-pct">종합 상위 ${pct}%</div>` : ""}
+      <div class="pc-pct">${pct!==null ? `종합 상위 ${pct}%` : ""}</div>
       <button class="pc-rm" onclick="removeFromCompare('${esc(String(p.id))}')">빼기</button>
     </div></th>`;
   }).join("");
