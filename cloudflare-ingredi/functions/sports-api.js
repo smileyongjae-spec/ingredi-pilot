@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: 스포츠 뉴트리션 추천 (v1.1 — 가격 컬럼 폴백: 가격_원 → 쿠팡가격)
+// Cloudflare Pages Function: 운동 보충제 추천 (v1.2 — 단백질 파우더 명명·원료 라벨 / v1.1 가격 폴백)
 // URL: /sports?category=<단백질|크레아틴|아미노산|부스터|카르니틴>&sub=<서브필터>&weight=<kg>
 //
 // [규제 분리] 기존 4개 카테고리(recommend2.js)는 식약처 인정 기능성 기준.
@@ -50,6 +50,9 @@ const CAT_ALIASES = {
 //  calc   : (core점수, 부가점수) → quality. null이면 채점 불가
 const TYPES = {
   "웨이프로틴": {
+    // [v1.2] name = 탭·제목에 쓰는 유형 이름. 데이터 키는 "웨이프로틴"이지만 실물은 유청 순수 6/19뿐(대두 혼합·산양유 포함)이라
+    //        "단백질 파우더"로 정직하게 부른다. label은 지표명(카드의 "단백질 함량 83%")으로 그대로.
+    name: "단백질 파우더",
     tier: "issn", label: "단백질 함량",   // 성분명이 아니라 지표명이다. "웨이프로틴 90%"로 읽히면 오해를 준다.
     anchorLabel: "단백질 함량 80%",
     note: "1회 섭취량 중 단백질이 차지하는 비율. WPC 순도 상한 80%를 기준으로 봅니다.",
@@ -297,6 +300,22 @@ export async function onRequest(context) {
         };
       }
       it.purityScore = purity;
+      // [v1.2] 단백질 원료 라벨 — 정제도 토큰이 1차 근거(ISP=대두, MPI/MPC=우유단백), 오리진의 산양유 표기가 2차.
+      if (catKey === "단백질") {
+        const ptxt = String(f["정제도(농축(WPC/MPC),분리(WPI 분리유청/MPI/ISP분리대두),가수분해(WPH),표기없음)"] || "").toUpperCase();
+        const otxt = String(f["단백질오리진(우유 / 산양유 / 대두 / 완두 / 현미 / 혼합)"] || "");
+        const hasWhey = /WP[CIH]/.test(ptxt), hasSoy = /ISP|SPI|PPI|RPI/.test(ptxt), hasMilk = /MP[CI]/.test(ptxt);
+        const goat = /산양유/.test(otxt), plant = /식물|대두|완두|현미/.test(otxt);
+        it.proteinSource = goat ? "산양유 단백"
+          : (hasWhey && hasSoy) ? "유청·대두 혼합"
+          : (hasWhey && hasMilk) ? "유청·우유단백 혼합"
+          : (hasWhey && plant) ? "유청·식물성 혼합"
+          : hasWhey ? "유청(웨이)"
+          : hasSoy ? "대두 단백"
+          : hasMilk ? "우유 단백"
+          : (ptxt.trim() && ptxt.trim() !== "-") ? "표기 확인 필요"
+          : "원료 미표기";
+      }
       it.certScore = cert;
       it.purity = S(f["정제도(농축(WPC/MPC),분리(WPI 분리유청/MPI/ISP분리대두),가수분해(WPH),표기없음)"]);
     }
@@ -351,7 +370,7 @@ export async function onRequest(context) {
     domain: "sports",
     category: catKey,
     categories: Object.keys(CATEGORIES),
-    subs: subs.map(k => ({ key: k, label: TYPES[k].label, tier: TYPES[k].tier })),
+    subs: subs.map(k => ({ key: k, label: TYPES[k].name || TYPES[k].label, tier: TYPES[k].tier })),   // [v1.2] 탭엔 유형 이름
     sub: subKey,
     tier: t.tier,
     tierNote: t.note,
