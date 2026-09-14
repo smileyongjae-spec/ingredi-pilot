@@ -1,4 +1,8 @@
-// Cloudflare Pages Function: 운동 보충제 추천 (v1.2 — 단백질 파우더 명명·원료 라벨 / v1.1 가격 폴백)
+// Cloudflare Pages Function: 운동 보충제 추천 (v2.0 — 2026-09-14 기준표 v2.1 전면 반영)
+//   단백질 core = 1회 단백질 g ÷ 25g(순도는 원료 등급 축) · 원료 등급 첫 표기 기준(WPI=WPH 100/MPI 85/ISP 75/WPC 60/미기재 30)
+//   인증 종류별 가산(도핑 검사 40·3rd party 25·GMP 20·FSMS 15·HACCP 10, 배합 속성 0) · 원료 브랜드 축 0.1
+//   부스터 통합(표방 성분 평균, 카페인 2분 폐지) · 베타알라닌·시트룰린 신설(종전 미노출 25개)
+// (v1.4 정제도 미기재 30 / v1.3 중앙 설정 / v1.2 단백질 파우더 명명 / v1.1 가격 폴백)
 // URL: /sports?category=<단백질|크레아틴|아미노산|부스터|카르니틴>&sub=<서브필터>&weight=<kg>
 //
 // [규제 분리] 기존 4개 카테고리(recommend2.js)는 식약처 인정 기능성 기준.
@@ -18,10 +22,11 @@
 //   저장하지 않는다(요청 단위).
 
 import { getRecords } from "./_lib/airtable.js";
+import { TABLES } from "./_lib/tables.js";   // [v1.3] 테이블명 중앙 설정
 
 // [2026-09-06] 파트너 데이터 갱신: 08.12(185행) → 09.04(180행), 쿠팡 URL 전량 등록됨.
 // 캐시 키가 테이블명 기반(at:테이블명)이라 전환 시 별도 purge 불필요 — 새 키로 새로 쌓인다.
-const TABLE = "헬스제품_단백질_부스터_2026.09.04";
+const TABLE = TABLES["스포츠"];
 const DEFAULT_WEIGHT = 70;
 
 // ── 카테고리 → 서브필터(성분유형) 매핑 ──
@@ -30,7 +35,7 @@ const CATEGORIES = {
   "단백질":   { label: "단백질",   subs: ["웨이프로틴", "웨이트게이너"] },
   "크레아틴": { label: "크레아틴", subs: ["크레아틴"] },
   "아미노산": { label: "아미노산", subs: ["EAA", "HMB", "BCAA", "글루타민"] },
-  "부스터":   { label: "부스터",   subs: ["부스터_카페인", "부스터_비카페인"] },
+  "부스터":   { label: "부스터",   subs: ["부스터", "시트룰린", "베타알라닌"] },   // [v2.0] 통합 채점 + 신설 2유형
   "카르니틴": { label: "카르니틴", subs: ["카르니틴"] }
 };
 
@@ -49,61 +54,79 @@ const CAT_ALIASES = {
 //  core   : 원본 레코드 → 근거 원값
 //  calc   : (core점수, 부가점수) → quality. null이면 채점 불가
 const TYPES = {
+  // ══ 단백질 — [v2.0] core를 "1회 단백질 g ÷ 25g"으로 재정의(순도는 원료 등급 축이 담당, 이중 계산 해소)
   "웨이프로틴": {
-    // [v1.2] name = 탭·제목에 쓰는 유형 이름. 데이터 키는 "웨이프로틴"이지만 실물은 유청 순수 6/19뿐(대두 혼합·산양유 포함)이라
-    //        "단백질 파우더"로 정직하게 부른다. label은 지표명(카드의 "단백질 함량 83%")으로 그대로.
     name: "단백질 파우더",
-    tier: "issn", label: "단백질 함량",   // 성분명이 아니라 지표명이다. "웨이프로틴 90%"로 읽히면 오해를 준다.
-    anchorLabel: "단백질 함량 80%",
-    note: "1회 섭취량 중 단백질이 차지하는 비율. WPC 순도 상한 80%를 기준으로 봅니다.",
-    core: (f, N) => {
-      const p = N(f["단백질_g"]), s = N(f["1일_총_섭취량(g)"]);
-      return (p > 0 && s > 0) ? (p / s) * 100 : null;
-    },
-    anchor: () => 80,
-    calc: (core, x) => (x.purity == null) ? null : 0.5 * core + 0.3 * x.purity + 0.2 * x.cert
+    tier: "issn", label: "1회 단백질",
+    anchorLabel: "1회 단백질 25g",
+    note: "ISSN 단백질 지침의 1회 권장 20~40g 중 하한 근접값 25g을 기준으로 봅니다. 원료 순도(WPI·WPC 등)는 별도 축으로 봅니다.",
+    core: (f, N) => N(f["단백질_g"]),
+    anchor: () => 25, unit: "g",
+    calc: (core, x) => 0.5 * core + 0.3 * x.purity + 0.2 * x.cert
   },
   "웨이트게이너": {
     tier: "issn", label: "게이너",
     anchorLabel: "1회 단백질 40g",
-    note: "ISSN 단백질 지침의 1회 권장 20~40g 중 상한을 기준으로 봅니다. 열량·탄수화물은 점수에 넣지 않습니다.",
+    note: "ISSN 단백질 지침의 1회 권장 20~40g 중 상한을 기준으로 봅니다. 열량·탄수화물은 점수에 넣지 않습니다. 대상은 식사로 열량을 채우기 어려운 분입니다.",
     core: (f, N) => N(f["단백질_g"]),
-    anchor: () => 40,
-    calc: (core, x) => (x.purity == null) ? null : 0.5 * core + 0.3 * x.purity + 0.2 * x.cert
+    anchor: () => 40, unit: "g",
+    calc: (core, x) => 0.5 * core + 0.3 * x.purity + 0.2 * x.cert
   },
+  // ══ 단일 성분 — [v2.0] 원료 브랜드 축(0.1) 추가: [core × 0.7] + [브랜드 × 0.1] + [인증 × 0.2]
   "크레아틴": {
     tier: "issn", label: "크레아틴",
     anchorLabel: "1일 3,000mg",
-    note: "ISSN 크레아틴 지침의 유지 용량 3~5g 중 하한을 기준으로 봅니다. 모노하이드레이트는 원료가 표준화되어 제품 간 품질 차이가 크지 않습니다.",
+    note: "ISSN 크레아틴 지침의 유지 용량 3~5g 중 하한을 기준으로 봅니다. 모노하이드레이트 외 형태(HCl·완충)는 ISSN 근거가 없습니다.",
     core: (f, N) => N(f["크레아틴_모노하이드레이트_mg"]) || N(f["크레아틴_mg"]),
-    anchor: () => 3000,
-    calc: (core, x) => 0.8 * core + 0.2 * x.cert
+    anchor: () => 3000, unit: "mg",
+    calc: (core, x) => 0.7 * core + 0.1 * x.brand + 0.2 * x.cert
   },
   "EAA": {
     tier: "issn", label: "EAA",
     anchorLabel: "총 EAA 10,000mg",
-    note: "ISSN 단백질 지침은 1회 단백질 20~40g이 EAA 10~12g에 해당한다고 봅니다. 그 하한을 기준으로 합니다.",
+    note: "ISSN 단백질 지침은 1회 단백질 20~40g이 EAA 10~12g에 해당한다고 봅니다. 그 하한을 기준으로 합니다. 류신 2.5g 미만이면 카드에 표시합니다.",
     core: (f, N) => N(f["EAA총량_mg"]),
-    anchor: () => 10000,
-    calc: (core, x) => 0.8 * core + 0.2 * x.cert
+    anchor: () => 10000, unit: "mg",
+    calc: (core, x) => 0.7 * core + 0.1 * x.brand + 0.2 * x.cert
   },
   "HMB": {
     tier: "issn_cond", label: "HMB",
     anchorLabel: "체중 1kg당 38mg",
     note: "ISSN 지침이 있으나 대상이 제한적입니다. 근력·파워 개선은 비훈련자에서 뚜렷하고, 훈련된 사람에서는 결과가 엇갈립니다.",
     core: (f, N) => N(f["CaHMB_mg"]),
-    anchor: (w) => Math.round(w * 38),
-    perKg: true,
-    calc: (core, x) => 0.8 * core + 0.2 * x.cert
+    anchor: (w) => Math.round(w * 38), perKg: true, unit: "mg",
+    calc: (core, x) => 0.7 * core + 0.1 * x.brand + 0.2 * x.cert
   },
-  "부스터_카페인": {
-    tier: "issn", label: "카페인",
-    anchorLabel: "체중 1kg당 3mg",
-    note: "ISSN 카페인 지침의 권장 3~6mg/kg 중 하한을 기준으로 봅니다. 9mg/kg 이상은 부작용만 늘고 추가 이득이 없습니다.",
-    core: (f, N) => N(f["카페인_mg"]),
-    anchor: (w) => Math.round(w * 3),
-    perKg: true,
-    calc: (core, x) => 0.8 * core + 0.2 * x.cert
+  // [v2.0] 신설 — 종전에는 어느 탭에도 노출되지 않던 25개 제품
+  "베타알라닌": {
+    tier: "issn", label: "베타알라닌",
+    anchorLabel: "1일 3,200mg",
+    note: "ISSN 베타알라닌 포지션 스탠드(2015): 4주 이상 3.2~6.4g/일 누적 섭취 시 근지구력 개선. 유효 범위 하한 3,200mg을 기준으로 봅니다(시장 제품은 1일 1.6~3.4g).",
+    core: (f, N) => N(f["베타알라닌_mg"]),
+    anchor: () => 3200, unit: "mg",
+    calc: (core, x) => 0.7 * core + 0.1 * x.brand + 0.2 * x.cert
+  },
+  "시트룰린": {
+    // [v2.0] 데이터 실태: 이 유형은 L-아르기닌 6,000mg 제품들이며 시트룰린은 22~1,000mg 곁들임. 아르기닌은 ISSN 근거 불일치,
+    //        시트룰린은 3g 이상에서만 조건부 → 무채점. 시트룰린이 실제 유효량으로 든 제품은 "부스터" 통합 규칙이 채점한다.
+    name: "아르기닌·시트룰린",
+    tier: "none", label: "아르기닌·시트룰린",
+    note: "L-아르기닌은 ISSN에서 수행능력 근거가 일관되지 않고, 시트룰린은 1회 3g 이상에서만 조건부 근거가 있습니다. 이 유형은 아르기닌 위주 제품이라 등급을 매기지 않고 가격순으로 보여드립니다.",
+    show: (f, N) => { const a = N(f["L아르기닌_mg"]), c = N(f["L시트룰린_mg (수박과피추출물)"]) || N(f["L시트룰린_mg"]);
+      return { v: a || c || null, unit: "mg", label: a ? "L-아르기닌" : "L-시트룰린", extra: (a && c) ? `시트룰린 ${Math.round(c)}mg` : null }; }
+  },
+  // [v2.0] 부스터 통합 — 표방 성분(카페인·시트룰린·베타알라닌) core의 평균. 카페인 유무 2분 폐지.
+  "부스터": {
+    tier: "issn", label: "부스터",
+    anchorLabel: "카페인 체중×3mg · 시트룰린 3,000mg · 베타알라닌 1,600mg(1회)",
+    note: "표방한 근거 성분마다 ISSN 앵커로 재고 평균합니다. 카페인 3~6mg/kg, 시트룰린 3~6g, 베타알라닌 급성 1.6~3.2g. 아르기닌·타우린만 든 제품은 근거 성분이 없어 등급을 매기지 않습니다.",
+    multi: (w) => [
+      { key: "카페인",   field: "카페인_mg",                       anchor: Math.round(w * 3), min: Math.round(w * 1.5) },
+      { key: "시트룰린", field: "L시트룰린_mg (수박과피추출물)",     anchor: 3000,              min: 1500 },
+      { key: "베타알라닌", field: "베타알라닌_mg",                   anchor: 1600,              min: 800 }
+    ],
+    perKg: true, unit: "mg",
+    calc: (core, x) => 0.7 * core + 0.1 * x.brand + 0.2 * x.cert
   },
   // ── 무채점(기준 없음) ──
   "BCAA": {
@@ -119,41 +142,57 @@ const TYPES = {
   "카르니틴": {
     tier: "none", label: "카르니틴",
     note: "지방 감소 목적의 ISSN 별도 지침이 없습니다. 등급을 매기지 않고 가격순으로 보여드립니다.",
-    // 형태별 순수 카르니틴 환산: 유리형 100%, 타르트레이트 68%
-    // 아세틸형·믹스는 연구 맥락이 달라 합산하지 않는다(표기만)
     show: (f, N) => {
       const a = N(f["L카르니틴_mg"]) || 0, b = N(f["L카르니틴_타르트레이트_mg"]) || 0;
       const t = a * 1.0 + b * 0.68;
       return { v: t > 0 ? Math.round(t) : null, unit: "mg", label: "카르니틴" };
     }
-  },
-  "부스터_비카페인": {
-    tier: "none", label: "비카페인",
-    note: "카페인이 들어 있지 않은 제품입니다. 아르기닌·타우린 등은 ISSN 별도 지침이 없어 등급을 매기지 않고 가격순으로 보여드립니다.",
-    show: (f, N) => ({ v: N(f["L아르기닌_mg"]), unit: "mg", label: "L-아르기닌" })
   }
 };
 
-// ── 정제도 점수 ──
-// 문자열에 여러 형태가 콤마로 들어온다. 가짓수가 아니라 "최고 등급"으로 판정한다.
-// 여러 원료를 섞은 것이 더 좋다는 근거가 없고, 오히려 저가 원료 혼입 신호일 수 있다.
-function purityScore(v) {
-  const s = String(v || "").toUpperCase();
-  if (!s || s === "-" || s === "NAN") return null;
-  if (s.indexOf("WPH") !== -1 || s.indexOf("WPIH") !== -1) return 100; // 가수분해
-  if (s.indexOf("WPI") !== -1 || s.indexOf("MPI") !== -1) return 85;   // 분리(유청·우유)
-  if (s.indexOf("ISP") !== -1) return 75;                              // 분리(대두) — 급원 차이로 한 단계 하향
-  if (s.indexOf("WPC") !== -1 || s.indexOf("MPC") !== -1) return 60;   // 농축
-  return null;  // '혼합'·'유청' 등 미분류 → 평가 준비중
-}
 
-// 인증 개수 기반. 인증은 제조·안전 인증이지 효능 보증이 아니므로 가중치를 낮게 둔다.
+// ── 단백질 원료 등급 (구 정제도) ──
+// [v2.0] 복수 표기("WPC,WPI,ISP")는 라벨 원재료 순서 = 함량 순이므로 첫 표기(주원료)로 판정한다.
+//        (옛 방식은 토큰 검사 순서 때문에 WPH 하나 끼면 100점 — 혼합 제품 역전 결함)
+//        WPH = WPI 동급: 가수분해는 소화 속도이지 순도가 아니다. 미기재·미분류 = 최하(60)의 50% = 30.
+const PURITY = { isolate: 100, milkIsolate: 85, soyIsolate: 75, concentrate: 60, none: 30 };
+function purityScore(v) {
+  const s = String(v || "").toUpperCase().trim();
+  if (!s || s === "-" || s === "NAN") return PURITY.none;
+  const first = s.split(/[,/·]/)[0].trim();
+  if (/WPH|WPIH|WPI/.test(first)) return PURITY.isolate;
+  if (/MPI/.test(first)) return PURITY.milkIsolate;
+  if (/ISP|SPI/.test(first)) return PURITY.soyIsolate;
+  if (/WPC|MPC|MCC/.test(first)) return PURITY.concentrate;
+  return PURITY.none;
+}
+// ── 인증 가산표 (전 유형 공통, 상한 100) ── [v2.0] 개수 기준 폐지. 배합 속성(Non-GMO·Vegan·Kosher·Halal 등)은 0.
+const CERT_TABLE = [
+  [/INFORMED\s*SPORT|INFORMED\s*CHOICE|NSF\s*CERTIFIED\s*(FOR\s*)?SPORT|TRUSTED\s*BY\s*SPORT/i, 40, "DOPING"],
+  [/3RD[\s-]*PARTY|THIRD[\s-]*PARTY/i, 25, "3RD"],
+  [/C?GMP/i, 20, "GMP"],
+  [/FSSC\s*22000|ISO\s*22000|^NSF$/i, 15, "FSMS"],
+  [/HACCP/i, 10, "HACCP"],
+  [/\bTGA\b|FDA\s*REGISTERED/i, 10, "REG"]
+];
 function certScore(v) {
   const s = String(v || "").trim();
-  if (!s || s === "-" || s === "nan") return 0;
-  const k = s.replace(/[\/·]/g, ",").split(",").map(x => x.trim()).filter(Boolean).length;
-  return k === 0 ? 0 : k === 1 ? 40 : k === 2 ? 70 : 100;
+  if (!s || s === "-" || s.toLowerCase() === "nan") return 0;
+  const hit = new Map();
+  for (const tok of s.replace(/[\/·]/g, ",").split(",").map(x => x.trim()).filter(Boolean)) {
+    for (const [re, pts, tag] of CERT_TABLE) { if (re.test(tok)) { if (!hit.has(tag)) hit.set(tag, pts); break; } }
+  }
+  let t = 0; for (const p of hit.values()) t += p;
+  return Math.min(t, 100);
 }
+// ── 원료 브랜드 점수 ── [v2.0] 등록 상표 원료 100 / 원산지·제조사명 70 / 미기재 35 (최하 70의 50%)
+const BRAND_RE = /CREAPURE|CARNOSYN|MYHMB|AJIPURE|KYOWA|CARNIPURE|CREATSOLV|CON-?CRET|CREASYN|BETAPOWER|VELOSITOL|PEAKO2|NITROSIGINE/i;
+function brandScore(v) {
+  const s = String(v || "").trim();
+  if (!s || s === "-" || s.toLowerCase() === "nan") return 35;
+  return BRAND_RE.test(s) ? 100 : 70;
+}
+
 
 function gradeOf(q) {
   return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E";
@@ -224,11 +263,7 @@ export async function onRequest(context) {
   // ── 성분유형 판정 ──
   // 부스터는 카페인 표기 유무로 갈린다. 원본에 분류 컬럼이 없으므로 값으로 분기한다.
   // (제로카페인이 선택인 제품이 섞여 있어 "미표기 = 결측"으로 볼 수 없다)
-  function typeOf(f) {
-    const raw = S(f["성분유형"]);
-    if (raw === "부스터") return N(f["카페인_mg"]) != null ? "부스터_카페인" : "부스터_비카페인";
-    return raw;
-  }
+  function typeOf(f) { return S(f["성분유형"]); }   // [v2.0] 부스터 카페인 2분 폐지
 
   // 1일비용: 원본이 비면 가격 ÷ 총용량 × 1일섭취량으로 재계산한다.
   // 실측 결과 기존값과 오차 10% 이상 불일치가 0건이라 신뢰 가능.
@@ -281,25 +316,33 @@ export async function onRequest(context) {
       it.qualityGrade = null;
       it.primary = sh;
     } else {
-      const raw = t.core(f, N);
+      // [v2.0] core: 단일 성분은 함량 ÷ 앵커, 부스터는 표방 성분(하한 이상)의 core 평균
       const purity = purityScore(f["정제도(농축(WPC/MPC),분리(WPI 분리유청/MPI/ISP분리대두),가수분해(WPH),표기없음)"]);
       const cert = certScore(f["인증"]);
-      if (raw == null || !(raw > 0)) {
-        it.quality = null; it.qualityGrade = null;
-        it.primary = { v: null, unit: subKey === "웨이프로틴" ? "%" : "mg", label: t.label };
+      const brand = brandScore(f["원료사"]);
+      let core = null, primary = null, claimed = null, holdReason = null;
+      if (t.multi) {
+        const cl = [];
+        for (const m of t.multi(weight)) { const v = N(f[m.field]); if (v != null && v >= m.min) cl.push({ key: m.key, v, core: Math.min(v / m.anchor, 1) * 100 }); }
+        if (cl.length) {
+          core = cl.reduce((a, c) => a + c.core, 0) / cl.length;
+          const main = cl.slice().sort((a, b) => b.core - a.core)[0];
+          primary = { v: Math.round(main.v), unit: "mg", label: main.key }; claimed = cl.map(c => c.key);
+        } else { holdReason = "근거 성분 없음"; primary = { v: null, unit: "mg", label: t.label }; }
       } else {
-        const core = Math.min(raw / anchor, 1) * 100;
-        const q = t.calc(core, { purity, cert });
-        it.quality = (q == null) ? null : Math.round(q * 10) / 10;
-        it.qualityGrade = gradeOf(it.quality);
-        it.core = Math.round(core);
-        it.primary = {
-          v: subKey === "웨이프로틴" ? Math.round(raw) : Math.round(raw),
-          unit: subKey === "웨이프로틴" ? "%" : (subKey === "웨이트게이너" ? "g" : "mg"),
-          label: t.label
-        };
+        const raw = t.core(f, N);
+        if (raw == null || !(raw > 0)) { holdReason = "함량 미표기"; primary = { v: null, unit: t.unit || "mg", label: t.label }; }
+        else { core = Math.min(raw / anchor, 1) * 100; primary = { v: Math.round(raw), unit: t.unit || "mg", label: t.label }; }
       }
-      it.purityScore = purity;
+      if (core == null) { it.quality = null; it.qualityGrade = null; it.holdReason = holdReason; }
+      else {
+        const q = t.calc(core, { purity, cert, brand });
+        it.quality = Math.round(q * 10) / 10; it.qualityGrade = gradeOf(it.quality); it.core = Math.round(core);
+      }
+      it.primary = primary; it.claimed = claimed;
+      it.purityScore = purity; it.brandScore = brand; it.certScore = cert;
+      // [v2.0] EAA 류신 역치(ISSN 근합성 2.5g) 미달 표시 — 점수 미반영
+      if (subKey === "EAA") { const leu = N(f["류신_mg"]); it.leucineLow = (leu != null && leu < 2500) ? leu : null; }
       // [v1.2] 단백질 원료 라벨 — 정제도 토큰이 1차 근거(ISP=대두, MPI/MPC=우유단백), 오리진의 산양유 표기가 2차.
       if (catKey === "단백질") {
         const ptxt = String(f["정제도(농축(WPC/MPC),분리(WPI 분리유청/MPI/ISP분리대두),가수분해(WPH),표기없음)"] || "").toUpperCase();
