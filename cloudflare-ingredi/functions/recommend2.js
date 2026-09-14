@@ -15,6 +15,14 @@
 //      - (c) ctx 전달 → airtable.js v6 의 SWR·비동기 KV 쓰기 활성화.
 //            만료돼도 옛 값을 즉시 반환하므로 사용자가 Airtable을 기다리지 않는다.
 //      기대: 미스 경로 5.3초 → 2초 미만, 캐시 만료 시 체감 지연 0
+// [v8.0] 2026-09-14 기준표 v2.1 전면 반영 — core·축 점수·등급 산식을 _lib/axis-scores.js로 이전.
+//        눈: 지아잔틴 제외·표방 성분(루테인≥10/아스타잔틴≥4) 평균. 오메가3: 제형 rTG100/nTG75/EE50/미기재25,
+//        인증 가산(FSSC 15). 비타민C: 0.6/0.3/0.1 + 인증 가산표. 유산균: v1(제형점수 컬럼) 유지, 인증은 코드 가산표.
+//        원료사 3단(브랜드 85/표기 70/미기재 35). 상한 초과 경고(overLimit). 정렬 = 품질점수(V_Score 폐지).
+// [v7.8] 앵커 출처(anchorSource) 응답 추가 — 식약처 → 복지부 → 연구 우선순위 표기.
+// [v7.7] 축 점수 규칙 코드화(_lib/axis-scores.js) — 점수 컬럼 없는 테이블도 오메가3는 코드 규칙으로 채점.
+// [v7.6] 2026-09-11 제품 DB 교체 대응 — 테이블명을 _lib/tables.js 중앙 설정으로, 이중가(쿠팡/네이버) 폴백,
+//        리뷰수 컬럼 변형 흡수. 채점 입력 컬럼(제형·인증·원료사 점수)은 새 테이블 확인 중.
 // [v7.5] 무채점 카테고리 미수집 레코드 숨김 — 함량·비용·가격·이미지 전부 결측(이름+URL뿐)이면
 //        목록 제외. 하나라도 채워지면 자동 복귀. (밀크씨슬 69행 중 35행이 수집 전 상태였음)
 // [v7.4] 밀크씨슬 카테고리 추가 — 건기식 첫 "무채점" 카테고리.
@@ -36,14 +44,16 @@
 //          isAffiliate 는 coupang_deeplink 가 있을 때만 true.
 
 import { getRecords } from "./_lib/airtable.js";
+import { TABLES } from "./_lib/tables.js";   // [v7.6] 테이블명 중앙 설정
+import { axisScores, qualityOf, ANCHORS } from "./_lib/axis-scores.js";   // [v8.0] core·축·등급 산식 전부 규칙 모듈에서
 
 const CATEGORIES = {
-  "오메가3":        { table: "오메가3_쿠팡업데이트",        primary: { field: "EPA_DHA_mg",     label: "EPA+DHA",  unit: "mg" }, extra: ["EPA_mg", "DHA_mg", "캡슐당순도"] },
-  "눈":            { table: "눈_쿠팡업데이트",            primary: { field: "루테인_mg",       label: "루테인",    unit: "mg" }, extra: ["지아잔틴_mg", "아스타잔틴_mg", "EPA_DHA_mg", "베타카로틴_mg", "비타민A"] },
-  "마이크로바이옴":  { table: "마이크로바이옴_쿠팡업데이트",  primary: { field: "보장균수_억",     label: "보장균수",  unit: "억" }, extra: ["프리바이오틱스", "포스트바이오틱스", "다중코팅", "냉장유통"] },
-  "비타민C":        { table: "비타민C_쿠팡업데이트",        primary: { field: "비타민C함량_mg",  label: "비타민C",   unit: "mg" }, extra: ["제형구분"] },
+  "오메가3":        { table: TABLES["오메가3"],        primary: { field: "EPA_DHA_mg",     label: "EPA+DHA",  unit: "mg" }, extra: ["EPA_mg", "DHA_mg", "캡슐당순도"] },
+  "눈":            { table: TABLES["눈"],            primary: { field: "루테인_mg",       label: "루테인",    unit: "mg" }, extra: ["지아잔틴_mg", "아스타잔틴_mg", "EPA_DHA_mg", "베타카로틴_mg", "비타민A"] },
+  "마이크로바이옴":  { table: TABLES["마이크로바이옴"],  primary: { field: "보장균수_억",     label: "보장균수",  unit: "억" }, extra: ["프리바이오틱스", "포스트바이오틱스", "다중코팅", "냉장유통"] },
+  "비타민C":        { table: TABLES["비타민C"],        primary: { field: "비타민C함량_mg",  label: "비타민C",   unit: "mg" }, extra: ["제형구분"] },
   // [v7.4] 무채점 카테고리. 테이블명이 다르면 아래 table 값만 고치면 된다.
-  "밀크씨슬":       { table: "밀크씨슬_2026.09.04",         primary: { field: "실리마린_mg",     label: "실리마린",  unit: "mg" }, extra: ["밀크씨슬_mg"], unscored: true }
+  "밀크씨슬":       { table: TABLES["밀크씨슬"],         primary: { field: "실리마린_mg",     label: "실리마린",  unit: "mg" }, extra: ["밀크씨슬_mg"], unscored: true }
 };
 
 const CATEGORY_ALIASES = {
@@ -195,10 +205,7 @@ export async function onRequest(context) {
   // 두 로드는 서로 의존하지 않는데 v7.2까지는 직렬이었다(실측 3.2초 + 2.1초).
   // 리뷰는 조인 시점(아래)에서 await 하므로, 여기서 시작만 걸어둔다.
   const REVIEW_TABLE = {
-    "오메가3": "오메가_리뷰인사이트",
-    "눈": "눈_리뷰인사이트",
-    "비타민C": "비타민C_리뷰인사이트",
-    "마이크로바이옴": "마이크로바이옴_리뷰인사이트"
+    ...TABLES["리뷰"]   // [v7.6] 중앙 설정
   };
   const reviewsReady = !!REVIEW_TABLE[catKey];
 
@@ -233,6 +240,14 @@ export async function onRequest(context) {
     const f = r.fields || {};
     const extra = {};
     for (const k of cfg.extra) extra[k] = f[k] !== undefined ? f[k] : null;
+    // [v8.0] 채점은 _lib/axis-scores.js(기준표 v2.1)가 전담. Airtable 점수 컬럼은 규칙이 아직 없는 축(유산균 v1 제형점수)에만 external로 전달.
+    const axis = axisScores(catKey, f) || {};
+    const external = {
+      form:     numOrNull(readField(f, ["제형점수", "제형편의점수", "리포좀중성점수"])),
+      supplier: numOrNull(readField(f, ["원료사점수", "원료사균주점수", "원료품질점수"])),
+      cert:     numOrNull(readField(f, ["인증점수", "인증근거점수", "부형제안전점수"]))
+    };
+    const qx = cfg.unscored ? null : qualityOf(catKey, f, external);
 
     // 링크 우선순위: 파트너스 딥링크 → raw 쿠팡 → 네이버
     const partnersLink = str(f.coupang_deeplink).trim();
@@ -250,25 +265,39 @@ export async function onRequest(context) {
       form: str(f.제형),
       supplier: str(f.원료사),
       certs: str(f.인증),
-      price: num(f.가격_원) || num(f.쿠팡가격),      // [v7.4] 밀크씨슬: 가격_원 49% → 쿠팡가격 폴백
-      dailyCost: Math.round(num(f["1일비용_원"])),
+      // [v7.6] 이중가 모델(09.10~ 테이블: 쿠팡가격_원·네이버가격_원·1일비용_쿠팡기준_원·1일비용_네이버기준_원·네이버저렴)
+      //   화면의 가격·하루 비용은 쿠팡 기준 우선(구매 버튼이 쿠팡) → 옛 구조(가격_원·1일비용_원) → 네이버 기준 폴백.
+      //   네이버 가격·저렴 플래그는 응답에 실어두고 화면 노출은 별도 결정.
+      price: num(f.쿠팡가격_원) || num(f.가격_원) || num(f.쿠팡가격) || num(f.네이버가격_원),
+      naverPrice: num(f.네이버가격_원) || 0,
+      // 컬럼명 변형 흡수: 오메가3·눈 "1일비용_쿠팡기준_원" / 비타민C(09.11) "1일비용_쿠팡_원" / 옛 구조 "1일비용_원"
+      dailyCost: Math.round(num(f["1일비용_쿠팡기준_원"]) || num(f["1일비용_쿠팡_원"]) || num(f["1일비용_원"]) || num(f["1일비용_네이버기준_원"]) || num(f["1일비용_네이버_원"])),
+      naverDailyCost: Math.round(num(f["1일비용_네이버기준_원"]) || num(f["1일비용_네이버_원"])) || 0,
+      naverCheaper: String(f.네이버저렴 || "").trim().toUpperCase() === "O",
       dailyCapsules: num(f["1일캡슐수"]),
       capsuleMg: num(f.캡슐용량_mg),
-      reviewCount: num(f.리뷰수) || num(f.쿠팡리뷰수),
+      reviewCount: num(f.리뷰수) || num(f.쿠팡_리뷰수) || num(f.쿠팡리뷰수) || num(f.네이버_리뷰수),   // [v7.6] 밀크씨슬 09.11: 쿠팡_리뷰수/네이버_리뷰수
       function: str(f.주된기능성),
       vScore: num(f.V_Score),
       grade: str(f.등급),
       profile: str(f.추천프로필),
       target: str(f.대상분류),
-      primaryValue: num(f[cfg.primary.field]),
+      // [v8.0] 눈은 표방 성분(루테인/아스타잔틴) 중 주성분을 카드 함량으로 — 라벨이 제품마다 다르므로 primaryLabel 동봉
+      primaryValue: (qx && qx.value != null && catKey === "눈") ? qx.value : num(f[cfg.primary.field]),
+      primaryLabel: (qx && qx.label) ? qx.label : cfg.primary.label,
+      claimed: qx ? (qx.claimed || null) : null,
+      overLimit: !!(qx && qx.overLimit),
+      holdReason: qx ? (qx.holdReason || null) : null,
+      axisParts: qx ? { core: qx.core, form: qx.form, supplier: qx.supplier, cert: qx.cert, strain: qx.strain } : null,
+      _qx: qx,
       scores: {
         core: num(f.핵심성분점수),
         cost: num(f.비용점수),
         review: num(f.리뷰점수),
         // [v6] 엑셀 5축의 나머지. 카테고리마다 축 이름이 다를 수 있어 후보를 순서대로 찾는다.
-        form:     numOrNull(readField(f, ["제형점수", "제형편의점수", "리포좀중성점수"])),
-        supplier: numOrNull(readField(f, ["원료사점수", "원료사균주점수", "원료품질점수"])),
-        cert:     numOrNull(readField(f, ["인증점수", "인증근거점수", "부형제안전점수"])),
+        form:     numOrNull(readField(f, ["제형점수", "제형편의점수", "리포좀중성점수"])) ?? (axis.form ?? null),
+        supplier: numOrNull(readField(f, ["원료사점수", "원료사균주점수", "원료품질점수"])) ?? (axis.supplier ?? null),
+        cert:     numOrNull(readField(f, ["인증점수", "인증근거점수", "부형제안전점수"])) ?? (axis.cert ?? null),
         final:    numOrNull(readField(f, ["최종점수"]))
       },
       extra
@@ -283,15 +312,11 @@ export async function onRequest(context) {
     // [v7.4] 무채점 카테고리 (밀크씨슬): 등급·품질점수·파레토를 만들지 않는다.
     for (const it of items) { it.quality = null; it.qualityGrade = null; it.isPareto = false; }
   } else {
+    // [v8.0] 품질점수·등급은 규칙 모듈(qualityOf)이 이미 계산. 여기선 부착만.
     for (const it of items) {
-      // 근거 원값: 눈은 루테인+지아잔틴 합, 나머지는 primaryValue 그대로
-      const raw = (catKey === "눈")
-        ? it.primaryValue + num(it.extra && it.extra["지아잔틴_mg"])
-        : it.primaryValue;
-      const core = Math.min(raw / qcfg.anchor, 1) * 100;
-      const q = qcfg.calc(core, it.scores);
-      it.quality = (q == null) ? null : Math.round(q * 10) / 10;
-      it.qualityGrade = qualityGradeOf(it.quality);
+      const qx = it._qx; delete it._qx;
+      it.quality = qx ? qx.quality : null;
+      it.qualityGrade = qx ? qx.grade : null;
     }
     // 파레토 경계: "이보다 싸면서 더 좋은 제품이 없는" 제품 (동률은 둘 다 경계에 남는다)
     for (const it of items) {
@@ -328,7 +353,13 @@ export async function onRequest(context) {
       (b.reviewCount - a.reviewCount)
     );
   } else {
-    items.sort((a, b) => b.vScore - a.vScore);
+    // [v8.0] 기본 정렬 = 품질점수 내림차순 → 저가순, 보류(quality null)는 뒤. (옛 V_Score 정렬 폐지)
+    items.sort((a, b) => {
+      const qa = a.quality, qb = b.quality;
+      if (qa == null && qb == null) return (a.dailyCost || 9e9) - (b.dailyCost || 9e9);
+      if (qa == null) return 1; if (qb == null) return -1;
+      return (qb - qa) || ((a.dailyCost || 9e9) - (b.dailyCost || 9e9));
+    });
   }
   items.forEach((it, i) => { it.rank = i + 1; });
   const msScore = Date.now() - tScore;
@@ -384,7 +415,15 @@ export async function onRequest(context) {
       capsule: { label: "캡슐 크기", unit: "mg", higherBetter: false, dist: distributions.capsule }
     },
     qualityMeta: {
-      anchorLabel: { "오메가3":"EPA+DHA 1,000mg", "눈":"루테인+지아잔틴 20mg", "마이크로바이옴":"보장균수 100억", "비타민C":"비타민C 1,000mg" }[catKey] || null,
+      anchorLabel: { "오메가3":"EPA+DHA 1,000mg", "눈":"루테인 20mg · 아스타잔틴 12mg (표방 성분 평균)", "마이크로바이옴":"보장균수 100억", "비타민C":"비타민C 1,000mg" }[catKey] || null,
+      rulesVersion: "기준표 v2.1 (2026-09-14)",
+      // [v7.8] 앵커 출처 — 우선순위: ① 식약처 일일섭취량 → ② 보건복지부 섭취기준 → ③ 유력 연구·학회 (2026-09-13 확정)
+      anchorSource: {
+        "오메가3":      { tier: "식약처", text: "식약처 일일섭취량 EPA+DHA 500~2,000mg 중 1,000mg" },
+        "눈":          { tier: "식약처", text: "식약처 일일섭취량 루테인 10~20mg 상한 20mg · 아스타잔틴 4~12mg 상한 12mg (표방 성분 평균)" },
+        "마이크로바이옴": { tier: "식약처", text: "식약처 일일섭취량 1억~100억 CFU 중 상한 100억" },
+        "비타민C":      { tier: "보건복지부", text: "식약처 별도 기준 없음 → 보건복지부 섭취기준(권장 100mg·상한 2,000mg) 내 보충 목적 1,000mg" }
+      }[catKey] || null,
       cuts: { A: 85, B: 70, C: 55, D: 40 },
       unscored: !!cfg.unscored   // [v7.4] 무채점 카테고리 표시 (밀크씨슬)
     },
