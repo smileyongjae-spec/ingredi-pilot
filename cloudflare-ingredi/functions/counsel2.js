@@ -1,4 +1,11 @@
-// functions/counsel2.js  [v15.27 — 재검(517문항) 잔여 반영: 음주 위험 신호 커버 확장]
+// functions/counsel2.js  [v16.0 — 기준표 v2.1 채점 규칙 모듈 연결(recommend2 v8.0과 동일 산식)]
+//   - v16.0: qualityFromFields → _lib/axis-scores.qualityOf. 눈 표방 성분 평균·아스타잔틴 라벨, 대안 게이트 core_full 기준,
+//            상한 초과·평가 보류를 화자 컨텍스트에 명시.
+// [v15.30 — 근거 용량 출처 표기: 식약처 → 복지부 → 연구 우선순위]
+// [v15.29 — 축 점수 규칙 코드화 연결(_lib/axis-scores.js)]
+//   - v15.29: scoresOf가 점수 컬럼 부재 시 코드 규칙으로 폴백(오메가3).
+// [v15.28 — 제품 DB 교체 대응: 테이블명 중앙 설정(_lib/tables.js) + 이중가 비용 폴백]
+//   - v15.28: 09.11 DB 교체. 테이블명은 TABLES에서, 1일비용은 쿠팡기준 → 옛 구조 → 네이버기준 순 폴백.
 //   - v15.27: ALCOHOL_RISK_RE 확장 — "맥주 네 캔"(수량 4·5), "몰래 마시다 걸렸다",
 //             "술 때문에 회사 잘릴 뻔" 등 재검에서 새 어휘로 빠져나간 3건의 패턴을 커버.
 //   - v15.26: ① [카테고리 미확정] 플래그 — 미확정 상태에서 화자가 오메가3 기준으로 단정하던 물듦 차단
@@ -58,6 +65,8 @@
 //     ⑥ 응급 게이트 확장(발진·숨쉬기 힘듦·구토+어지럼). ⑦ 메타 게이트 확장(이 서비스 뭐야·ingredi·너 AI야).
 
 import { getRecords } from "./_lib/airtable.js";
+import { TABLES } from "./_lib/tables.js";   // [v15.28] 테이블명 중앙 설정
+import { axisScores, qualityOf } from "./_lib/axis-scores.js";   // [v16.0] core·축·등급 산식 전부 규칙 모듈에서
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -99,8 +108,8 @@ export async function onRequest(context) {
   if (!ANTHROPIC_KEY) return new Response(JSON.stringify({ error: "missing_api_key" }), { status: 500, headers });
 
   // ─── 상수 (v7 계승) ──────────────────────────────
-  const FAQ_TABLE = "FAQ_전체상품";
-  const KNOW_TABLE = "knowledge";
+  const FAQ_TABLE = TABLES["FAQ"];
+  const KNOW_TABLE = TABLES["knowledge"];
 
   const CATEGORY_KEYWORDS = {
     omega3:     ["오메가", "omega", "epa", "dha", "ala", "dpa", "rtg", "알티지", "어유", "fish oil", "크릴", "어류", "goed", "ifos"],
@@ -243,18 +252,18 @@ export async function onRequest(context) {
   // quality=null(평가 준비중) — 0점으로 둔갑시키지 않는다. 비타민C는 원료사점수 결측 다수.
   function numOrNull(v) { if (v === "" || v == null) return null; const n = parseFloat(String(v).replace(/,/g, "")); return isNaN(n) ? null : n; }
   const QUALITY_CFG = {
-    omega3:     { table: "오메가3_쿠팡업데이트",       anchor: 1000, primaryFields: ["EPA_DHA_mg", "EPA_DHA_합계_mg"], addFields: [],            primaryLabel: "EPA+DHA",     unit: "mg", anchorLabel: "EPA+DHA 1,000mg",
+    omega3:     { table: TABLES["오메가3"],       anchor: 1000, primaryFields: ["EPA_DHA_mg", "EPA_DHA_합계_mg"], addFields: [],            primaryLabel: "EPA+DHA",     unit: "mg", anchorLabel: "EPA+DHA 1,000mg",
                   calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5 * core + 0.3 * sc.form + 0.2 * sc.cert },
-    eye:        { table: "눈_쿠팡업데이트",           anchor: 20,   primaryFields: ["루테인_mg"],                addFields: ["지아잔틴_mg"], primaryLabel: "루테인+지아잔틴", unit: "mg", anchorLabel: "루테인+지아잔틴 20mg",
+    eye:        { table: TABLES["눈"],           anchor: 20,   primaryFields: ["루테인_mg"],                addFields: ["지아잔틴_mg"], primaryLabel: "루테인+지아잔틴", unit: "mg", anchorLabel: "루테인+지아잔틴 20mg",
                   calc: (core, sc) => (sc.supplier == null) ? null : 0.7 * core + 0.3 * sc.supplier },
-    probiotics: { table: "마이크로바이옴_쿠팡업데이트", anchor: 100,  primaryFields: ["보장균수_억"],              addFields: [],            primaryLabel: "보장균수",    unit: "억", anchorLabel: "보장균수 100억", segmentField: "대상분류",
+    probiotics: { table: TABLES["마이크로바이옴"], anchor: 100,  primaryFields: ["보장균수_억"],              addFields: [],            primaryLabel: "보장균수",    unit: "억", anchorLabel: "보장균수 100억", segmentField: "대상분류",
                   calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5 * core + 0.3 * sc.form + 0.2 * sc.cert },
-    vitaminC:   { table: "비타민C_쿠팡업데이트",       anchor: 1000, primaryFields: ["비타민C함량_mg"],           addFields: [],            primaryLabel: "비타민C",     unit: "mg", anchorLabel: "비타민C 1,000mg",
+    vitaminC:   { table: TABLES["비타민C"],       anchor: 1000, primaryFields: ["비타민C함량_mg"],           addFields: [],            primaryLabel: "비타민C",     unit: "mg", anchorLabel: "비타민C 1,000mg",
                   calc: (core, sc) => (sc.supplier == null) ? null : 0.6 * core + 0.4 * sc.supplier },
     // [v15.23] 밀크씨슬 — 무채점 카테고리. 등급·품질점수를 만들지 않는다(calc 항상 null).
     // 정렬은 [6]의 2단 정렬(함량 표기 여부 → 1일비용 오름차순)이 담당. recommend2 v7.4와 동일 원칙.
     // 제품명 필드가 기존 테이블과 달리 네이버_제품명(nameField로 인덱스 로드 시 사용).
-    milkthistle: { table: "밀크씨슬_2026.09.04",       anchor: 1,    primaryFields: ["실리마린_mg"],              addFields: [],            primaryLabel: "실리마린",    unit: "mg", anchorLabel: null,
+    milkthistle: { table: TABLES["밀크씨슬"],       anchor: 1,    primaryFields: ["실리마린_mg"],              addFields: [],            primaryLabel: "실리마린",    unit: "mg", anchorLabel: null,
                   unscored: true, nameField: "네이버_제품명",
                   calc: () => null }
   };
@@ -266,20 +275,34 @@ export async function onRequest(context) {
     for (const k of (cfg.addFields || [])) { const n = numOrNull(getField(f, k)); if (n != null) raw += n; }
     return { primary: (base == null && !(cfg.addFields || []).length) ? null : raw, base };
   }
-  function scoresOf(f) {
+  function scoresOf(f, cat) {
+    // [v15.29] Airtable 점수 컬럼 우선, 없으면 코드 규칙(_lib/axis-scores.js — 오메가3). recommend2 v7.7과 동일.
+    const axis = axisScores(RULE_KEY[cat] || cat, f) || {};
     return {
-      form:     numOrNull(getField(f, "제형점수", "제형편의점수", "리포좀중성점수")),
-      supplier: numOrNull(getField(f, "원료사점수", "원료사균주점수", "원료품질점수")),
-      cert:     numOrNull(getField(f, "인증점수", "인증근거점수", "부형제안전점수"))
+      form:     numOrNull(getField(f, "제형점수", "제형편의점수", "리포좀중성점수")) ?? (axis.form ?? null),
+      supplier: numOrNull(getField(f, "원료사점수", "원료사균주점수", "원료품질점수")) ?? (axis.supplier ?? null),
+      cert:     numOrNull(getField(f, "인증점수", "인증근거점수", "부형제안전점수")) ?? (axis.cert ?? null)
     };
   }
   // 카테고리별 품질점수. recommend2 파이프라인과 동일: core = min(raw/anchor,1)*100 → calc → 반올림.
   function qualityFor(cat, rawPrimary, sc) {
+    // [v16.0] 하위 호환용 — 실제 채점은 qualityFromFields(cat, f)
     const cfg = QUALITY_CFG[cat];
     if (!cfg) return null;
     const core = Math.min((rawPrimary || 0) / cfg.anchor, 1) * 100;
     const q = cfg.calc(core, sc);
     return q == null ? null : Math.round(q * 10) / 10;
+  }
+  // [v16.0] 기준표 v2.1 채점 — recommend2 v8.0과 동일 모듈. external = Airtable 점수 컬럼(유산균 v1 제형점수용).
+  const RULE_KEY = { omega3: "오메가3", eye: "눈", probiotics: "마이크로바이옴", vitaminC: "비타민C" };   // 규칙 모듈 키(CAT_KO의 "유산균"은 표시명)
+  function qualityFromFields(cat, f) {
+    const ko = RULE_KEY[cat]; if (!ko || QUALITY_CFG[cat] && QUALITY_CFG[cat].unscored) return null;
+    const external = {
+      form:     numOrNull(getField(f, "제형점수", "제형편의점수", "리포좀중성점수")),
+      supplier: numOrNull(getField(f, "원료사점수", "원료사균주점수", "원료품질점수")),
+      cert:     numOrNull(getField(f, "인증점수", "인증근거점수", "부형제안전점수"))
+    };
+    return qualityOf(ko, f, external);
   }
   // 등급 컷 — recommend2 qualityGradeOf 와 동일 (절대평가, 모집단 무관). S는 이 산식에 없다.
   function gradeFromQuality(q) { return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E"; }
@@ -858,13 +881,20 @@ export async function onRequest(context) {
       }
       const items = (pRecords || []).map(r => {
         const f = r.fields || {};
-        const { primary } = rawPrimaryOf(f, cfg);
-        const q = qualityFor(matchedCategory, primary, scoresOf(f));
+        const { primary: rawPri } = rawPrimaryOf(f, cfg);
+        const qx = qualityFromFields(matchedCategory, f);
+        const q = qx ? qx.quality : null;
+        // [v16.0] 눈: 주 표방 성분(루테인/아스타잔틴) 값·라벨을 화자에게 — 지아잔틴 합산 폐지
+        const primary = (qx && qx.value != null && matchedCategory === "eye") ? qx.value : rawPri;
         return {
           product_id: getField(f, "product_id", "productId") || r.id,
           name: getField(f, "제품명", "네이버_제품명", "name") || "",
           primary_mg: primary,
-          daily_cost: Math.round(parseFloat(getField(f, "1일비용_원")) || 0) || null,
+          primary_label: qx && qx.label ? qx.label : null,
+          core_full: qx && qx.core != null ? qx.core >= 100 : null,     // 근거 용량 충족 여부(대안 게이트용)
+          hold_reason: qx ? (qx.holdReason || null) : null,
+          over_limit: !!(qx && qx.overLimit),
+          daily_cost: Math.round(parseFloat(getField(f, "1일비용_쿠팡기준_원", "1일비용_쿠팡_원", "1일비용_원", "1일비용_네이버기준_원", "1일비용_네이버_원")) || 0) || null,
           form: getField(f, "제형") || null,
           certs: asText(getField(f, "인증")) || null,
           segment: cfg.segmentField ? (String(getField(f, cfg.segmentField) || "").trim() || null) : null,
@@ -934,12 +964,15 @@ export async function onRequest(context) {
           const hit = items.find(p => p.product_id === pid);
           if (hit) topProducts.push(hit);
           else {
-            const { primary: ppri } = rawPrimaryOf(pf, cfg);
-            const pq = qualityFor(matchedCategory, ppri, scoresOf(pf));
+            const { primary: rawPp } = rawPrimaryOf(pf, cfg);
+            const pqx = qualityFromFields(matchedCategory, pf);
+            const pq = pqx ? pqx.quality : null;
+            const ppri = (pqx && pqx.value != null && matchedCategory === "eye") ? pqx.value : rawPp;
             topProducts.push({
               product_id: pid, name: getField(pf, "제품명", "네이버_제품명", "name") || "",
-              primary_mg: ppri,
-              daily_cost: Math.round(parseFloat(getField(pf, "1일비용_원")) || 0) || null,
+              primary_mg: ppri, primary_label: pqx && pqx.label ? pqx.label : null,
+              core_full: pqx && pqx.core != null ? pqx.core >= 100 : null, hold_reason: pqx ? (pqx.holdReason || null) : null, over_limit: !!(pqx && pqx.overLimit),
+              daily_cost: Math.round(parseFloat(getField(pf, "1일비용_쿠팡기준_원", "1일비용_쿠팡_원", "1일비용_원", "1일비용_네이버기준_원", "1일비용_네이버_원")) || 0) || null,
               form: getField(pf, "제형") || null, certs: asText(getField(pf, "인증")) || null,
               segment: cfg.segmentField ? (String(getField(pf, cfg.segmentField) || "").trim() || null) : null,
               descriptor: descriptorOf(matchedCategory, getField(pf, cfg.segmentField || "__none__"), ppri),
@@ -1007,7 +1040,7 @@ export async function onRequest(context) {
 - 가성비 우선: 가격 대비 최선(파레토 경계) 순위 — 이보다 싸면서 더 좋은 제품이 없는 것부터.
 - 등급(A~E): 카테고리별 품질 산식의 절대 기준입니다. A는 상위 등급이라는 뜻이지 1위라는 뜻이 아닙니다. 밀크씨슬은 등급을 매기지 않는 카테고리라 등급이 없습니다.
 - 보장균수: 유통기한까지 살아있음을 보장하는 균 수(유산균). 투입균수와 다릅니다.
-- 임상 근거 용량: 임상 연구에서 효과가 확인된 1일 섭취량. 오메가3 EPA+DHA 1,000mg, 루테인+지아잔틴 20mg, 유산균 보장균수 100억, 비타민C 1,000mg.
+- 근거 용량(앵커): 함량 점수의 만점 기준. 출처 우선순위는 ①식약처 일일섭취량 ②(없으면) 보건복지부 섭취기준 ③(둘 다 없으면) 유력 연구·학회 순입니다. 오메가3 EPA+DHA 1,000mg(식약처 500~2,000mg 중), 루테인+지아잔틴 20mg(식약처 10~20mg 상한), 유산균 보장균수 100억(식약처 1억~100억 상한), 비타민C 1,000mg(식약처 기준 없음 → 복지부 섭취기준 내 보충 목적 상한). 근거 용량을 말할 때는 출처(식약처/복지부/연구)를 함께 말하고, "임상 연구 용량"처럼 뭉뚱그리지 않습니다. 눈 20mg을 AREDS2 시험 용량이라고 말하지 않습니다(AREDS2는 루테인 10mg+지아잔틴 2mg).
 
 상황(TPO) 분기 — 같은 등급도 보유와 구매 예정은 다릅니다:
 - 이미 갖고 있거나 복용 중(선물·회사 지급 포함): B는 "바꿀 이유 없어요", C는 "드시던 건 마저 드시고, 재구매하실 때 대안을 보세요", D도 "드신다고 큰일 나는 건 아니지만" 재구매는 말립니다.
@@ -1073,7 +1106,9 @@ export async function onRequest(context) {
         rank_quality: p.rank_quality, rank_value: p.rank_value,
         grade: p.grade,
         [mcfg ? mcfg.primaryLabel : "함량"]:
-          p.primary_mg != null ? p.primary_mg.toLocaleString() + (mcfg ? mcfg.unit : "") : null,
+          p.primary_mg != null ? ((p.primary_label && p.primary_label !== (mcfg && mcfg.primaryLabel) ? p.primary_label + " " : "") + p.primary_mg.toLocaleString() + (mcfg ? mcfg.unit : "")) : null,
+        ...(p.over_limit ? { 상한초과: "식약처·복지부 상한 초과 — 의사 상담 권고" } : {}),
+        ...(p.hold_reason ? { 평가보류: p.hold_reason } : {}),
         인증: classifyCerts(p.certs) || null,
         일일비용: p.daily_cost != null ? p.daily_cost + "원" : null,
         특성: p.descriptor || null,
@@ -1090,7 +1125,7 @@ export async function onRequest(context) {
         productBlock += "\n[무채점 카테고리] 이 카테고리는 등급·품질점수를 매기지 않습니다. grade는 전부 null이며 A~E 평결 매핑을 쓰지 마세요. 순위(rank_value)는 단 하나 — 함량 표기 제품 우선, 그 안에서 1일비용 오름차순입니다. 목록 페이지의 가성비 정렬과 동일합니다.";
         productBlock += "\n발화 규칙: 확인 가능한 팩트로만 판단하세요 — 실리마린 함량(표기 여부 포함), 하루 비용, 인증, 원료사(참고 정보). 함량표기가 '미표기'인 제품은 함량을 밝히지 않아 판단 근거가 부족하다고 정직하게 말하고, 표기 제품을 대안으로 안내하세요. 원료사가 좋다는 이유로 제품을 밀지 마세요. 추천 요청에는 축을 되묻지 말고 rank_value 상위를 바로 권합니다.";
       } else {
-      productBlock += "\n임상 도즈 앵커: " + (mcfg ? mcfg.anchorLabel : "카테고리별 근거 용량") + ".";
+      productBlock += "\n근거 용량 앵커: " + (mcfg ? mcfg.anchorLabel : "카테고리별 근거 용량") + " (출처: " + ({ omega3:"식약처 일일섭취량", eye:"식약처 일일섭취량", probiotics:"식약처 일일섭취량", vitaminC:"보건복지부 섭취기준(식약처 기준 없음)" }[matchedCategory] || "카테고리 기준") + ").";
       productBlock += "\n후보군 설명: 성분 우선(rank_quality, 품질 높은 순)·가성비(rank_value, 파레토 경계 = 이보다 싸면서 더 좋은 제품이 없는 순) 두 기준 각 상위의 합집합입니다. 순위는 전체 제품 기준이며, 목록 페이지의 '성분 우선'·'가성비 우선' 탭과 동일합니다.";
       productBlock += "\n축 선택 규칙: 가격을 중시하면 rank_value(가성비), 그 외에는 rank_quality(성분 우선) 순으로 고르고, 어떤 기준으로 골랐는지 한 마디로 밝히세요 (예: \"성분 우선으로는 이게 1위예요\"). 순수 함량순은 제공하지 않습니다.";
       productBlock += "\n점수 노출 금지: 내부 품질 점수(숫자)는 사용자에게 절대 말하지 마세요. 대신 등급(A/B…)과 근거로 설명합니다. 각 추천 제품마다 왜 권하는지를 한두 문장으로: ①등급이 기본 충족을 뜻함(A면 근거 용량·인증을 갖춤) ②'인증' 필드는 이미 성격별 이름(제조 인증·안전 인증·주요성분 품질 인증·Non-GMO)으로 정제돼 있으니 그 이름 그대로 말하세요(예: \"GMP 제조 인증과 HACCP 안전 인증을 갖췄어요\"). 절대 '인증' 두 글자만 말하지 말고, 무엇을 보증하는 인증인지 이름을 붙이세요. 함량은 앵커 대비로. ③'특성' 필드에 값(여성/키즈/메가도즈)이 있으면 반드시 드러내세요 — 예: \"여성 질유래 유산균이에요\", \"키즈 전용으로 100억 채웠어요\", \"메가도즈(고용량)예요\". 이 2차 조건이 신뢰를 높입니다.";
@@ -1098,7 +1133,7 @@ export async function onRequest(context) {
       productBlock += "\n반복 금지: 직전 턴에서 이미 제시한 대안을 습관처럼 반복하지 마세요. 새 질문의 기준이 다르면 그 기준으로 다시 고르세요.";
     } else {
       productBlock += "\n(이 카테고리의 제품 데이터가 이 요청에 로드되지 않았습니다. 특정 제품 평결이 필요하면 라벨 함량을 요청하고, 대안은 비교 페이지로 안내하세요.)";
-      productBlock += "\n임상 도즈 앵커: 오메가3 EPA+DHA 1,000mg / 루테인+지아잔틴 20mg / 유산균 보장균수 100억 / 비타민C 1,000mg.";
+      productBlock += "\n근거 용량 앵커: 오메가3 EPA+DHA 1,000mg(식약처) / 루테인+지아잔틴 20mg(식약처) / 유산균 보장균수 100억(식약처) / 비타민C 1,000mg(복지부).";
       // [v15.26] 자체점검 결함: 미확정 상태에서 화자가 오메가3 기준(EPA·IFOS·등급)으로 단정 답변
       // ("품질 점수 몇 점?"→"오메가3 제품에 붙는 수치예요"). 검색 지식에 오메가3 문서가 딸려와도
       // 특정 카테고리를 전제하지 않게 못박는다.
@@ -1374,7 +1409,7 @@ export async function onRequest(context) {
         const byId = new Map(productContext.map(p => [String(p.product_id), p]));
         payload.alternatives = payload.alternatives.filter(a => {
           const p = byId.get(String(a.product_id));
-          return !p || p.primary_mg == null || p.primary_mg >= anchor;
+          return !p || p.core_full !== false;   // [v16.0] 근거 용량 충족(core 100) 기준 — 눈 복합 앵커 대응
         });
         // 백필: 자격(임상 앵커 이상) 갖춘 대안이 2개 미만이면 채운다(최소 2개 보장).
         if (payload.alternatives.length < 2) {
@@ -1383,7 +1418,7 @@ export async function onRequest(context) {
             ? String(getField(productMatchRecord.fields || {}, "product_id", "productId") || productMatchRecord.id)
             : null;
           const fillers = productContext.filter(p =>
-            p.primary_mg != null && p.primary_mg >= anchor &&
+            p.core_full === true &&
             !have.has(String(p.product_id)) && String(p.product_id) !== mentionedId
           ).slice(0, 3 - payload.alternatives.length);
           for (const p of fillers) payload.alternatives.push({ product_id: p.product_id, name: p.name, reason: buildReason(p) });
@@ -1454,7 +1489,7 @@ export async function onRequest(context) {
         if (payload.verdict_tone === "negative") {
           ranked = cfg2.unscored
             ? ranked.filter(p => p.content_noted)
-            : ranked.filter(p => p.primary_mg == null || p.primary_mg >= cfg2.anchor);
+            : ranked.filter(p => p.core_full !== false);
         }
         ranked = ranked.sort((a, b) => a[rk] - b[rk]).slice(0, 3);
         if (ranked.length >= 2) {
