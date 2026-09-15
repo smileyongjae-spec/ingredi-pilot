@@ -1,4 +1,5 @@
-// functions/_lib/axis-scores.js — 건강기능식품 core·축 점수 규칙 (v2, 2026-09-14)
+// functions/_lib/axis-scores.js — 건강기능식품 core·축 점수 규칙 (v2.1, 2026-09-14)
+// [v2.1] 눈 core: 루테인+지아잔틴 합산(ANCHORS.눈.multi[0].addFields) — 근거는 아래 주석 참조.
 //
 // 기준표 v2.1(세부등급 기준표)을 그대로 코드로 옮긴 것. 모든 숫자는 아래 상수에 있으므로 결정이 바뀌면
 // 상수만 고친다. 규칙의 사람이 읽는 판본은 문서(ingredi_세부등급_기준표_v2.1)이며 둘은 항상 같아야 한다.
@@ -26,10 +27,14 @@ export const ANCHORS = {
   "마이크로바이옴": { fields: ["보장균수_억"],               anchor: 100,  limit: null, label: "보장균수", unit: "억", source: "식약처 일일섭취량 1억~100억 CFU 중 상한 100억" },
   "비타민C":       { fields: ["비타민C함량_mg"],            anchor: 1000, limit: 2000, label: "비타민C", unit: "mg", source: "보건복지부 섭취기준 내 보충 목적 1,000mg (식약처 별도 기준 없음)" },
   // 눈: 표방 성분 평균 — 루테인(≥10mg ÷ 20) · 아스타잔틴(≥4mg ÷ 12). 지아잔틴은 식약처 단독 기준 없음 → 정보.
+  // [2026-09-14] 루테인+지아잔틴 합산. 근거: 고시형 루테인(마리골드꽃추출물) "루테인으로서 10~20mg"과
+  //   개별인정형 루테인지아잔틴복합추출물(인정 2018-4) "루테인과 지아잔틴의 합으로서 10~20mg"의 상한이 20으로 같다.
+  //   제품이 어느 원료를 썼는지 구분할 컬럼(기능성원료명·인정번호)이 아직 없어 잠정 통합 적용 — 컬럼 확보 시 제품별 앵커로 전환
+  //   (개별인정 중 합 12~30mg(2025-35), 12mg(DSM) 등 다른 상한 존재).
   "눈": { multi: [
-    { key: "루테인",   fields: ["루테인_mg"],   anchor: 20, min: 10, unit: "mg", source: "식약처 마리골드꽃추출물 10~20mg 상한" },
-    { key: "아스타잔틴", fields: ["아스타잔틴_mg"], anchor: 12, min: 4,  unit: "mg", source: "식약처 헤마토코쿠스추출물 4~12mg 상한" }
-  ], label: "루테인", unit: "mg", source: "식약처 — 표방 성분별 앵커 평균" }
+    { key: "루테인·지아잔틴", fields: ["루테인_mg"], addFields: ["지아잔틴_mg"], anchor: 20, min: 10, unit: "mg", source: "고시형 루테인 10~20mg / 개별인정 복합추출물 합 10~20mg" },
+    { key: "아스타잔틴",     fields: ["아스타잔틴_mg"],                          anchor: 12, min: 4,  unit: "mg", source: "고시형 헤마토코쿠스추출물 4~12mg 상한" }
+  ], label: "루테인·지아잔틴", unit: "mg", source: "식약처 — 표방 성분별 앵커 평균" }
 };
 
 function readNum(f, fields) { for (const k of fields) { const n = N(f[k]); if (n != null) return n; } return null; }
@@ -39,7 +44,9 @@ export function coreOf(cat, f) {
   if (a.multi) {
     const claimed = [];
     for (const m of a.multi) {
-      const v = readNum(f, m.fields);
+      let v = readNum(f, m.fields);
+      // addFields: 같은 기능성으로 합산하는 성분(눈 — 지아잔틴). 주성분이 있을 때만 더한다.
+      if (v != null) for (const k of (m.addFields || [])) { const add = N(f[k]); if (add != null) v += add; }
       if (v != null && v >= m.min) claimed.push({ key: m.key, value: v, core: Math.min(v / m.anchor, 1) * 100, unit: m.unit });
     }
     if (!claimed.length) return null;                           // 표방 성분 없음 → 함량 미표기 → 보류
