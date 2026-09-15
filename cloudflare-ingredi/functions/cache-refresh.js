@@ -1,4 +1,4 @@
-// functions/cache-refresh.js  (v2 — 하위요청 예산 인식)
+// functions/cache-refresh.js  (v3 — 테이블명을 _lib/tables.js 중앙 설정에서 / v2 하위요청 예산 인식)
 //
 // 문제: 테이블이 늘면서(현재 14개) 한 번의 호출로 전부 갱신하면
 //       Cloudflare 하위요청 한도(50)에 걸려 뒤쪽 테이블(FAQ_전체상품, 리뷰 3종)이
@@ -10,15 +10,17 @@
 //
 // 호출:
 //   전체(배치):  https://ingredi.kr/cache-refresh?key=<SECRET>
-//   단일 테이블: https://ingredi.kr/cache-refresh?key=<SECRET>&table=FAQ_전체상품
+//   단일 테이블: https://ingredi.kr/cache-refresh?key=<SECRET>&table=오메가3_쿠팡업데이트_2026.09.10
+//   ※ 파라미터 이름은 key (coupang-convert의 secret과 다름)
 
 import { purge, getRecords } from './_lib/airtable.js';
+import { TABLES as T, PRODUCT_TABLES } from './_lib/tables.js';   // [v3] 테이블명 중앙 설정
 
+// [v3] 갱신 대상 = 제품 6 + 지식 2 + 리뷰 4. 옛 테이블(오메가3·눈·product_v2·*_쿠팡업데이트 무날짜)은 삭제됨.
 const TABLES = [
-  '오메가3', '눈', '마이크로바이옴', '비타민C', 'product_v2',
-  '오메가3_쿠팡업데이트', '눈_쿠팡업데이트', '마이크로바이옴_쿠팡업데이트', '비타민C_쿠팡업데이트',
-  'knowledge', 'FAQ_전체상품',
-  '오메가_리뷰인사이트', '눈_리뷰인사이트', '비타민C_리뷰인사이트'
+  ...PRODUCT_TABLES,                       // 오메가3·눈·마이크로바이옴·비타민C·밀크씨슬·스포츠 (날짜 붙은 현행 이름)
+  T.knowledge, T.FAQ,
+  ...Object.values(T["리뷰"])              // 오메가_·눈_·비타민C_·마이크로바이옴_리뷰인사이트
 ];
 
 // 하위요청 예산. 실제 한도는 50이지만 여유를 둠.
