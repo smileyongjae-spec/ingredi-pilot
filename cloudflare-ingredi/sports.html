@@ -471,9 +471,9 @@ function compare(p,d){
 // 채점 유형인데 점수가 없는 제품의 사유 — 판단이 아니라 사실 진술. "–"만 보이면 사용자는 이유를 모른다.
 function holdReason(p, d){
   if (d.tier === 'none' || p.qualityGrade) return '';
+  if (p.holdReason) return p.holdReason;                     // [v2.0] 서버 사유 우선(부스터 "근거 성분 없음")
   const pv = p.primary && p.primary.v;
   if (!(pv > 0)) return '함량 미표기';
-  if (p.purityScore == null && (d.sub === '웨이프로틴' || d.sub === '웨이트게이너')) return '정제도 미표기';
   return '자료 부족';
 }
 
@@ -489,9 +489,12 @@ window.toggleHowTo = toggleHowTo;
 function howToRead(d){
   const scored = d.tier !== 'none';
   const rows = scored ? [
-    ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — ISSN 근거 용량(앵커)을 얼마나 채웠는지와 정제도·인증으로 정하고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
-    ["ISSN 근거 기준", "국제스포츠영양학회(ISSN) 포지션 스탠드의 권장 용량을 앵커로 써요" + (d.anchorLabel ? ` — 이 성분은 ${esc(d.anchorLabel)}.` : ".") + (d.perKg ? " 체중에 비례하는 권장이라 입력한 체중으로 계산해요." : "")],
-    ["평가 보류", "함량이나 정제도 같은 산식 입력이 표기돼 있지 않으면 등급을 매기지 않고 '평가 보류'로 표시해요. 모르는 값을 0으로 넣어 등급을 주면 그 등급이 거짓이 되니까요."],
+    ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — ISSN 근거 용량(앵커)을 얼마나 채웠는지와 원료 등급(단백질) 또는 원료 브랜드(그 외)·인증으로 정하고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
+    ["산식", "단백질 파우더·게이너 = 함량 0.5 + 원료 등급 0.3 + 인증 0.2 (원료 등급: 첫 표기 기준 WPI·WPH 100 / MPI 85 / ISP 75 / WPC·MPC 60). 크레아틴·EAA·HMB·베타알라닌·부스터 = 함량 0.7 + 원료 브랜드 0.1 + 인증 0.2 (브랜드: Creapure·CarnoSyn 같은 등록 상표 100 / 원산지·제조사명 70)."],
+    ["ISSN 근거 기준", "근거 용량은 식약처 → 보건복지부 → 유력 학회·연구 순으로 찾는데, 운동 보충제는 앞의 두 기준이 없어 국제스포츠영양학회(ISSN) 포지션 스탠드의 권장 용량을 앵커로 써요" + (d.anchorLabel ? ` — 이 성분은 ${esc(d.anchorLabel)}.` : ".") + (d.perKg ? " 체중에 비례하는 권장이라 입력한 체중으로 계산해요." : "")],
+    ["미표기 항목", "함량이 표기돼 있지 않으면 등급을 매기지 않고 '평가 보류'로 표시해요. 원료 등급·원료 브랜드처럼 등급의 일부인 항목이 표기돼 있지 않으면 그 항목에 최하 점수의 절반을 주고 등급을 매겨요 — WPI·Creapure 같은 우위는 제품이 반드시 표기하니까, 표기가 없다는 것 자체가 정보라서요."],
+    ["인증", "도핑 검사 인증(Informed Sport·NSF Certified for Sport) 40, 제3자 검사 25, GMP 20, FSSC·ISO 22000 15, HACCP 10을 더해 100점 상한이에요. Non-GMO·Vegan·Kosher 같은 배합 속성은 인증 점수에 넣지 않아요."],
+    ["부스터", "카페인·시트룰린·베타알라닌처럼 근거가 있는 성분을 하한 이상 표방한 제품은 각 성분의 ISSN 기준으로 재서 평균해요. 아르기닌·타우린만 든 제품은 근거 성분이 없어 등급을 매기지 않아요."],
     ["성분 우선 · 가성비 우선", "성분 우선은 품질점수가 높은 순, 가성비 우선은 가격 대비 최선인 제품을 앞에 두는 순서예요. 어느 쪽이든 품질을 재는 기준은 같아요."],
     ["하루 비용", "판매가를 표기 섭취량 기준 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
     ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니라서 비중을 낮게 둬요."],
@@ -594,6 +597,8 @@ function card(p,d){
     ${price>0?`<div class="cv-price"><span class="lbl">판매가</span><span class="val">${fmt(price)}원${mo}</span></div>`:''}
     ${tags.length?`<div class="cv-certrow"><span class="lbl">인증</span><div class="cv-tagrow">${tags.join('')}</div></div>`:''}
     ${p.proteinSource?`<div class="cv-form"><span class="lbl">원료</span><span class="fval">${esc(p.proteinSource)}</span></div>`:''}
+    ${p.claimed&&p.claimed.length>1?`<div class="cv-form"><span class="lbl">표방 성분</span><span class="fval">${esc(p.claimed.join(' · '))}</span></div>`:''}
+    ${p.leucineLow!=null?`<div class="cv-form"><span class="lbl">참고</span><span class="fval">류신 ${fmt(p.leucineLow)}mg — ISSN 근합성 역치 2,500mg 미만</span></div>`:''}
     ${clean(p.form)?`<div class="cv-form"><span class="lbl">제형</span><span class="fval">${esc(clean(p.form))}</span>${clean(p.flavor)?`<span class="fval">${esc(clean(p.flavor))}</span>`:''}</div>`:''}
     <div class="cv-foot"><span class="cv-rev">리뷰 ${fmt(p.reviewCount)}개</span></div>
     ${buy}
