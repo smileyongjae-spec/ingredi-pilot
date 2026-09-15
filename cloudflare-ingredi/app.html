@@ -530,7 +530,7 @@
       </div>
       <div class="profile-card" onclick="openCategory('눈')">
         <div class="profile-icon-box icon-eye"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
-        <div class="profile-text"><div class="profile-label">눈 건강</div><div class="profile-desc">루테인·지아잔틴</div></div>
+        <div class="profile-text"><div class="profile-label">눈 건강</div><div class="profile-desc">루테인·지아잔틴 · 아스타잔틴</div></div>
       </div>
       <div class="profile-card" onclick="openCategory('마이크로바이옴')">
         <div class="profile-icon-box icon-prob"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="10" r="4"/><circle cx="16" cy="15" r="3"/><path d="M9 6v-1M5 10H4M13 13l-1-1"/></svg></div>
@@ -713,7 +713,7 @@ window.showShareToast = showShareToast;
 
 const TERM_INFO = {
   vscore: { title: "품질점수", badge: "절대 평가",
-    body: "가격과 리뷰를 빼고, 검증 가능한 것만으로 매긴 점수예요. 근거 함량을 채웠는지, 흡수가 잘 되는 제형인지, 인증을 받았는지를 봐요.\n\n순위가 아니라 절대 기준이라, 다른 제품이 늘거나 줄어도 점수는 바뀌지 않아요.",
+    body: "가격과 리뷰를 빼고, 검증 가능한 것만으로 매긴 점수예요. 근거 용량을 채웠는지(함량), 흡수가 잘 되는 제형인지, 브랜드 원료를 썼는지(원료사), 어떤 인증을 받았는지를 카테고리별 가중치로 더해요.\n\n순위가 아니라 절대 기준이라, 다른 제품이 늘거나 줄어도 점수는 바뀌지 않아요.",
     points: ["A 85점 · B 70점 · C 55점 · D 40점", "가격·리뷰는 점수에 넣지 않아요", "근거 용량(식약처 → 복지부 → 연구 순)을 채우면 함량 만점"] },
   basis: { title: "비교 기준", badge: "카테고리 내 위치",
     body: "카드 안의 화살표 문장(함량·캡슐·가격)은 같은 카테고리 전체와 비교한 위치예요. 탭이나 필터를 바꿔도 기준은 달라지지 않아요.\n\n등급은 이와 별개로 절대 기준이에요. 다른 제품과 무관하게 정해져요.",
@@ -1145,7 +1145,9 @@ function kidsCapsuleNote(p){
 // ── "등급과 비교, 이렇게 정해요" 아코디언 ──────────
 // 문구를 카테고리마다 복사하지 않는다. 공통 항목 + PRIMARY_TERM 으로 성분 항목만 갈아 끼운다.
 const HOWTO_COMMON = [
-  ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — 근거 용량을 채웠는지, 제형과 인증이 우수한지로 정해지고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
+  ["순위와 등급", "1위는 정렬 순서예요. 등급은 절대 기준이에요 — 근거 용량을 채웠는지, 제형·원료사·인증이 우수한지로 정해지고, 다른 제품이 늘거나 줄어도 바뀌지 않아요. 가격과 리뷰는 등급에 넣지 않아요."],
+    ["카테고리별 산식", "오메가3 = 함량 0.5 + 제형 0.3 + 인증 0.2 · 눈 = 함량 0.7 + 원료사 0.3 · 유산균 = 함량 0.5 + 제형 0.3 + 인증 0.2 · 비타민C = 함량 0.6 + 원료사 0.3 + 인증 0.1. 원료사는 브랜드 원료(임상·규격 공개) 85 / 그 외 표기 70이고 원산지로는 차등을 두지 않아요. 인증은 종류별로 더하고, Halal·Kosher·Non-GMO 같은 배합 속성은 점수에 넣지 않아요."],
+    ["상한 초과", "식약처·복지부 상한(오메가3 EPA+DHA 2,000mg, 비타민C 2,000mg)을 넘는 제품은 점수를 깎지 않지만 '의사 상담 권고'를 표시해요."],
     ["미표기 항목", "제형·원료사처럼 등급의 일부인 항목이 표기돼 있지 않으면 그 항목에 최하 점수의 절반을 주고 등급을 매겨요. rTG나 브랜드 원료 같은 우위는 제품이 반드시 표기하니까, 표기가 없다는 것도 정보예요. 함량 자체가 없으면 등급을 매기지 않아요."],
     ["근거 용량의 출처", "함량 만점 기준은 식약처 일일섭취량을 최우선으로 써요. 식약처 기준이 없으면 보건복지부 섭취기준, 그것도 없으면 국제 학회·유력 연구를 따라요. 오메가3·눈·유산균은 식약처 기준, 비타민C는 복지부 기준이에요."],
   ["성분 우선 · 가성비 우선", "성분 우선은 품질점수(근거 함량·제형·인증)가 높은 순서예요. 가성비 우선은 가격 대비 최선인 제품을 맨 위에 보여드려요. 아래로 갈수록 \"이보다 싸면서 더 좋은 제품\"이 많아지는 순서예요. 어느 쪽이든 품질을 재는 기준은 같고, 가성비 순서는 지금 보고 있는 목록(전체·여성·키즈 등) 안에서 계산해요."],
