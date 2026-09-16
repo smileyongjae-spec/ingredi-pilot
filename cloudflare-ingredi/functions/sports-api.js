@@ -23,6 +23,7 @@
 
 import { getRecords } from "./_lib/airtable.js";
 import { TABLES } from "./_lib/tables.js";   // [v1.3] 테이블명 중앙 설정
+import { gradeOf } from "./_lib/axis-scores.js";   // [v2.1] 등급 컷 단일 출처
 
 // [2026-09-06] 파트너 데이터 갱신: 08.12(185행) → 09.04(180행), 쿠팡 URL 전량 등록됨.
 // 캐시 키가 테이블명 기반(at:테이블명)이라 전환 시 별도 purge 불필요 — 새 키로 새로 쌓인다.
@@ -194,9 +195,7 @@ function brandScore(v) {
 }
 
 
-function gradeOf(q) {
-  return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E";
-}
+// [v2.1] 등급 컷은 _lib/axis-scores.js 가 유일한 정의 (건기식과 동일 85/70/55/40)
 
 export async function onRequest(context) {
   const headers = {
