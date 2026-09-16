@@ -1,4 +1,5 @@
-// functions/counsel2.js  [v16.1 — 화자 용어 사전을 기준표 v2.2로(카테고리별 산식·미표기 규칙·눈 표방 성분 평균·상한 초과)]
+// functions/counsel2.js  [v16.2 — 옛 산식 정의(QUALITY_CFG.calc·qualityFor·scoresOf·gradeFromQuality) 삭제: 규칙 모듈이 유일한 출처]
+// [v16.1 — 화자 용어 사전을 기준표 v2.2로(카테고리별 산식·미표기 규칙·눈 표방 성분 평균·상한 초과)]
 // [v16.0 — 기준표 v2.1 채점 규칙 모듈 연결(recommend2 v8.0과 동일 산식)]
 //   - v16.0: qualityFromFields → _lib/axis-scores.qualityOf. 눈 표방 성분 평균·아스타잔틴 라벨, 대안 게이트 core_full 기준,
 //            상한 초과·평가 보류를 화자 컨텍스트에 명시.
@@ -67,7 +68,7 @@
 
 import { getRecords } from "./_lib/airtable.js";
 import { TABLES } from "./_lib/tables.js";   // [v15.28] 테이블명 중앙 설정
-import { axisScores, qualityOf } from "./_lib/axis-scores.js";   // [v16.0] core·축·등급 산식 전부 규칙 모듈에서
+import { qualityOf, gradeOf } from "./_lib/axis-scores.js";   // [v16.0] core·축·등급 산식 전부 규칙 모듈에서
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -253,14 +254,10 @@ export async function onRequest(context) {
   // quality=null(평가 준비중) — 0점으로 둔갑시키지 않는다. 비타민C는 원료사점수 결측 다수.
   function numOrNull(v) { if (v === "" || v == null) return null; const n = parseFloat(String(v).replace(/,/g, "")); return isNaN(n) ? null : n; }
   const QUALITY_CFG = {
-    omega3:     { table: TABLES["오메가3"],       anchor: 1000, primaryFields: ["EPA_DHA_mg", "EPA_DHA_합계_mg"], addFields: [],            primaryLabel: "EPA+DHA",     unit: "mg", anchorLabel: "EPA+DHA 1,000mg",
-                  calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5 * core + 0.3 * sc.form + 0.2 * sc.cert },
-    eye:        { table: TABLES["눈"],           anchor: 20,   primaryFields: ["루테인_mg"],                addFields: ["지아잔틴_mg"], primaryLabel: "루테인+지아잔틴", unit: "mg", anchorLabel: "루테인+지아잔틴 20mg",
-                  calc: (core, sc) => (sc.supplier == null) ? null : 0.7 * core + 0.3 * sc.supplier },
-    probiotics: { table: TABLES["마이크로바이옴"], anchor: 100,  primaryFields: ["보장균수_억"],              addFields: [],            primaryLabel: "보장균수",    unit: "억", anchorLabel: "보장균수 100억", segmentField: "대상분류",
-                  calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5 * core + 0.3 * sc.form + 0.2 * sc.cert },
-    vitaminC:   { table: TABLES["비타민C"],       anchor: 1000, primaryFields: ["비타민C함량_mg"],           addFields: [],            primaryLabel: "비타민C",     unit: "mg", anchorLabel: "비타민C 1,000mg",
-                  calc: (core, sc) => (sc.supplier == null) ? null : 0.6 * core + 0.4 * sc.supplier },
+    omega3:     { table: TABLES["오메가3"],       primaryFields: ["EPA_DHA_mg", "EPA_DHA_합계_mg"], addFields: [],            primaryLabel: "EPA+DHA",     unit: "mg", anchorLabel: "EPA+DHA 1,000mg" },
+    eye:        { table: TABLES["눈"],           primaryFields: ["루테인_mg"],                addFields: ["지아잔틴_mg"], primaryLabel: "루테인+지아잔틴", unit: "mg", anchorLabel: "루테인+지아잔틴 20mg" },
+    probiotics: { table: TABLES["마이크로바이옴"], primaryFields: ["보장균수_억"],              addFields: [],            primaryLabel: "보장균수",    unit: "억", anchorLabel: "보장균수 100억", segmentField: "대상분류" },
+    vitaminC:   { table: TABLES["비타민C"],       primaryFields: ["비타민C함량_mg"],           addFields: [],            primaryLabel: "비타민C",     unit: "mg", anchorLabel: "비타민C 1,000mg" },
     // [v15.23] 밀크씨슬 — 무채점 카테고리. 등급·품질점수를 만들지 않는다(calc 항상 null).
     // 정렬은 [6]의 2단 정렬(함량 표기 여부 → 1일비용 오름차순)이 담당. recommend2 v7.4와 동일 원칙.
     // 제품명 필드가 기존 테이블과 달리 네이버_제품명(nameField로 인덱스 로드 시 사용).
@@ -276,37 +273,14 @@ export async function onRequest(context) {
     for (const k of (cfg.addFields || [])) { const n = numOrNull(getField(f, k)); if (n != null) raw += n; }
     return { primary: (base == null && !(cfg.addFields || []).length) ? null : raw, base };
   }
-  function scoresOf(f, cat) {
-    // [v15.29] Airtable 점수 컬럼 우선, 없으면 코드 규칙(_lib/axis-scores.js — 오메가3). recommend2 v7.7과 동일.
-    const axis = axisScores(RULE_KEY[cat] || cat, f) || {};
-    return {
-      form:     numOrNull(getField(f, "제형점수", "제형편의점수", "리포좀중성점수")) ?? (axis.form ?? null),
-      supplier: numOrNull(getField(f, "원료사점수", "원료사균주점수", "원료품질점수")) ?? (axis.supplier ?? null),
-      cert:     numOrNull(getField(f, "인증점수", "인증근거점수", "부형제안전점수")) ?? (axis.cert ?? null)
-    };
-  }
-  // 카테고리별 품질점수. recommend2 파이프라인과 동일: core = min(raw/anchor,1)*100 → calc → 반올림.
-  function qualityFor(cat, rawPrimary, sc) {
-    // [v16.0] 하위 호환용 — 실제 채점은 qualityFromFields(cat, f)
-    const cfg = QUALITY_CFG[cat];
-    if (!cfg) return null;
-    const core = Math.min((rawPrimary || 0) / cfg.anchor, 1) * 100;
-    const q = cfg.calc(core, sc);
-    return q == null ? null : Math.round(q * 10) / 10;
-  }
   // [v16.0] 기준표 v2.1 채점 — recommend2 v8.0과 동일 모듈. external = Airtable 점수 컬럼(유산균 v1 제형점수용).
   const RULE_KEY = { omega3: "오메가3", eye: "눈", probiotics: "마이크로바이옴", vitaminC: "비타민C" };   // 규칙 모듈 키(CAT_KO의 "유산균"은 표시명)
   function qualityFromFields(cat, f) {
     const ko = RULE_KEY[cat]; if (!ko || QUALITY_CFG[cat] && QUALITY_CFG[cat].unscored) return null;
-    const external = {
-      form:     numOrNull(getField(f, "제형점수", "제형편의점수", "리포좀중성점수")),
-      supplier: numOrNull(getField(f, "원료사점수", "원료사균주점수", "원료품질점수")),
-      cert:     numOrNull(getField(f, "인증점수", "인증근거점수", "부형제안전점수"))
-    };
-    return qualityOf(ko, f, external);
+    return qualityOf(ko, f);   // [v16.2] Airtable 점수 컬럼은 읽지 않는다
   }
   // 등급 컷 — recommend2 qualityGradeOf 와 동일 (절대평가, 모집단 무관). S는 이 산식에 없다.
-  function gradeFromQuality(q) { return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E"; }
+  const gradeFromQuality = gradeOf;   // [v16.2] 등급 컷은 규칙 모듈이 유일한 정의
   // 2차 조건(세그먼트/특성) 판정 — 화자가 추천 이유에 반드시 드러낼 라벨.
   //  - 유산균: 대상분류가 여성/키즈면 그 값 (일반은 없음)
   //  - 비타민C: 함량 2,000mg 이상이면 "메가도즈"(앵커 1,000mg의 2배 초과 고용량)
@@ -1038,7 +1012,7 @@ export async function onRequest(context) {
 ## ingredi 화면 용어 — 사용자가 뜻을 물으면 이대로 답합니다 (범위 밖으로 튕기지 마세요)
 - 1일 비용: 제품 가격을 1일 섭취량 기준으로 나눈 값. 용량·구성이 제각각이라 같은 잣대로 비교하려고 씁니다.
 - 성분 우선: 품질점수 순위. 목록 페이지의 탭 이름이기도 합니다.
-- 품질점수 산식(카테고리별, 가중치 합 1.0): 오메가3 = [함량 × 0.5] + [제형 등급 × 0.3] + [인증 × 0.2] / 눈 = [함량 × 0.7] + [원료사 등급 × 0.3] / 유산균 = [함량 × 0.5] + [제형 × 0.3] + [인증 × 0.2] / 비타민C = [함량 × 0.6] + [원료사 등급 × 0.3] + [인증 × 0.1]. 함량 = 근거 용량 대비 충족률(초과분 무가점). 원료사 등급은 브랜드 원료(임상·규격 공개) 85 / 그 외 표기 70 / 미기재 35 — 원산지(노르웨이·인도 등)로는 차등을 두지 않습니다. 오메가3 제형은 rTG 100 / nTG·TG 75 / EE 50 / 미기재 25. 인증은 종류별 가산(오메가3: IFOS 5-Star 55·IFOS 40·GOED 25·GMP 20 …, 상한 100)이며 Halal·Kosher·Non-GMO·Vegan은 품질 인증이 아니라 점수에 넣지 않습니다(필요한 분에겐 정보로 안내).
+- 품질점수 산식(카테고리별, 가중치 합 1.0): 오메가3 = [함량 × 0.5] + [제형 등급 × 0.3] + [인증 × 0.2] / 눈 = [함량 × 0.7] + [원료사 등급 × 0.3] / 유산균 = [함량 × 0.8] + [인증 × 0.2] (균주 근거 축은 데이터 도입 후 [함량 0.45]+[균주 근거 0.35]+[인증 0.2]로 전환 예정; 코팅·냉장은 점수 아님) / 비타민C = [함량 × 0.6] + [원료사 등급 × 0.3] + [인증 × 0.1]. 함량 = 근거 용량 대비 충족률(초과분 무가점). 원료사 등급은 브랜드 원료(임상·규격 공개) 85 / 그 외 표기 70 / 미기재 35 — 원산지(노르웨이·인도 등)로는 차등을 두지 않습니다. 오메가3 제형은 rTG 100 / nTG·TG 75 / EE 50 / 미기재 25. 인증은 종류별 가산(오메가3: IFOS 5-Star 55·IFOS 40·GOED 25·GMP 20 …, 상한 100)이며 Halal·Kosher·Non-GMO·Vegan은 품질 인증이 아니라 점수에 넣지 않습니다(필요한 분에겐 정보로 안내).
 - 미표기 규칙: 함량이 표기돼 있지 않으면 등급을 매기지 않고 "평가 보류". 제형·원료사처럼 등급의 일부인 항목이 비어 있으면 그 항목 최하 점수의 절반을 주고 등급을 매깁니다 — rTG·브랜드 원료 같은 우위는 제품이 반드시 표기하므로 표기가 없다는 것도 정보입니다. 인증란이 비면 0(인증 없음이라는 사실).
 - 눈 함량 규칙: 표방한 기능성 성분마다 따로 잽니다 — 루테인+지아잔틴 합계(≥10mg)는 20mg 기준, 아스타잔틴(≥4mg)은 12mg 기준. 둘 다 하한 이상이면 두 충족률의 평균. 그래서 아스타잔틴을 4mg만 얹은 제품은 루테인이 만점이어도 함량 점수가 내려갑니다 — "표방했으면 각 기능성의 근거 용량을 채웠는지 본다"는 규칙이라고 설명하세요. 지아잔틴을 합산하는 근거는 고시형 루테인(10~20mg)과 개별인정형 루테인지아잔틴복합추출물(합 10~20mg)의 상한이 같기 때문입니다.
 - 상한 초과: 오메가3 EPA+DHA 2,000mg, 비타민C 2,000mg을 넘는 제품은 감점하지 않지만 "상한 초과 — 의사 상담 권고"를 반드시 말합니다.
@@ -1410,7 +1384,6 @@ export async function onRequest(context) {
         }
         if (payload.alternatives.length && !payload.alternatives_note) payload.alternatives_note = "함량 표기 제품 · 가성비순";
       } else if (payload.verdict_tone === "negative" && cfg2) {
-        const anchor = cfg2.anchor;
         const byId = new Map(productContext.map(p => [String(p.product_id), p]));
         payload.alternatives = payload.alternatives.filter(a => {
           const p = byId.get(String(a.product_id));
