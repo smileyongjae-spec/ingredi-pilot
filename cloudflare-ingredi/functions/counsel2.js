@@ -1,4 +1,5 @@
-// functions/counsel2.js  [v16.2 — 옛 산식 정의(QUALITY_CFG.calc·qualityFor·scoresOf·gradeFromQuality) 삭제: 규칙 모듈이 유일한 출처]
+// functions/counsel2.js  [v16.3 — knowledge 중복 문서 제거 안전망 · 반려동물 안내 규칙]
+// [v16.2 — 옛 산식 정의(QUALITY_CFG.calc·qualityFor·scoresOf·gradeFromQuality) 삭제: 규칙 모듈이 유일한 출처]
 // [v16.1 — 화자 용어 사전을 기준표 v2.2로(카테고리별 산식·미표기 규칙·눈 표방 성분 평균·상한 초과)]
 // [v16.0 — 기준표 v2.1 채점 규칙 모듈 연결(recommend2 v8.0과 동일 산식)]
 //   - v16.0: qualityFromFields → _lib/axis-scores.qualityOf. 눈 표방 성분 평균·아스타잔틴 라벨, 대안 게이트 core_full 기준,
@@ -737,7 +738,10 @@ export async function onRequest(context) {
       };
     }
     const faqDocs = (fRecords || []).map(docFromFaq).filter(d => d.prodCat && d.domain);
-    const knowDocs = (kRecords || []).map(docFromKnow).filter(d => d.prodCat && d.domain);
+    // [v16.3] 같은 한줄정의가 도메인별로 복제된 문서는 1건만 — 같은 문서가 상위 5개를 잠식하지 않게 (데이터 정리와 별개의 안전망)
+    const seenDef = new Set();
+    const knowDocs = (kRecords || []).map(docFromKnow).filter(d => d.prodCat && d.domain)
+      .filter(d => { const k = d.prodCat + "|" + String(d.oneline || "").trim(); if (seenDef.has(k)) return false; seenDef.add(k); return true; });
     const allDocs = faqDocs.concat(knowDocs);
 
     const seedTokens = ((matchedCategory && SEED_TOKENS[matchedCategory]) ||
@@ -1016,6 +1020,7 @@ export async function onRequest(context) {
 - 미표기 규칙: 함량이 표기돼 있지 않으면 등급을 매기지 않고 "평가 보류". 제형·원료사처럼 등급의 일부인 항목이 비어 있으면 그 항목 최하 점수의 절반을 주고 등급을 매깁니다 — rTG·브랜드 원료 같은 우위는 제품이 반드시 표기하므로 표기가 없다는 것도 정보입니다. 인증란이 비면 0(인증 없음이라는 사실).
 - 눈 함량 규칙: 표방한 기능성 성분마다 따로 잽니다 — 루테인+지아잔틴 합계(≥10mg)는 20mg 기준, 아스타잔틴(≥4mg)은 12mg 기준. 둘 다 하한 이상이면 두 충족률의 평균. 그래서 아스타잔틴을 4mg만 얹은 제품은 루테인이 만점이어도 함량 점수가 내려갑니다 — "표방했으면 각 기능성의 근거 용량을 채웠는지 본다"는 규칙이라고 설명하세요. 지아잔틴을 합산하는 근거는 고시형 루테인(10~20mg)과 개별인정형 루테인지아잔틴복합추출물(합 10~20mg)의 상한이 같기 때문입니다.
 - 상한 초과: 오메가3 EPA+DHA 2,000mg, 비타민C 2,000mg을 넘는 제품은 감점하지 않지만 "상한 초과 — 의사 상담 권고"를 반드시 말합니다.
+- 반려동물(강아지·고양이 등) 질문: 사람용 건강기능식품의 기능성·용량 기준을 동물에 적용할 수 없습니다. 제품을 추천하지 말고 수의사 상담으로 안내하세요(FAQ에 같은 취지의 문서가 있으면 그대로 따릅니다).
 - 가성비 우선: 가격 대비 최선(파레토 경계) 순위 — 이보다 싸면서 더 좋은 제품이 없는 것부터.
 - 등급(A~E): 카테고리별 품질 산식의 절대 기준입니다. A는 상위 등급이라는 뜻이지 1위라는 뜻이 아닙니다. 밀크씨슬은 등급을 매기지 않는 카테고리라 등급이 없습니다.
 - 보장균수: 유통기한까지 살아있음을 보장하는 균 수(유산균). 투입균수와 다릅니다.
