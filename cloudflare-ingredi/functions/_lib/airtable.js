@@ -1,4 +1,4 @@
-// functions/_lib/airtable.js  (v6 — SWR + 비동기 캐시 쓰기)
+// functions/_lib/airtable.js  (v7 — 필드·필터 키를 tables.js 역할명으로 / v6 SWR + 비동기 캐시 쓰기)
 // 공용 Airtable 페치 + KV 캐시 헬퍼.
 // _lib 폴더는 밑줄(_)로 시작해서 Cloudflare 라우팅에서 제외됨(엔드포인트 아님).
 // 다른 Function들이 import 해서 씀:  import { getRecords } from './_lib/airtable.js';
@@ -31,11 +31,15 @@
 //   - 캐시에 남아 있는 v5 이전 형식(순수 배열)도 그대로 읽는다.
 //   - 캐시 키는 바꾸지 않았다 → 배포 시 전면 무효화 없음.
 
+import { TABLES } from './tables.js';   // [v7] 필드·필터 설정을 테이블명이 아니라 역할(FAQ/knowledge)로 묶는다
+
 const DEFAULT_TTL = 60 * 60 * 6;       // 소프트 만료 6시간. 즉시 반영은 /cache-refresh.
 const STALE_WINDOW = 60 * 60 * 24 * 7; // 소프트 만료 후 7일간은 "옛 값이라도 준다"
 
+// [v7] 키를 TABLES에서 가져온다. FAQ·knowledge 테이블을 날짜 붙은 이름으로 바꿔도 필드 축소·분류 필터가 따라간다.
+//      (이름을 직접 키로 두면 테이블 교체 순간 필터가 풀려 7월 장애(51페이지 하위요청 초과)가 재발한다)
 const TABLE_FIELDS = {
-  'FAQ_전체상품': [
+  [TABLES.FAQ]: [
     'question', 'answer', 'keywords', '소분류',
     '임상근거', '제품카테고리', '건강도메인', '검수상태'
   ],
@@ -44,8 +48,9 @@ const TABLE_FIELDS = {
 };
 
 const TABLE_FILTER = {
-  'FAQ_전체상품': "AND({제품카테고리}!='',{건강도메인}!='')",
-  'knowledge':    "AND({제품카테고리}!='',{건강도메인}!='')",
+  // 분류 완료 행만 — 제품카테고리·건강도메인이 비면 서비스에 들어오지 않는다(2026-09-16 기준 FAQ 1,000 중 694 · knowledge 493 중 492)
+  [TABLES.FAQ]:       "AND({제품카테고리}!='',{건강도메인}!='')",
+  [TABLES.knowledge]: "AND({제품카테고리}!='',{건강도메인}!='')",
   // [v6] 비공개 글은 애초에 받아오지 않는다
   '개선소식':      "{공개여부}"
 };
