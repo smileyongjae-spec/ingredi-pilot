@@ -45,7 +45,7 @@
 
 import { getRecords } from "./_lib/airtable.js";
 import { TABLES } from "./_lib/tables.js";   // [v7.6] 테이블명 중앙 설정
-import { axisScores, qualityOf, ANCHORS } from "./_lib/axis-scores.js";   // [v8.0] core·축·등급 산식 전부 규칙 모듈에서
+import { qualityOf, gradeOf } from "./_lib/axis-scores.js";   // [v8.0] core·축·등급 산식 전부 규칙 모듈에서
 
 const CATEGORIES = {
   "오메가3":        { table: TABLES["오메가3"],        primary: { field: "EPA_DHA_mg",     label: "EPA+DHA",  unit: "mg" }, extra: ["EPA_mg", "DHA_mg", "캡슐당순도"] },
@@ -66,19 +66,9 @@ const CATEGORY_ALIASES = {
 
 const RAW_COUPANG_FIELDS = ["쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크"];
 
-// [v7] 품질점수: 카테고리별 산식과 임상 앵커.
-//  - 오메가3/유산균: 근거함량 50 + 제형 30 + 인증 20
-//  - 눈:            근거함량 70 + 원료품질 30   (제형·인증 축이 원천 데이터에 없음)
-//  - 비타민C:        근거함량 60 + 원료품질 40
-const QUALITY_CFG = {
-  "오메가3":       { anchor: 1000, calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5*core + 0.3*sc.form + 0.2*sc.cert },
-  "눈":           { anchor: 20,   calc: (core, sc) => (sc.supplier == null) ? null : 0.7*core + 0.3*sc.supplier },
-  "마이크로바이옴": { anchor: 100,  calc: (core, sc) => (sc.form == null || sc.cert == null) ? null : 0.5*core + 0.3*sc.form + 0.2*sc.cert },
-  "비타민C":       { anchor: 1000, calc: (core, sc) => (sc.supplier == null) ? null : 0.6*core + 0.4*sc.supplier }
-};
-function qualityGradeOf(q) {
-  return q == null ? null : q >= 85 ? "A" : q >= 70 ? "B" : q >= 55 ? "C" : q >= 40 ? "D" : "E";
-}
+// [v8.1] 품질점수·등급 산식은 _lib/axis-scores.js 가 유일한 정의다. 이 파일엔 산식을 두지 않는다.
+//        (옛 QUALITY_CFG.calc·qualityGradeOf 삭제 — 정의가 두 곳이면 폴백 때 옛 산식이 되살아난다: 2026-09-16 유산균 사례)
+const SCORED_CATS = new Set(["오메가3", "눈", "마이크로바이옴", "비타민C"]);
 
 // [v7.2] 원천 레코드 형태 요약 — 진단 모드에서만 계산.
 function describeShape(records, imageField) {
@@ -241,13 +231,7 @@ export async function onRequest(context) {
     const extra = {};
     for (const k of cfg.extra) extra[k] = f[k] !== undefined ? f[k] : null;
     // [v8.0] 채점은 _lib/axis-scores.js(기준표 v2.1)가 전담. Airtable 점수 컬럼은 규칙이 아직 없는 축(유산균 v1 제형점수)에만 external로 전달.
-    const axis = axisScores(catKey, f) || {};
-    const external = {
-      form:     numOrNull(readField(f, ["제형점수", "제형편의점수", "리포좀중성점수"])),
-      supplier: numOrNull(readField(f, ["원료사점수", "원료사균주점수", "원료품질점수"])),
-      cert:     numOrNull(readField(f, ["인증점수", "인증근거점수", "부형제안전점수"]))
-    };
-    const qx = cfg.unscored ? null : qualityOf(catKey, f, external);
+    const qx = cfg.unscored ? null : qualityOf(catKey, f);   // [v8.1] Airtable 점수 컬럼은 더 이상 읽지 않는다
 
     // 링크 우선순위: 파트너스 딥링크 → raw 쿠팡 → 네이버
     const partnersLink = str(f.coupang_deeplink).trim();
@@ -295,10 +279,10 @@ export async function onRequest(context) {
         cost: num(f.비용점수),
         review: num(f.리뷰점수),
         // [v6] 엑셀 5축의 나머지. 카테고리마다 축 이름이 다를 수 있어 후보를 순서대로 찾는다.
-        form:     numOrNull(readField(f, ["제형점수", "제형편의점수", "리포좀중성점수"])) ?? (axis.form ?? null),
-        supplier: numOrNull(readField(f, ["원료사점수", "원료사균주점수", "원료품질점수"])) ?? (axis.supplier ?? null),
-        cert:     numOrNull(readField(f, ["인증점수", "인증근거점수", "부형제안전점수"])) ?? (axis.cert ?? null),
-        final:    numOrNull(readField(f, ["최종점수"]))
+        form:     qx ? (qx.form ?? null) : null,       // [v8.1] 규칙 모듈 계산값
+        supplier: qx ? (qx.supplier ?? null) : null,
+        cert:     qx ? (qx.cert ?? null) : null,
+        final:    null
       },
       extra
     };
@@ -307,8 +291,7 @@ export async function onRequest(context) {
 
   // [v7] 품질점수 · 절대등급 · 가성비(파레토) 경계
   const tScore = Date.now();
-  const qcfg = QUALITY_CFG[catKey];
-  if (cfg.unscored || !qcfg) {
+  if (cfg.unscored || !SCORED_CATS.has(catKey)) {
     // [v7.4] 무채점 카테고리 (밀크씨슬): 등급·품질점수·파레토를 만들지 않는다.
     for (const it of items) { it.quality = null; it.qualityGrade = null; it.isPareto = false; }
   } else {
