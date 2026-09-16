@@ -1,4 +1,5 @@
 // functions/_lib/axis-scores.js — 건강기능식품 core·축 점수 규칙 (v2.1, 2026-09-14)
+// [v2.2] 유산균 임시 산식 [Core 0.8]+[인증 0.2] — 제형점수 의존 제거(병합 불필요).
 // [v2.1] 눈 core: 루테인+지아잔틴 합산(ANCHORS.눈.multi[0].addFields) — 근거는 아래 주석 참조.
 //
 // 기준표 v2.1(세부등급 기준표)을 그대로 코드로 옮긴 것. 모든 숫자는 아래 상수에 있으므로 결정이 바뀌면
@@ -123,13 +124,14 @@ export function axisScores(cat, f) {
 }
 
 // ───────────────────────── 등급 산식 ─────────────────────────
-// 유산균은 균주 근거 축(인정유형·균주명 컬럼) 도입 전까지 v1 — 제형점수는 Airtable 컬럼, 인증은 코드 가산표.
+// 유산균은 균주 근거 축(인정유형·균주명 컬럼) 도입 전까지 임시 산식 [Core × 0.8] + [인증 × 0.2].
+// [2026-09-16] 옛 제형점수 병합(v1)은 폐기 — "제형·안정성은 점수가 아니라 정보"라는 결정과 모순이었다. 병합 불필요.
 export const PROBIOTICS_V2 = false;
 export const QUALITY = {
   "오메가3":       { core: 0.5,  form: 0.3, supplier: 0,   cert: 0.2 },
   "눈":           { core: 0.7,  form: 0,   supplier: 0.3, cert: 0 },
   "비타민C":       { core: 0.6,  form: 0,   supplier: 0.3, cert: 0.1 },
-  "마이크로바이옴": PROBIOTICS_V2 ? { core: 0.45, form: 0, supplier: 0, cert: 0.2, strain: 0.35 } : { core: 0.5, form: 0.3, supplier: 0, cert: 0.2 }
+  "마이크로바이옴": PROBIOTICS_V2 ? { core: 0.45, form: 0, supplier: 0, cert: 0.2, strain: 0.35 } : { core: 0.8, form: 0, supplier: 0, cert: 0.2 }
 };
 export const GRADE_CUTS = [["A", 85], ["B", 70], ["C", 55], ["D", 40]];
 export function gradeOf(q) { if (q == null) return null; for (const [g, c] of GRADE_CUTS) if (q >= c) return g; return "E"; }
