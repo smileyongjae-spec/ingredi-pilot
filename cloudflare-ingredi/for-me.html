@@ -307,7 +307,7 @@ const GRADE = {
   A:["#2D5F3F","#FAF8F3","#2D5F3F"],     B:["#EAF1EA","#2D5F3F","#CADBCD"],
   C:["transparent","#5A5E63","#D3D5D8"], D:["transparent","#6E7177","#E1E2E4"], E:["transparent","#6E7177","#E8E9EA"]
 };
-function gradeFromScore(s){ s = parseFloat(s); if (isNaN(s)) s = 0; return s>=90?"A":s>=80?"B":s>=70?"C":s>=60?"D":"E"; }
+function gradeFromScore(s){ s = parseFloat(s); if (isNaN(s)) return null; return s>=85?"A":s>=70?"B":s>=55?"C":s>=40?"D":"E"; }   // [v8] 서버 등급 폴백 — 절대 컷 85/70/55/40
 const PRIMARY_TERM = { "오메가3":"epadha", "눈":"lutein", "마이크로바이옴":"cfu", "비타민C":"vitc" };
 // 가중치는 사용자가 고른 우선순위(priority)만 결정한다.
 // 시니어·임신은 가중치가 아니라 '맥락'(라벨·설명·의료 안내)으로만 반영 — 현재 scores 3축으로는
@@ -348,7 +348,7 @@ function applyProfile(products, key){
 
 const TERM_INFO = {
   epadha: { title: "EPA+DHA 함량", badge: "핵심 성분", body: "오메가3의 핵심 성분이에요. EPA는 혈행·염증 개선, DHA는 뇌·눈 건강에 도움을 줘요. 하루 권장량은 보통 500~2,000mg이에요.", points: ["막대에서 이 제품의 위치와 평균을 비교해보세요"] },
-  lutein: { title: "루테인·지아잔틴", badge: "핵심 성분", body: "눈 황반을 구성하는 카로티노이드예요. 빛 자극으로부터 황반을 보호하는 데 도움을 줘요. 하루 10~20mg 수준이 일반적이에요.", points: ["지아잔틴과 함께 들어가면 더 좋아요"] },
+  lutein: { title: "루테인·지아잔틴 · 아스타잔틴", badge: "핵심 성분", body: "루테인(마리골드꽃추출물)은 황반색소밀도 유지, 아스타잔틴(헤마토코쿠스추출물)은 눈 피로도 개선으로 식약처가 각각 인정한 원료예요. 루테인+지아잔틴 합계는 20mg, 아스타잔틴은 12mg(각 식약처 상한)을 기준으로 재고, 둘 다 하한 이상 든 제품은 평균해요.", points: ["카드 함량은 그 제품의 주 성분 기준이에요"] },
   cfu: { title: "보장 균수", badge: "핵심 성분", body: "유통기한까지 살아있는 것이 보장되는 유산균 수(억 CFU)예요. 많을수록 장까지 도달할 가능성이 높지만, 코팅·균주도 함께 봐야 해요.", points: ["100억 이상이면 충분한 편이에요"] },
   vitc: { title: "비타민C 함량", badge: "핵심 성분", body: "비타민C는 항산화·면역에 도움을 줘요. 하루 권장량은 100mg, 보충 목적으로는 보통 500~1,000mg을 섭취해요.", points: ["1,000mg을 기준으로 함량을 평가해요"] },
   cost: { title: "1일 복용 비용", badge: "가격 지표", body: "하루에 권장량을 섭취하는 데 드는 비용이에요. 제품 가격 ÷ 복용 일수로 계산해요. 낮을수록 가성비가 좋아요.", points: ["평균보다 왼쪽에 있으면 저렴한 편이에요"] },
@@ -727,7 +727,7 @@ function productCardHtml(p, rank, m, cat, basis) {
   const g = GRADE[gl] || ["transparent","#9AA0A6","#E4E4E1"];
   const cost = num(p.dailyCost), pv = num(p.primaryValue);
   const hasLead = cost > 0 && pv > 0;
-  const primNoun = PRIMARY_NOUN[cat] || m.primary.label;
+  const primNoun = (p.primaryLabel && p.primaryLabel !== m.primary.label) ? p.primaryLabel : (PRIMARY_NOUN[cat] || m.primary.label);   // [v8] 눈: 루테인·지아잔틴/아스타잔틴 제품별
   const headline = `하루 <b>${fmt(cost)}원</b>에<br>${escapeHtml(primNoun)} <b>${fmt(pv)}${escapeHtml(m.primary.unit)}</b>.`;
 
   const certs = String(p.certs||"").split(/[,\/·]/).map(x=>x.trim()).filter(Boolean).slice(0,4);
@@ -757,6 +757,8 @@ function productCardHtml(p, rank, m, cat, basis) {
       ${compareBlock(cat, basis, p, m)}
       ${tagsHtml ? `<div class="cv-certrow"><span class="lbl">인증</span><div class="cv-tagrow">${tagsHtml}</div></div>` : ""}
       ${p.form ? `<div class="cv-form"><span class="lbl">제형</span><span class="fval">${escapeHtml(String(p.form))}</span></div>` : ""}
+      ${p.overLimit ? `<div class="cv-form"><span class="lbl">주의</span><span class="fval">식약처·복지부 상한 초과 — 의사 상담 권고</span></div>` : ""}
+      ${(p.claimed && p.claimed.length > 1) ? `<div class="cv-form"><span class="lbl">표방 성분</span><span class="fval">${escapeHtml(p.claimed.join(' · '))}</span></div>` : ""}
       ${buy}
     </article>`;
 }
