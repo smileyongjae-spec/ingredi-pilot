@@ -104,6 +104,21 @@
     .alts { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
     .alt-card { background: var(--surface); border: 0.5px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-decoration: none; }
     .alt-card:active { transform: scale(0.99); }
+    /* [UX-1] 지목 제품 카드 — 평결 아래, 구매·목록·비교로 이어지는 출구 */
+    .mp-card { margin: 12px 0 4px; background: var(--surface); border: 0.5px solid var(--line); border-radius: 14px; padding: 12px; }
+    .mp-top { display: flex; gap: 12px; align-items: center; }
+    .mp-thumb { width: 58px; height: 58px; border-radius: 10px; object-fit: contain; background: #fff; border: 0.5px solid var(--line); flex-shrink: 0; }
+    .mp-info { flex: 1; min-width: 0; }
+    .mp-name { font-size: 13.5px; font-weight: 700; color: var(--ink); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .mp-sub { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+    .mp-grade { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; border: 1px solid; flex-shrink: 0; }
+    .mp-hold { font-size: 10.5px; font-weight: 700; color: #6E7177; border: 1px solid #E1E2E4; border-radius: 8px; padding: 3px 7px; white-space: nowrap; }
+    .mp-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .mp-actions a { flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; padding: 9px 6px; border-radius: 9px; text-decoration: none; border: 1px solid var(--line); color: var(--green-deep); background: var(--surface); }
+    .mp-actions a.buy { background: var(--green-primary); color: var(--surface); border-color: var(--green-primary); }
+    .mp-note { font-size: 11.5px; color: var(--ink-soft); margin-top: 8px; }
+    .exit-link { display: inline-block; margin-top: 12px; font-size: 12.5px; font-weight: 700; color: var(--green-deep); text-decoration: none; }
+    .exit-link::after { content: " →"; }
     .alt-info { min-width: 0; }
     .alt-name { font-size: 14px; color: var(--ink); font-weight: 500; }
     .alt-reason { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
@@ -276,7 +291,7 @@ function decideDomain(text) {
 var SPORTS_RE = /단백질|프로틴|웨이프로|게이너|크레아틴|BCAA|EAA|글루타민|카르니틴|부스터|프리\s*워크|아르기닌|시트룰린|베타알라닌|HMB|벌크업|린매스|근성장|근육량|근손실|헬스(?!\s*케어)|웨이트|삼대\s*운동|운동(?!\s*화)|오운완|보충제\s*추천|쉐이크|머슬/i;
 var HEALTH_RE = /오메가|EPA|DHA|루테인|지아잔틴|아스타잔틴|유산균|프로바이오|마이크로바이옴|비타민|눈\s*건강|시력|황반|안구|침침|장\s*건강|장이\s*안\s*좋|장이\s*불편|장\s*트러블|배변|변비|설사|소화|면역|혈행|중성지방|콜레스테롤|항산화|피로|영양제|건강기능식품|건기식|임산부|갱년기/i;
 
-var CAT_APP_PARAM = { '오메가3': '오메가3', '눈': '눈', '유산균': '마이크로바이옴', '비타민C': '비타민C' };
+var CAT_APP_PARAM = { '오메가3': '오메가3', '눈': '눈', '유산균': '마이크로바이옴', '비타민C': '비타민C', '밀크씨슬': '밀크씨슬' };
 
 /* ═══════════ 유틸 ═══════════ */
 function esc(s) {
@@ -379,6 +394,31 @@ function addAssistantTurn(payload, meta) {
   if (payload.body) {
     h += '<p class="voice">' + voiceHtml(payload.body) + '</p>';
   }
+  // [UX-1] 지목 제품 카드 — 서버가 meta.matchedProduct 를 주면 평결 아래에 구매·목록·비교 출구를 붙인다
+  var mp = meta && meta.matchedProduct;
+  if (mp && mp.name) {
+    var GC = { A: ['#E9F2EC', '#2D5F3F', '#C9D9CF'], B: ['#EEF3FA', '#2F5FA8', '#C9D5E8'], C: ['#FFF6E5', '#8A6B20', '#EAD9B0'], D: ['#FDECEC', '#A63D3D', '#EBC7C7'], E: ['#F1F1F1', '#6E7177', '#DCDCDC'] };
+    var gc = GC[mp.grade] || GC.E;
+    var badge = mp.unscored ? '<span class="mp-hold">등급 없음</span>'
+              : (mp.grade ? '<span class="mp-grade" style="background:' + gc[0] + ';color:' + gc[1] + ';border-color:' + gc[2] + '">' + esc(mp.grade) + '</span>'
+                          : '<span class="mp-hold">평가 보류' + (mp.hold_reason ? ' · ' + esc(mp.hold_reason) : '') + '</span>');
+    var subParts = [];
+    if (mp.primary_mg != null) subParts.push(esc(mp.primary_label || '함량') + ' ' + Number(mp.primary_mg).toLocaleString() + esc(mp.unit || ''));
+    if (mp.daily_cost) subParts.push('하루 ' + Number(mp.daily_cost).toLocaleString() + '원');
+    if (mp.price) subParts.push(Number(mp.price).toLocaleString() + '원');
+    var appCatKey = CAT_APP_PARAM[mp.category] || mp.category || '오메가3';
+    var listHref = '/app.html?category=' + encodeURIComponent(appCatKey) + '&focus=' + encodeURIComponent(mp.product_id);
+    var cmpHref = '/compare.html?category=' + encodeURIComponent(appCatKey) + '&ids=' + encodeURIComponent(mp.product_id);
+    h += '<div class="mp-card"><div class="mp-top">' +
+         (mp.image ? '<img class="mp-thumb" src="' + esc(mp.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '') +
+         '<div class="mp-info"><div class="mp-name">' + esc(mp.name) + '</div><div class="mp-sub">' + subParts.join(' · ') + '</div></div>' + badge + '</div>' +
+         (mp.over_limit ? '<div class="mp-note">식약처·복지부 상한 초과 — 의사 상담 권고</div>' : '') +
+         '<div class="mp-actions">' +
+         (mp.link ? '<a class="buy" href="' + esc(mp.link) + '" target="_blank" rel="noopener">구매하러 가기</a>' : '') +
+         '<a href="' + listHref + '">목록에서 보기</a>' +
+         (mp.unscored ? '' : '<a href="' + cmpHref + '">비교에 담기</a>') +
+         '</div></div>';
+  }
   // 칩 (Q의 선택지 / X의 카테고리 등)
   if (payload.chips && payload.chips.length) {
     h += '<div class="chips">';
@@ -416,6 +456,11 @@ function addAssistantTurn(payload, meta) {
       var cmpCat = CAT_APP_PARAM[lastCategory] || '오메가3';
       h += '<div class="alt-cta"><a class="fu-link" href="/compare.html?category=' + encodeURIComponent(cmpCat) + '&ids=' + esc(ids.join(',')) + '">' + ids.length + '개 비교하기 ↗</a></div>';
     }
+  }
+  // [UX-1] 출구 링크 — 카테고리는 잡혔지만 제품 카드·대안이 없는 답변(설명형)에도 목록으로 가는 길을 남긴다
+  if (meta && meta.category && !(mp && mp.name) && !(payload.alternatives && payload.alternatives.length) && payload.policy !== 'Q') {
+    var exitKey = CAT_APP_PARAM[meta.category] || meta.category;
+    h += '<a class="exit-link" href="/app.html?category=' + encodeURIComponent(exitKey) + '">' + esc(meta.category) + ' 전체 목록 보기</a>';
   }
   // 경고 (W 플래그) — 괘선 + 합쇼체
   if (payload.warning) {
