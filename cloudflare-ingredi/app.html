@@ -148,6 +148,10 @@
     .free-input-btn:active { transform: scale(0.95); }
     .free-input-btn svg { width: 18px; height: 18px; }
     .input-examples { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    /* [UX-2] 목록 제품명 검색 */
+    .cat-search { margin: 6px 2px 8px; }
+    .cat-search input { width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid var(--line); border-radius: 11px; font-family: inherit; font-size: 14px; background: var(--surface); color: var(--ink); }
+    .cat-search input:focus { outline: none; border-color: var(--green-primary); }
     .input-example-chip {
       font-size: 13px; padding: 5px 10px;
       background: transparent; border: 1px solid var(--green-mid);
@@ -634,6 +638,7 @@
     <div class="cat-tabbar" id="catTabbar"></div>
     <div class="cat-profilebar" id="catProfileBar"></div>
     <div class="cat-subbar" id="catSubBar"></div>
+    <div class="cat-search"><input type="search" id="catSearch" placeholder="제품명으로 찾기 (예: 종근당, 알티지)" autocomplete="off" aria-label="제품명 검색"></div>
     <div class="cat-meta" id="catMeta"></div>
     <div id="catCards"></div>
     <div class="cat-status" id="catStatus"></div>
@@ -1347,7 +1352,11 @@ function renderCategory(data){
   if (cat==="눈" && metrics && metrics.primary) metrics.primary.label = "핵심 카로티노이드";
   const subs = SUBFILTERS[cat];
   const subKey = subs ? (activeSub[cat] || subs[0].key) : null;
-  const filtered = subs ? all.filter(p=>matchSub(cat, subKey, p)) : all;
+  const filteredSub = subs ? all.filter(p=>matchSub(cat, subKey, p)) : all;
+  // [UX-2] 제품명 검색 — 서브필터 위에 한 번 더 거른다(정렬·통계는 걸러진 집합 기준, 비교 기준은 카테고리 전체)
+  const qRaw = (document.getElementById('catSearch') || {}).value || "";
+  const qTok = qRaw.toLowerCase().split(/\s+/).filter(Boolean);
+  const filtered = qTok.length ? filteredSub.filter(p => { const nm = String(p.name || "").toLowerCase(); return qTok.every(t => nm.indexOf(t) !== -1); }) : filteredSub;
   renderSubBar(cat);
   const unscored = !!UNSCORED_CATS[cat];
   // 무채점 카테고리는 프로필(성분/가성비) 선택이 의미 없어 바를 숨긴다
@@ -1364,7 +1373,7 @@ function renderCategory(data){
   document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
   document.getElementById('catCompareCta').innerHTML = "";
   const el = document.getElementById('catCards');
-  if (!products.length){ el.innerHTML=""; document.getElementById('catStatus').textContent="표시할 제품이 없습니다."; return; }
+  if (!products.length){ el.innerHTML=""; document.getElementById('catStatus').textContent = qTok.length ? `"${qRaw}"에 해당하는 제품이 없어요. 다른 이름으로 찾아보거나, 위 상담창에 물어보세요.` : "표시할 제품이 없습니다."; return; }
   document.getElementById('catStatus').textContent="";
   const howto = howToRead(cat);
   const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, basis, idx:i})).join("");
@@ -1409,6 +1418,7 @@ async function loadCategory(cat){
 window.loadCategory = loadCategory;
 
 function openCategory(cat){
+  { const si = document.getElementById('catSearch'); if (si && activeCat !== cat) si.value = ""; }   // [UX-2]
   if (!document.getElementById('catTabbar').children.length) renderTabs();
   renderProfileBar();
   showScreen('category');
@@ -1417,6 +1427,12 @@ function openCategory(cat){
 window.openCategory = openCategory;
 
 // 운동 보충제은 근거 체계(ISSN)와 채점 방식이 달라 별도 화면으로 분리했다.
+// [UX-2] 검색 입력 → 현재 카테고리 재렌더 (150ms 디바운스). 카테고리 전환 시 검색어 초기화.
+(function(){
+  const inp = document.getElementById('catSearch'); if (!inp) return;
+  let tm = null;
+  inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { const d = catCache[activeCat]; if (d) renderCategory(d); }, 150); });
+})();
 function openSports(cat){ window.location.href = '/sports.html?category=' + encodeURIComponent(cat); }
 window.openSports = openSports;
 
