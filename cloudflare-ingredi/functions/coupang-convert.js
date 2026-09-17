@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3.4 — 대상 테이블을 _lib/tables.js 에서)
+// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3.5 — 속도 제한 방어·실패 URL 기억 / v3.4 중앙 설정)
 // [v3.3] 대상 테이블 2개 추가 — 헬스제품_단백질_부스터_2026.09.04(스포츠 뉴트리션),
 //        밀크씨슬_2026.09.04. 이미 딥링크가 있는 레코드는 건너뛰므로(멱등) 기존 4개 테이블엔 영향 없음.
 //        초기 대량 변환은 ?table=<테이블명> 로 하나씩 호출 권장 (하위요청 예산 여유 확보).
@@ -102,7 +102,17 @@ export async function onRequest(context) {
     const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
     return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, "0")).join("");
   }
+  // [v3.5] 속도 제한 방어 — 쿠팡 딥링크 API는 분당 100회, 3회 초과 시 파트너스 이용 제한(2026-09-18 "1회 초과" 경고 발생).
+  //   호출 1회당 API 요청 상한 MAX_API_CALLS, 요청 간격 API_INTERVAL_MS(분당 50회 이하), 403(속도 제한) 감지 시 즉시 중단.
+  //   400(url convert failed)로 실패한 URL은 KV에 7일 기억해 다음 호출에서 건너뛴다(죽은 URL을 매번 다시 두드리지 않게).
+  const MAX_API_CALLS = 30, API_INTERVAL_MS = 1200;
+  let apiCalls = 0, rateLimited = false;
+  const failKey = t => `cc:failed:${t}`;
+  async function loadFailed(table) { if (!env.CACHE) return new Set(); try { const j = await env.CACHE.get(failKey(table), "json"); return new Set(Array.isArray(j) ? j : []); } catch (_) { return new Set(); } }
+  async function saveFailed(table, set) { if (!env.CACHE) return; try { await env.CACHE.put(failKey(table), JSON.stringify([...set]), { expirationTtl: 60 * 60 * 24 * 7 }); } catch (_) {} }
   async function callDeeplink(urls) {
+    if (rateLimited || apiCalls >= MAX_API_CALLS) return { status: 429, json: { rCode: "LOCAL_LIMIT", rMessage: rateLimited ? "쿠팡 속도 제한 감지 — 이번 호출 중단" : "호출당 API 요청 상한 도달 — 재호출로 이어서" }, text: "" };
+    apiCalls++;
     const datetime = signedDate();
     const message = datetime + "POST" + DEEPLINK_PATH; // query 없음
     const signature = await hmacHex(message);
@@ -114,6 +124,8 @@ export async function onRequest(context) {
     });
     const text = await res.text();
     let json = null; try { json = JSON.parse(text); } catch (_) {}
+    if (res.status === 403 || (json && String(json.rCode) === "403") || /시간당 사용 횟수|초과했습니다/.test(text)) rateLimited = true;
+    await sleep(API_INTERVAL_MS);
     return { status: res.status, json, text };
   }
   // [v3.2] 쿠팡 URL 정규화 — 사이트에서 복사한 URL엔 검색·광고 트래킹 파라미터(spec/ctag/lptag 등,
@@ -193,12 +205,17 @@ export async function onRequest(context) {
       pendingTotal += pend.length;
     }
 
+    // [v3.5] 이전 호출에서 400으로 실패한 URL은 건너뛴다(?retryFailed=1 이면 다시 시도)
+    const retryFailed = url.searchParams.get("retryFailed") === "1";
+    const failedSets = {}; let skippedFailed = 0;
+    for (const table of tables) failedSets[table] = retryFailed ? new Set() : await loadFailed(table);
     // limit 적용(테이블 순서대로)
     let remaining = limit;
     const targets = []; // {table, recId, url}
     for (const table of tables) {
       for (const t of (perTable[table] || [])) {
         if (remaining <= 0) break;
+        if (failedSets[table].has(t.url)) { skippedFailed++; continue; }
         targets.push({ table, recId: t.recId, url: t.url });
         remaining--;
       }
@@ -236,7 +253,7 @@ export async function onRequest(context) {
         continue;
       }
       absorb(urlToDeep, urls, json, cleanToOrig);
-      await sleep(400);
+      if (rateLimited) break;   // [v3.5]
     }
 
     // ── [2.5] 개별 재시도 (v3) ──
@@ -255,9 +272,11 @@ export async function onRequest(context) {
         else failedUrls.push({ url: cleanToOrig[c], sentAs: c, rCode: json.rCode || "0", rMessage: "응답에 딥링크 없음(shortenUrl 누락)" });
       } else {
         failedUrls.push({ url: cleanToOrig[c], sentAs: c, rCode: json && json.rCode, rMessage: ((json && json.rMessage) || text || "").slice(0, 160) });
+        if (json && String(json.rCode) === "400") { const tt = (targets.find(x => x.url === cleanToOrig[c]) || {}).table; if (tt) failedSets[tt].add(cleanToOrig[c]); }   // [v3.5] 죽은 URL 기억
       }
-      await sleep(300);
+      if (rateLimited) break;   // [v3.5] 속도 제한 감지 시 즉시 중단
     }
+    for (const table of tables) if (failedSets[table].size) await saveFailed(table, failedSets[table]);
     const retrySkipped = Math.max(0, missedClean.length - retried); // 예산 소진으로 이번에 못 돈 수 — 재호출 시 이어서 처리
 
     // ── [3] Airtable 기록 (테이블별 batch) ──
@@ -286,6 +305,8 @@ export async function onRequest(context) {
       attempted: targets.length,
       uniqueUrls: uniqUrls.length,
       converted: Object.keys(urlToDeep).length,
+      apiCalls, rateLimited, skippedFailed,   // [v3.5] 속도 제한·실패 기억 상태
+      warning: rateLimited ? "쿠팡 속도 제한(403) 감지 — 최소 1시간 뒤 재호출. 3회 초과 시 파트너스 이용 제한" : null,
       retried,
       retryConverted,
       retrySkipped,           // 하위요청 예산 소진으로 이번 호출에서 재시도 못 한 수 — 다시 호출하면 이어서 처리
