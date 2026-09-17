@@ -1274,7 +1274,7 @@ function renderCardV8(p, ctx){
     : `<span class="cv-buybtn disabled">${cartSvg}구매하러 가기</span>`;
 
   const basis = ctx.basis || buildBasis([p]);
-  const rankLabel = `${(ctx.idx||0)+1}위`;
+  const rankLabel = `${ctx.rank || ((ctx.idx||0)+1)}위`;
   const primNoun = (p.primaryLabel && p.primaryLabel !== m.primary.label) ? p.primaryLabel : (PRIMARY_NOUN[cat] || m.primary.label);   // [v8.0] 눈: 루테인/아스타잔틴 제품별
   // 밀크씨슬: 실리마린 미표기지만 원물(추출물) 함량은 표기한 제품 — 있는 값으로 리드를 쓴다
   const rawMg = num(p.extra && p.extra["밀크씨슬_mg"]);
@@ -1332,7 +1332,7 @@ function renderRestCardV8(p, ctx){
   const full = renderCardV8(p, ctx);
   return `<div class="cr-card" id="cr-${ctx.idx}">
     <div class="cr-row" onclick="toggleCatExpand(${ctx.idx})">
-      <span class="cr-rank">${ctx.idx+1}위</span>
+      <span class="cr-rank">${ctx.rank || (ctx.idx+1)}위</span>
       <img class="cr-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div class="cr-info"><div class="cr-name">${escapeHtml(p.name)}</div><div class="cr-sub">${sub}</div></div>
       <div class="cr-right">${gradeBadge}<span class="cr-chev">자세히 ▼</span></div>
@@ -1366,17 +1366,20 @@ function renderCategory(data){
   const basis = buildBasis(all);   // 비교 기준은 서브필터와 무관하게 카테고리 전체
   // 무채점: 서버의 2단 정렬(함량 표기 → 1일비용 오름차순)을 그대로 쓴다
   const products = unscored ? filtered.slice() : applyProfile(filtered, activeProfile);
+  // [UX-2] 순위는 검색 결과 안이 아니라 카테고리 전체(같은 정렬·서브필터)에서의 자리 — "안국" 검색 결과 1개가 1위로 보이지 않게
+  const rankedAll = unscored ? filteredSub.slice() : applyProfile(filteredSub, activeProfile);
+  const rankOf = new Map(rankedAll.map((p, i) => [p.id, i + 1]));
   const subLabel = subs ? ` · ${((subs.find(s=>s.key===subKey)||{}).label)||""}` : "";
   document.getElementById('catMeta').textContent = unscored
     ? `${cat} · ${filtered.length}개 · 가성비 정렬 (함량 표기 우선)`
-    : `${cat}${subLabel} · ${filtered.length}개 · ${profileOf(activeProfile).label} 정렬`;
+    : `${cat}${subLabel} · ${qTok.length ? `${filteredSub.length}개 중 검색 ${filtered.length}개` : `${filtered.length}개`} · ${profileOf(activeProfile).label} 정렬 (순위는 전체 기준)`;
   document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
   document.getElementById('catCompareCta').innerHTML = "";
   const el = document.getElementById('catCards');
   if (!products.length){ el.innerHTML=""; document.getElementById('catStatus').textContent = qTok.length ? `"${qRaw}"에 해당하는 제품이 없어요. 다른 이름으로 찾아보거나, 위 상담창에 물어보세요.` : "표시할 제품이 없습니다."; return; }
   document.getElementById('catStatus').textContent="";
   const howto = howToRead(cat);
-  const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, basis, idx:i})).join("");
+  const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, basis, idx:i, rank: rankOf.get(p.id)})).join("");
   const cmpCta = filtered.length
     ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">함량 · 가격 · 캡슐 · 인증을 한눈에</div></div></div><a href="/compare.html?category=${encodeURIComponent(cat)}&profile=${activeProfile}${subs ? `&sub=${encodeURIComponent(subKey)}` : ""}">제품 비교하기 →</a></div>`
     : "";
@@ -1384,7 +1387,7 @@ function renderCategory(data){
   let rest = "";
   if (restArr.length){
     rest = `<div class="cat-resthead">그 외 ${restArr.length}개 제품</div>` +
-      restArr.map((p,i)=>renderRestCardV8(p, {cat, metrics, stats, basis, idx:i+3})).join("");
+      restArr.map((p,i)=>renderRestCardV8(p, {cat, metrics, stats, basis, idx:i+3, rank: rankOf.get(p.id)})).join("");
   }
   el.innerHTML = howto + top + cmpCta + rest;
 }
