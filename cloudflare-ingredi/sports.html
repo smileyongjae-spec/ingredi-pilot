@@ -35,6 +35,10 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
 .dom { background:var(--green-tint); border:1px solid var(--green-hover); border-radius:12px;
   padding:13px 15px; margin:-6px 0 16px; }
 .dom-t { font-size:13.5px; font-weight:700; color:var(--green-deep); margin-bottom:3px; }
+/* [UX-2] 목록 제품명 검색 */
+.cat-search { margin:6px 2px 8px; }
+.cat-search input { width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid var(--line); border-radius:11px; font-family:inherit; font-size:14px; background:var(--surface); color:var(--ink); }
+.cat-search input:focus { outline:none; border-color:var(--green-primary); }
 /* 제품 비교 CTA — app.html(건기식)과 동일 컴포넌트. compare.html v2가 스포츠 성분유형 비교를 지원한다. */
 .cat-compare-cta { margin:6px 2px 20px; background:var(--green-tint); border:1px solid var(--green-hover); border-radius:14px; padding:15px; }
 .ccta-head { display:flex; align-items:center; gap:10px; margin-bottom:11px; }
@@ -292,6 +296,7 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
     </div>
 
     <div id="wtBox"></div>
+    <div class="cat-search"><input type="search" id="catSearch" placeholder="제품명으로 찾기" autocomplete="off" aria-label="제품명 검색"></div>
     <div class="cat-meta" id="catMeta"></div>
     <div id="catCards"></div>
     <div class="cat-status" id="catStatus"></div>
@@ -560,6 +565,9 @@ async function fbSubmit(id){
 window.fbOpen = fbOpen;
 window.fbCancel = fbCancel;
 window.fbSubmit = fbSubmit;
+// [UX-2] 검색 입력 → 재렌더(150ms 디바운스)
+(function(){ const inp=document.getElementById('catSearch'); if(!inp) return; let tm=null;
+  inp.addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ if(data) render(data); },150); }); })();
 function card(p,d){
   const g=p.qualityGrade, c=GRADE[g]||['transparent','#9AA0A6','#E4E4E1'];
   const img=p.image?esc(p.image):PLACEHOLDER;
@@ -652,8 +660,13 @@ function render(d){
   const el=document.getElementById('catCards');
   if(!d.products.length){ el.innerHTML=''; document.getElementById('catStatus').textContent='표시할 제품이 없습니다.'; return; }
   document.getElementById('catStatus').textContent='';
-  const top=d.products.slice(0,3).map(p=>card(p,d)).join('');
-  const rest=d.products.slice(3);
+  // [UX-2] 제품명 검색 필터
+  const qRaw=((document.getElementById('catSearch')||{}).value||'').toLowerCase().trim();
+  const qTok=qRaw.split(/\s+/).filter(Boolean);
+  const list=qTok.length ? d.products.filter(p=>{const nm=String(p.name||'').toLowerCase(); return qTok.every(t=>nm.indexOf(t)!==-1);}) : d.products;
+  if(!list.length){ el.innerHTML=howToRead(d)+`<div class="cat-status">"${esc(qRaw)}"에 해당하는 제품이 없어요.</div>`; return; }
+  const top=list.slice(0,3).map(p=>card(p,d)).join('');
+  const rest=list.slice(3);
   const restHtml = rest.length
     ? `<div class="cat-resthead">그 외 ${rest.length}개 제품</div>` + rest.map((p,i)=>restCard(p,d,i+3)).join('')
     : '';
