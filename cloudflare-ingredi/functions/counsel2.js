@@ -1,4 +1,6 @@
-// functions/counsel2.js  [v16.3 — knowledge 중복 문서 제거 안전망 · 반려동물 안내 규칙]
+// functions/counsel2.js  [v16.5 — 미보유 제품 지목 시 화법 규칙]
+// [v16.4 — meta.matchedProduct: 지목 제품 카드 데이터(이미지·링크·가격·등급) 응답]
+// [v16.3 — knowledge 중복 문서 제거 안전망 · 반려동물 안내 규칙]
 // [v16.2 — 옛 산식 정의(QUALITY_CFG.calc·qualityFor·scoresOf·gradeFromQuality) 삭제: 규칙 모듈이 유일한 출처]
 // [v16.1 — 화자 용어 사전을 기준표 v2.2로(카테고리별 산식·미표기 규칙·눈 표방 성분 평균·상한 초과)]
 // [v16.0 — 기준표 v2.1 채점 규칙 모듈 연결(recommend2 v8.0과 동일 산식)]
@@ -1021,6 +1023,7 @@ export async function onRequest(context) {
 - 눈 함량 규칙: 표방한 기능성 성분마다 따로 잽니다 — 루테인+지아잔틴 합계(≥10mg)는 20mg 기준, 아스타잔틴(≥4mg)은 12mg 기준. 둘 다 하한 이상이면 두 충족률의 평균. 그래서 아스타잔틴을 4mg만 얹은 제품은 루테인이 만점이어도 함량 점수가 내려갑니다 — "표방했으면 각 기능성의 근거 용량을 채웠는지 본다"는 규칙이라고 설명하세요. 지아잔틴을 합산하는 근거는 고시형 루테인(10~20mg)과 개별인정형 루테인지아잔틴복합추출물(합 10~20mg)의 상한이 같기 때문입니다.
 - 상한 초과: 오메가3 EPA+DHA 2,000mg, 비타민C 2,000mg을 넘는 제품은 감점하지 않지만 "상한 초과 — 의사 상담 권고"를 반드시 말합니다.
 - 반려동물(강아지·고양이 등) 질문: 사람용 건강기능식품의 기능성·용량 기준을 동물에 적용할 수 없습니다. 제품을 추천하지 말고 수의사 상담으로 안내하세요(FAQ에 같은 취지의 문서가 있으면 그대로 따릅니다).
+- 제품명을 지목했는데 [제품 데이터] 목록에 그 이름이 없으면: 첫 문장에서 "그 제품은 ingredi가 아직 비교하지 않는 제품"이라고 분명히 말합니다. 아는 범위에서 그 제품·브랜드의 성분 일반 정보는 설명하되 등급·평결·함량 수치는 만들지 않고, "같은 카테고리에서 ingredi가 비교한 제품들과 견줘 보시라"고 목록을 안내합니다. 이름이 비슷한 다른 제품을 그 제품인 것처럼 답하지 않습니다.
 - 가성비 우선: 가격 대비 최선(파레토 경계) 순위 — 이보다 싸면서 더 좋은 제품이 없는 것부터.
 - 등급(A~E): 카테고리별 품질 산식의 절대 기준입니다. A는 상위 등급이라는 뜻이지 1위라는 뜻이 아닙니다. 밀크씨슬은 등급을 매기지 않는 카테고리라 등급이 없습니다.
 - 보장균수: 유통기한까지 살아있음을 보장하는 균 수(유산균). 투입균수와 다릅니다.
@@ -1506,7 +1509,34 @@ export async function onRequest(context) {
         knowledge: knowledgeMatched.map(d => ({ id: d.id, oneline: d.oneline })),
         faq: faqMatched.map(d => ({ id: d.id, question: d.question }))
       },
-      productContextCount: productContext.length
+      productContextCount: productContext.length,
+      // [v16.4] 사용자가 지목한 제품의 카드 데이터 — 상담이 평결로 끝나지 않고 제품 목록·구매로 이어지게(막다른 길 해소)
+      matchedProduct: (function () {
+        if (!productMatchRecord) return null;
+        const pf = productMatchRecord.fields || {};
+        const mc = matchedCategory ? QUALITY_CFG[matchedCategory] : null;
+        const pid = String(getField(pf, "product_id", "productId") || productMatchRecord.id);
+        const item = productContext.find(p => String(p.product_id) === pid) || null;
+        const qx = (matchedCategory && !(mc && mc.unscored)) ? qualityFromFields(matchedCategory, pf) : null;
+        const n = v => { const x = parseFloat(String(v || "").replace(/[^0-9.]/g, "")); return Number.isFinite(x) && x > 0 ? Math.round(x) : null; };
+        return {
+          product_id: pid,
+          name: asText(getField(pf, "제품명", "네이버_제품명", "name")) || "",
+          image: asText(getField(pf, "이미지URL")) || null,
+          link: asText(getField(pf, "coupang_deeplink")) || asText(getField(pf, "쿠팡 URL", "쿠팡링크", "쿠팡URL")) || asText(getField(pf, "제품링크")) || null,
+          price: n(getField(pf, "쿠팡가격_원", "가격_원", "쿠팡가격", "네이버가격_원")),
+          daily_cost: item ? item.daily_cost : n(getField(pf, "1일비용_쿠팡기준_원", "1일비용_쿠팡_원", "1일비용_원", "1일비용_네이버기준_원", "1일비용_네이버_원")),
+          grade: item ? item.grade : (qx ? qx.grade : null),
+          score: item ? item.score : (qx ? qx.quality : null),
+          primary_mg: item ? item.primary_mg : (qx ? qx.value : null),
+          primary_label: (item && item.primary_label) || (qx && qx.label) || (mc ? mc.primaryLabel : null),
+          unit: mc ? mc.unit : "",
+          hold_reason: item ? item.hold_reason : (qx ? qx.holdReason : null),
+          over_limit: item ? item.over_limit : !!(qx && qx.overLimit),
+          unscored: !!(mc && mc.unscored),
+          category: matchedCategory ? CAT_KO[matchedCategory] : null
+        };
+      })()
     };
     if (wantDebug) meta.debug = {
       tokens: lowerTokens, seedTokens,
