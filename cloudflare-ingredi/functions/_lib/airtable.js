@@ -1,4 +1,4 @@
-// functions/_lib/airtable.js  (v7 — 필드·필터 키를 tables.js 역할명으로 / v6 SWR + 비동기 캐시 쓰기)
+// functions/_lib/airtable.js  (v7.1 — purge에 이름 필드별 idx 키 추가 / v7 필드·필터 키를 tables.js 역할명으로)
 // 공용 Airtable 페치 + KV 캐시 헬퍼.
 // _lib 폴더는 밑줄(_)로 시작해서 Cloudflare 라우팅에서 제외됨(엔드포인트 아님).
 // 다른 Function들이 import 해서 씀:  import { getRecords } from './_lib/airtable.js';
@@ -213,10 +213,11 @@ export async function getRecords(env, table, opts = {}) {
   return records;
 }
 
-// 특정 테이블 캐시 삭제(수동 새로고침용). variant 캐시(idx)도 함께 지운다.
+// 특정 테이블 캐시 삭제(수동 새로고침용). variant 캐시(idx 계열)도 함께 지운다.
+// [v7.1] counsel2 v17.9의 이름 필드별 인덱스 키(idx-제품명 / idx-네이버_제품명) 추가.
 export async function purge(env, table) {
   if (env.CACHE) {
-    for (const k of [`at:${table}`, `at:${table}:idx`]) {
+    for (const k of [`at:${table}`, `at:${table}:idx`, `at:${table}:idx-제품명`, `at:${table}:idx-네이버_제품명`]) {
       try { await env.CACHE.delete(k); } catch (_) {}
     }
   }
