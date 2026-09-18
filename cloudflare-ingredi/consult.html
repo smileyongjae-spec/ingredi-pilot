@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- consult.html  v3.2  (2026-09-18) -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -458,9 +459,10 @@ function addAssistantTurn(payload, meta) {
     }
   }
   // [UX-1] 출구 링크 — 카테고리는 잡혔지만 제품 카드·대안이 없는 답변(설명형)에도 목록으로 가는 길을 남긴다
-  if (meta && meta.category && !(mp && mp.name) && !(payload.alternatives && payload.alternatives.length) && payload.policy !== 'Q') {
+  if (meta && meta.category && !(mp && mp.name)) {
     var exitKey = CAT_APP_PARAM[meta.category] || meta.category;
-    h += '<a class="exit-link" href="/app.html?category=' + encodeURIComponent(exitKey) + '">' + esc(meta.category) + ' 전체 목록 보기</a>';
+    var exitLabel = payload.policy === 'Q' ? ('지금 ' + meta.category + ' 제품 보러가기') : (meta.category + ' 전체 목록 보기');   // [UX] 되묻기에도 출구
+    h += '<a class="exit-link" href="/app.html?category=' + encodeURIComponent(exitKey) + '">' + esc(exitLabel) + '</a>';
   }
   // 경고 (W 플래그) — 괘선 + 합쇼체
   if (payload.warning) {
