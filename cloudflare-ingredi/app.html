@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v8.4  (2026-09-18) -->
+<!-- app.html  v8.5  (2026-09-19) — [v8.5] 딥링크 ?q= 검색어 지원: 상담 "브랜드 전체 보기" 칩이 목록을 검색 상태로 연다 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1474,14 +1474,19 @@ renderProfileBar();
 loadChangelog();
 
 // 딥링크: /app.html?category=오메가3&focus=om_005 등으로 들어오면 자동 열기 + 제품 포커스
+// [v8.5] &q=드시모네 — 상담의 "브랜드 전체 보기" 칩이 목록을 해당 검색어로 연 상태로 연다.
+//        openCategory가 카테고리 전환 시 검색어를 지우므로, 호출 뒤에 넣어야 한다(렌더는
+//        fetch 후 renderCategory가 입력값을 읽으므로 시점상 안전).
 (function(){
   try {
     const sp = new URLSearchParams(location.search);
     const c = sp.get('category');
     const focusId = sp.get('focus');
+    const q = sp.get('q');
     if (c && CATS.some(x => x.key === c)) {
       enteredViaDeepLink = true;
       openCategory(c);
+      if (q) { const si = document.getElementById('catSearch'); if (si) si.value = q; }
       if (focusId) focusProduct(focusId);
     }
   } catch(e){}
