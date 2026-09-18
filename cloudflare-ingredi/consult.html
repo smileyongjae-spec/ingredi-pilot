@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- consult.html  v3.4  (2026-09-18) -->
+<!-- consult.html  v3.5  (2026-09-18) -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -440,7 +440,12 @@ function addAssistantTurn(payload, meta) {
       var label = payload.chips[i];
       var prompt = (payload.chips_prompts && payload.chips_prompts[i]) || label;
       var dim = /모르겠/.test(label) ? ' dim' : '';
-      h += '<button class="chip' + dim + '" type="button" data-prompt="' + esc(prompt) + '">' + esc(label) + '</button>';
+      // [v3.5] 화면 이동 칩은 질문을 보내지 않고 바로 이동한다. prompt가 "go:/경로" 형식이면 링크로 렌더.
+      if (prompt.indexOf('go:') === 0) {
+        h += '<a class="chip" href="' + esc(prompt.slice(3)) + '">' + esc(label) + '</a>';
+      } else {
+        h += '<button class="chip' + dim + '" type="button" data-prompt="' + esc(prompt) + '">' + esc(label) + '</button>';
+      }
     }
     h += '</div>';
   }
