@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v2.2  (2026-09-18) -->
+<!-- sports.html  v2.4  (2026-09-18) -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -154,6 +154,11 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
 .cv-foot { display:flex; justify-content:space-between; align-items:center; margin-top:12px;
   padding-top:12px; border-top:1px solid var(--line-soft); }
 .cv-rev { font-size:12px; color:var(--ink-faint); }
+/* [v2.3] 리뷰 인사이트 칩 */
+.cv-voc { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.cv-vchip { font-size:11.5px; padding:4px 9px; border-radius:999px; line-height:1.3; }
+.cv-vchip.good { background:#E9F2EC; color:#2D5F3F; }
+.cv-vchip.warn { background:#FFF6E5; color:#8A6B20; }
 .cv-buybtn { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:13px;
   padding:13px; background:var(--green-primary); color:var(--surface); border-radius:12px;
   font-size:15px; font-weight:700; text-decoration:none; box-shadow:0 3px 10px rgba(45,95,63,0.28); }
@@ -569,6 +574,11 @@ window.fbSubmit = fbSubmit;
 // [UX-2] 검색 입력 → 재렌더(150ms 디바운스)
 (function(){ const inp=document.getElementById('catSearch'); if(!inp) return; let tm=null;
   inp.addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ if(data) render(data); },150); }); })();
+function reviewLine(p){   // [리뷰 규칙 2026-09-18] 네이버 우선(요약 있으면 그 전체 건수) → 구분 없는 리뷰수 → 쿠팡. 출처는 표기하지 않는다. 근거 낮음(리뷰 적음)만 표시
+  const n = Number(p.reviewCount||0); if (!(n>0)) return "";
+  const low = (p.reviews && p.reviews.evidence==="낮음") ? " · 리뷰 적어 참고만" : "";
+  return `리뷰 ${n.toLocaleString()}건${low}`;
+}
 function card(p,d){
   const g=p.qualityGrade, c=GRADE[g]||['transparent','#9AA0A6','#E4E4E1'];
   const img=p.image?esc(p.image):PLACEHOLDER;
@@ -609,7 +619,8 @@ function card(p,d){
     ${p.claimed&&p.claimed.length>1?`<div class="cv-form"><span class="lbl">표방 성분</span><span class="fval">${esc(p.claimed.join(' · '))}</span></div>`:''}
     ${p.leucineLow!=null?`<div class="cv-form"><span class="lbl">참고</span><span class="fval">류신 ${fmt(p.leucineLow)}mg — ISSN 근합성 역치 2,500mg 미만</span></div>`:''}
     ${clean(p.form)?`<div class="cv-form"><span class="lbl">제형</span><span class="fval">${esc(clean(p.form))}</span>${clean(p.flavor)?`<span class="fval">${esc(clean(p.flavor))}</span>`:''}</div>`:''}
-    <div class="cv-foot"><span class="cv-rev">리뷰 ${fmt(p.reviewCount)}개</span></div>
+    ${p.reviews&&((p.reviews.good||[]).length||(p.reviews.caution||[]).length)?`<div class="cv-voc">${(p.reviews.good||[]).map(x=>`<span class="cv-vchip good"><b>${esc(x.label)}</b>${x.score>0?' '+Math.round(x.score)+'%':''}</span>`).join('')}${(p.reviews.caution||[]).map(x=>`<span class="cv-vchip warn"><b>${esc(x.label)}</b></span>`).join('')}</div>`:''}
+    <div class="cv-foot"><span class="cv-rev">${reviewLine(p)}</span></div>
     ${buy}
   </div>`;
 }
