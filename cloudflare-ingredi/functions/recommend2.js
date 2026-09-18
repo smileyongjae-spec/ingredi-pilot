@@ -1,3 +1,4 @@
+// functions/recommend2.js  v8.3  (2026-09-18)
 // Cloudflare Pages Function: Unified category recommendation (v7.3)
 // [v6] 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다. 없으면 null.
 // [v7] 품질점수(quality)·절대등급(qualityGrade)·가성비 경계(isPareto)를 서버에서 계산한다.
@@ -260,7 +261,9 @@ export async function onRequest(context) {
       naverCheaper: String(f.네이버저렴 || "").trim().toUpperCase() === "O",
       dailyCapsules: num(f["1일캡슐수"]),
       capsuleMg: num(f.캡슐용량_mg),
-      reviewCount: num(f.리뷰수) || num(f.쿠팡_리뷰수) || num(f.쿠팡리뷰수) || num(f.네이버_리뷰수),   // [v7.6] 밀크씨슬 09.11: 쿠팡_리뷰수/네이버_리뷰수
+      // [v8.3] 리뷰 수 우선순위(2026-09-18 확정): 네이버 → 구분 없는 리뷰수 → 쿠팡. 리뷰 요약이 있으면 아래 조인에서 리뷰 테이블(네이버) 전체 건수로 대체.
+      reviewCount: num(f.네이버_리뷰수) || num(f.리뷰수) || num(f.쿠팡_리뷰수) || num(f.쿠팡리뷰수),
+      reviewSource: num(f.네이버_리뷰수) ? "naver" : (num(f.리뷰수) ? "unknown" : ((num(f.쿠팡_리뷰수) || num(f.쿠팡리뷰수)) ? "coupang" : null)),
       function: str(f.주된기능성),
       vScore: num(f.V_Score),
       grade: str(f.등급),
@@ -362,16 +365,25 @@ export async function onRequest(context) {
         const f = r.fields || {};
         const pid = readProductId(f, "");
         if (!pid) continue;
-        const good = [], caution = [];
-        if (str(f.good_label_1).trim()) good.push({ label: str(f.good_label_1).trim(), score: num(f.good_score_1) });
-        if (str(f.good_label_2).trim()) good.push({ label: str(f.good_label_2).trim(), score: num(f.good_score_2) });
-        if (str(f.caution_label_1).trim()) caution.push({ label: str(f.caution_label_1).trim(), score: num(f.caution_score_1) });
-        if (str(f.caution_label_2).trim()) caution.push({ label: str(f.caution_label_2).trim(), score: num(f.caution_score_2) });
-        rmap[pid] = { good, caution };
+        // [v8.2] 2026-09-18 리뷰 테이블: 비율은 *_rate_*_pct(옛 *_score_* 폴백), 설명문 *_text_*, 근거 수준 evidence_level
+        const rate = (k) => num(f[k + "_rate_pct"]) || num(f[k.replace(/_(\d)$/, "_rate_$1_pct")]) || num(f[k.replace(/_(\d)$/, "_score_$1")]);
+        const mk = (k) => str(f[k]).trim() ? { label: str(f[k]).trim(), score: rate(k.replace("_label_", "_")), text: str(f[k.replace("_label_", "_text_")]).trim() || null } : null;
+        const good = [mk("good_label_1"), mk("good_label_2")].filter(Boolean);
+        const caution = [mk("caution_label_1"), mk("caution_label_2")].filter(Boolean);
+        // 포장·배송 라벨은 제품 평가가 아니라 물류 평가 — 다른 라벨이 있으면 뒤로(카드는 앞 2개만 보여줌)
+        const isLogi = x => /포장|배송/.test(x.label);
+        good.sort((a, b) => (isLogi(a) - isLogi(b)));
+        const totalM = str(f.review_count_display).match(/([\d,]+)\s*건/); const total = totalM ? num(totalM[1].replace(/,/g, "")) : null;
+        rmap[pid] = { good, caution, evidence: str(f.evidence_level).trim() || null, insightScore: num(f.review_insight_score) || null, countDisplay: str(f.review_count_display).trim() || null,
+                      total, labeled: num(f.review_count_labeled) || null };
       }
       for (const it of items) {
         const rvd = rmap[String(it.id).trim()];
-        if (rvd && (rvd.good.length || rvd.caution.length)) { it.reviews = rvd; reviewMatched++; }
+        if (rvd && (rvd.good.length || rvd.caution.length)) {
+          it.reviews = rvd; reviewMatched++;
+          // [v8.3] 요약이 있으면 리뷰 수도 같은 근거(네이버 리뷰 테이블 전체 건수)로 — 카드의 숫자와 칩이 다른 소스를 가리키지 않게
+          if (rvd.total > 0) { it.reviewCount = rvd.total; it.reviewSource = "naver"; it.reviewLabeled = rvd.labeled || null; }
+        }
       }
     }
   }
