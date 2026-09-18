@@ -1,4 +1,4 @@
-// functions/sports-counsel.js  v2.0  (2026-09-18)
+// functions/sports-counsel.js  v2.1  (2026-09-18)
 // functions/sports-counsel.js  (v1.0 — 층 1: 지식 응답 전용)
 // URL: POST /sports-counsel   body: { message, history?: [{role,content}], weight?: number }
 //
@@ -423,7 +423,7 @@ async function handle(context, headers) {
     const askedBefore = prevAssistant.length > 0 && /\?\s*$|①|어떤 목적|여쭤볼게요|알려주시면/.test(prevAssistant[prevAssistant.length - 1]);
     if (out.policy === "Q" && askedBefore) out.policy = "V";
     const allText = (messages || []).filter(m => m.role === "user").map(m => String(m.content || "")).join(" ");
-    const CAT_RE = [["단백질", /단백질|프로틴|웨이|게이너|protein/i], ["크레아틴", /크레아틴|creatine/i], ["아미노산", /eaa|bcaa|hmb|글루타민|아미노산/i], ["부스터", /부스터|프리\s*워크|카페인|베타알라닌|시트룰린|아르기닌/i], ["카르니틴", /카르니틴/i]];
+    const CAT_RE = [["단백질", /단백질|프로틴|웨이|게이너|protein/i], ["크레아틴", /크레아틴|creatine/i], ["아미노산", /eaa|bcaa|hmb|글루타민|아미노산|베타알라닌|시트룰린|아르기닌/i], ["부스터", /부스터|프리\s*워크|카페인/i], ["카르니틴", /카르니틴/i]];
     const cat = (CAT_RE.find(([, re]) => re.test(allText)) || [])[0];
     if (cat && !out.chips.some(c => String(c.action || "").indexOf("sports:") === 0)) {
       out.chips = out.chips.slice(0, 2); out.chips.push({ label: `지금 ${cat} 보러가기`, action: `sports:${cat}` });
