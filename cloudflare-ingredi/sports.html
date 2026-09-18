@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- sports.html  v2.2  (2026-09-18) -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -430,7 +431,7 @@ function renderWeight(d){
     <div class="wt-top"><span class="wt-l">체중 기준</span><span class="wt-v" id="wtV">${d.weight}kg</span></div>
     <input type="range" min="45" max="115" step="1" value="${d.weight}" id="wtR"
       oninput="document.getElementById('wtV').textContent=this.value+'kg'" onchange="setWeight(this.value)">
-    <div class="wt-n">기준 함량 <b>${fmt(d.anchor)}mg</b> · ${esc(d.anchorLabel||'')}</div>
+    <div class="wt-n">${d.sub==='부스터' ? `기준: 카페인 <b>${fmt(d.anchor)}mg</b>(${weight}kg) · 시트룰린 3,000mg · 베타알라닌 1,600mg` : `기준 함량 <b>${fmt(d.anchor)}mg</b> · ${esc(d.anchorLabel||'')}`}</div>
   </div>`;
 }
 // 드래그 중 change 이벤트가 연속 발생해 API를 남발한다. 300ms 모아서 한 번만 호출한다.
@@ -499,7 +500,7 @@ function howToRead(d){
     ["ISSN 근거 기준", "근거 용량은 식약처 → 보건복지부 → 유력 학회·연구 순으로 찾는데, 운동 보충제는 앞의 두 기준이 없어 국제스포츠영양학회(ISSN) 포지션 스탠드의 권장 용량을 앵커로 써요" + (d.anchorLabel ? ` — 이 성분은 ${esc(d.anchorLabel)}.` : ".") + (d.perKg ? " 체중에 비례하는 권장이라 입력한 체중으로 계산해요." : "")],
     ["미표기 항목", "함량이 표기돼 있지 않으면 등급을 매기지 않고 '평가 보류'로 표시해요. 원료 등급·원료 브랜드처럼 등급의 일부인 항목이 표기돼 있지 않으면 그 항목에 최하 점수의 절반을 주고 등급을 매겨요 — WPI·Creapure 같은 우위는 제품이 반드시 표기하니까, 표기가 없다는 것 자체가 정보라서요."],
     ["인증", "도핑 검사 인증(Informed Sport·NSF Certified for Sport) 40, 제3자 검사 25, GMP 20, FSSC·ISO 22000 15, HACCP 10을 더해 100점 상한이에요. Non-GMO·Vegan·Kosher 같은 배합 속성은 인증 점수에 넣지 않아요."],
-    ["부스터", "카페인·시트룰린·베타알라닌처럼 근거가 있는 성분을 하한 이상 표방한 제품은 각 성분의 ISSN 기준으로 재서 평균해요. 아르기닌·타우린만 든 제품은 근거 성분이 없어 등급을 매기지 않아요."],
+    ["부스터", "카페인 함량이 기준이에요(ISSN 체중 1kg당 3~6mg). 시트룰린·베타알라닌이 유효량으로 들어 있으면 함께 평균해요. 카페인이 없는 부스터(아르기닌·타우린 기반)는 근거가 없어 등급을 매기지 않아요."],
     ["성분 우선 · 가성비 우선", "성분 우선은 품질점수가 높은 순, 가성비 우선은 가격 대비 최선인 제품을 앞에 두는 순서예요. 어느 쪽이든 품질을 재는 기준은 같아요."],
     ["하루 비용", "판매가를 표기 섭취량 기준 복용 일수로 나눈 값이에요. 용량이 달라도 비교할 수 있어요."],
     ["인증", "GMP·HACCP 같은 제조·안전 인증이에요. 효능을 보증하는 표시는 아니라서 비중을 낮게 둬요."],
