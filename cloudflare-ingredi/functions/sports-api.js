@@ -407,7 +407,7 @@ export async function onRequest(context) {
       const isLogi = x => /포장|배송/.test(x.label);
       good.sort((a, b) => (isLogi(a) - isLogi(b)));
       const totalM = S(f["review_count_display"]).match(/([\d,]+)\s*건/);
-      rmap[pid] = { good, caution, evidence: S(f["evidence_level"]) || null, total: totalM ? N(totalM[1].replace(/,/g, "")) : null, labeled: N(f["review_count_labeled"]) || null };
+      rmap[pid] = { good, caution, evidence: S(f["review_evidence_level"]) || S(f["evidence_level"]) || null, insightScore: N(f["review_insight_score"]) || null, /* [v2.3] 09.18 컬럼명 */ total: totalM ? N(totalM[1].replace(/,/g, "")) : null, labeled: N(f["review_count_labeled"]) || null };
     }
     for (const it of items) { const rv = rmap[String(it.id || "").trim()]; if (rv && (rv.good.length || rv.caution.length)) { it.reviews = rv; reviewMatched++; if (rv.total > 0) { it.reviewCount = rv.total; it.reviewSource = "naver"; it.reviewLabeled = rv.labeled || null; } } }   // [v2.4] 요약 있으면 리뷰 수도 네이버 전체 건수
   }
