@@ -395,8 +395,9 @@ export async function onRequest(context) {
   // [v2.3] 리뷰 인사이트 조인 (recommend2 v8.2와 같은 형태: {good:[{label,score,text}], caution:[...], evidence})
   const rres = await reviewPromise;
   let reviewMatched = 0;
+  const rmapDiag = {};   // [v2.5] 진단용 참조
   if (rres.ok && rres.rv.length) {
-    const rmap = {};
+    const rmap = rmapDiag;
     for (const r of rres.rv) {
       const f = r.fields || {};
       const pid = S(f["product_id"]); if (!pid) continue;
@@ -455,6 +456,19 @@ export async function onRequest(context) {
     },
     products: list,
     reviewsReady: !!(rres && rres.ok), reviewMatched,   // [v2.3]
+    // [v2.5] ?diag=1 — 리뷰 결합이 0일 때 원인(필드명·id 형식)을 라이브에서 바로 보기 위한 진단
+    ...(url.searchParams.get("diag") === "1" ? { diag: {
+      reviewTable: (TABLES["리뷰"] || {})["스포츠"] || null,
+      reviewRows: (rres && rres.ok && rres.rv) ? rres.rv.length : 0,
+      reviewFieldKeys: (rres && rres.ok && rres.rv && rres.rv[0]) ? Object.keys(rres.rv[0].fields || {}) : [],
+      reviewSampleRaw: (rres && rres.ok && rres.rv && rres.rv[0]) ? {
+        product_id: rres.rv[0].fields["product_id"], good_label_1: rres.rv[0].fields["good_label_1"],
+        good_score_1: rres.rv[0].fields["good_score_1"], review_evidence_level: rres.rv[0].fields["review_evidence_level"]
+      } : null,
+      reviewMapKeys: Object.keys(rmapDiag).slice(0, 5),
+      itemIds: items.slice(0, 5).map(x => x.id),
+      productIdFieldSample: records[0] ? Object.keys(records[0].fields || {}).filter(k => /product|id/i.test(k)) : []
+    } } : {}),
     disclaimer: "본 평가는 국제스포츠영양학회(ISSN) 포지션 스탠드와 공개된 제품 데이터를 기준으로 한 지표입니다. 대부분 일반식품이며, 일부 제품은 식약처 기능성 인정을 별도로 받아 카드에 표시됩니다. 개인의 건강 상태·약물·알레르기에 따라 최적 제품은 다를 수 있습니다."
   }), { status: 200, headers });
 }
