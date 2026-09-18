@@ -365,7 +365,7 @@ export async function onRequest(context) {
         const f = r.fields || {};
         const pid = readProductId(f, "");
         if (!pid) continue;
-        // [v8.2] 2026-09-18 리뷰 테이블: 비율은 *_rate_*_pct(옛 *_score_* 폴백), 설명문 *_text_*, 근거 수준 evidence_level
+        // [v8.3] 2026-09-18 리뷰 테이블(24열 공통): 비율 good/caution_score_N, 설명 *_text_N, 근거 수준 review_evidence_level(매우 높음/높음/보통), 종합 review_insight_score, 표시 review_count_display("리뷰 인사이트 · 전체 N건")
         const rate = (k) => num(f[k + "_rate_pct"]) || num(f[k.replace(/_(\d)$/, "_rate_$1_pct")]) || num(f[k.replace(/_(\d)$/, "_score_$1")]);
         const mk = (k) => str(f[k]).trim() ? { label: str(f[k]).trim(), score: rate(k.replace("_label_", "_")), text: str(f[k.replace("_label_", "_text_")]).trim() || null } : null;
         const good = [mk("good_label_1"), mk("good_label_2")].filter(Boolean);
@@ -374,7 +374,7 @@ export async function onRequest(context) {
         const isLogi = x => /포장|배송/.test(x.label);
         good.sort((a, b) => (isLogi(a) - isLogi(b)));
         const totalM = str(f.review_count_display).match(/([\d,]+)\s*건/); const total = totalM ? num(totalM[1].replace(/,/g, "")) : null;
-        rmap[pid] = { good, caution, evidence: str(f.evidence_level).trim() || null, insightScore: num(f.review_insight_score) || null, countDisplay: str(f.review_count_display).trim() || null,
+        rmap[pid] = { good, caution, evidence: (str(f.review_evidence_level).trim() || str(f.evidence_level).trim()) || null,   // [v8.3] 09.18 컬럼명 review_evidence_level insightScore: num(f.review_insight_score) || null, countDisplay: str(f.review_count_display).trim() || null,
                       total, labeled: num(f.review_count_labeled) || null };
       }
       for (const it of items) {
