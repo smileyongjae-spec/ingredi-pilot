@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!-- about.html  v1.1  (2026-09-18) -->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ingredi 소개 · 문의 — 광고 없는 영양제 비교</title>
+  <meta name="description" content="ingredi는 광고를 받지 않고 공개된 제품 데이터로 건강기능식품과 운동 보충제를 비교하는 1인 개발 서비스입니다. 정렬 기준을 전부 공개합니다.">
+  <link rel="canonical" href="https://ingredi.kr/about.html">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="/tokens-v1.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg, #F6F5F0); color: var(--ink, #2B2B28); line-height: 1.65; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 20px 20px 60px; }
+    .top { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+    .top a { text-decoration: none; color: var(--ink-soft, #6B6B65); font-size: 14px; }
+    .brand { font-weight: 800; color: var(--green-deep, #1B3A2E); font-size: 18px; letter-spacing: -0.01em; }
+    h1 { font-size: 24px; line-height: 1.3; margin: 0 0 8px; color: var(--green-deep, #1B3A2E); letter-spacing: -0.02em; }
+    .lead { font-size: 15.5px; color: var(--ink-soft, #6B6B65); margin: 0 0 28px; }
+    h2 { font-size: 16px; margin: 30px 0 8px; color: var(--green-primary, #2D5F3F); }
+    p { margin: 0 0 12px; font-size: 15px; }
+    ul { margin: 0 0 12px; padding-left: 20px; font-size: 15px; }
+    li { margin-bottom: 6px; }
+    .card { background: var(--surface, #fff); border: 1px solid var(--line, #E4E4E1); border-radius: 14px; padding: 16px 18px; margin: 12px 0; }
+    .card .lbl { font-size: 12px; font-weight: 700; color: var(--ink-faint, #9A9A94); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+    .mail { font-size: 17px; font-weight: 700; color: var(--green-primary, #2D5F3F); text-decoration: none; }
+    .btn { display: inline-block; margin-top: 10px; padding: 11px 16px; border-radius: 10px; background: var(--green-primary, #2D5F3F); color: #fff; font-weight: 700; text-decoration: none; font-size: 14px; }
+    .btn.ghost { background: var(--surface, #fff); color: var(--green-deep, #1B3A2E); border: 1px solid var(--line, #E4E4E1); margin-left: 6px; }
+    .note { font-size: 12.5px; color: var(--ink-faint, #9A9A94); }
+    .foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line, #E4E4E1); font-size: 12px; color: var(--ink-faint, #9A9A94); line-height: 1.6; }
+    .foot a { color: inherit; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">← 홈</a><span class="brand">ingredi</span></div>
+
+  <h1>광고 없는 영양제 비교</h1>
+  <p class="lead">ingredi는 건강기능식품과 운동 보충제를 공개된 제품 데이터만으로 비교하고, 그 기준을 전부 공개하는 서비스입니다.</p>
+
+  <h2>누가 만들었나</h2>
+  <p>생명과학을 전공하고 건강기능식품 회사에서 근무했던 두 사람이 만들었습니다. 회사가 아니라 개인 프로젝트이고, 제품사와 아무 관계가 없습니다. 코드는 대부분 AI와 함께 작성했고, 상담 품질은 정기 자체점검(수백 문항 실호출 심사)으로 관리합니다.</p>
+
+  <h2>왜 만들었나</h2>
+  <p>영양제 정보의 대부분이 광고이거나 광고와 구분되지 않아서입니다. 라벨에 적힌 함량·제형·인증처럼 <b>확인할 수 있는 사실</b>만으로 제품을 줄 세우고, 왜 그 순서인지 누구나 볼 수 있게 하는 것이 목표입니다. 그래서 등급 기준은 목록 화면의 "등급과 비교, 이렇게 정해요"에 모두 적혀 있고, 가격과 리뷰 수는 등급에 넣지 않습니다.</p>
+
+  <h2>어떻게 운영되나</h2>
+  <div class="card">
+    <div class="lbl">데이터</div>
+    <p>제품 정보는 라벨·공식몰·공개 자료에서 수집하고, 함량·제형·인증·원료사·가격·통 개수를 원천값으로 기록합니다. 등급과 순위는 요청 시 코드가 계산하며, 기준은 식약처 일일섭취량 → 보건복지부 섭취기준 → 국제 학회(ISSN) 순으로 정합니다. 데이터 오류를 발견하시면 아래로 알려주세요 — 확인 후 고칩니다.</p>
+  </div>
+  <div class="card">
+    <div class="lbl">AI 상담</div>
+    <p>상담은 의사·약사가 아니며 진단이나 처방을 하지 않습니다. 식약처가 인정한 기능성과 제품 데이터 범위 안에서만 답하고, 의료 판단이 필요한 질문은 전문가 상담을 안내합니다. 질환·복용약·임신 여부는 반드시 전문가와 상의하세요.</p>
+  </div>
+  <div class="card">
+    <div class="lbl">수익 구조</div>
+    <p>이 서비스는 <b>쿠팡 파트너스 활동의 일환으로, 쿠팡 구매 링크를 통하는 경우 일정액의 수수료를 받을 수 있습니다.</b> 수수료는 순위·등급·추천에 영향을 주지 않으며, 광고비나 협찬은 받지 않습니다. 단, 쿠팡에 제품이 없어서 네이버 등 다른 e커머스로 링크되는 경우에는 수수료와 상관이 없습니다.</p>
+  </div>
+  <h2>문의</h2>
+  <div class="card">
+    <a class="mail" href="mailto:hello@ingredi.kr">hello@ingredi.kr</a>
+    <p class="note" style="margin-top:6px">데이터 오류 제보, 제휴·협업, 기타 문의. 보통 2~3일 안에 답장합니다.</p>
+    <a class="btn" href="mailto:hello@ingredi.kr?subject=ingredi%20문의">이메일 보내기</a><a class="btn ghost" href="/">홈으로</a>
+  </div>
+
+  <h2>개인정보</h2>
+  <p>회원가입이 없고 이름·연락처를 요구하지 않습니다. 서비스 개선을 위해 다음을 수집합니다.</p>
+  <ul>
+    <li><b>검색·상담 로그</b> — 입력한 질문과 서비스가 잡은 카테고리(어떤 질문이 많은지 보기 위해). 개인을 식별하는 정보와 연결하지 않습니다.</li>
+    <li><b>의견 보내기</b> — 적어주신 내용과, 답장을 원해 남기신 경우의 이메일. 답변 목적으로만 쓰고 그 외에 공유하지 않습니다.</li>
+    <li><b>이용 통계</b> — Microsoft Clarity로 화면 이용 흐름을 익명 집계합니다.</li>
+  </ul>
+  <p>수집한 내용은 서비스 개선 외의 목적으로 쓰지 않으며, 삭제를 원하시면 위 이메일로 요청해 주세요.</p>
+
+  <div class="foot">
+    ingredi · <a href="mailto:hello@ingredi.kr">hello@ingredi.kr</a><br>
+    쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있습니다. 이 서비스는 의료 자문이 아니며, 질병의 진단·치료는 의사·약사와 상의하세요.
+  </div>
+</div>
+</body>
+</html>
