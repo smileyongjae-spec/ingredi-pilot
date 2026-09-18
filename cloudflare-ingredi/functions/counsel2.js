@@ -1,3 +1,5 @@
+// functions/counsel2.js  v16.7  (2026-09-18)
+// functions/counsel2.js  [v16.7 — 제품 후보군 8→6/축(프롬프트 ~800토큰 절감). 시스템 프롬프트 캐시(cache_control)는 기존 유지]
 // functions/counsel2.js  [v16.6 — 제품명 탐지: 고유 브랜드 단일 토큰 확정 · 대상어(임산부 등) 브랜드 배제]
 // [v16.5 — 미보유 제품 지목 시 화법 규칙]
 // [v16.4 — meta.matchedProduct: 지목 제품 카드 데이터(이미지·링크·가격·등급) 응답]
@@ -929,7 +931,7 @@ export async function onRequest(context) {
           ((a.daily_cost != null && a.daily_cost > 0 ? a.daily_cost : 9e9) - (b.daily_cost != null && b.daily_cost > 0 ? b.daily_cost : 9e9))
         );
         ordered.forEach((p, i) => { p.rank_quality = i + 1; p.rank_value = i + 1; });
-        poolA = ordered.slice(0, 8);
+        poolA = ordered.slice(0, 8);   // 무채점 카테고리(밀크씨슬)는 단일 축이라 8 유지
         poolB = [];
       } else {
       const scoredItems = items.filter(p => p.score != null);
@@ -949,8 +951,8 @@ export async function onRequest(context) {
       }
       const byValue = [...valuePool].sort((a, b) => (dominated.get(a) - dominated.get(b)) || (a.daily_cost - b.daily_cost));
       byValue.forEach((p, i) => { p.rank_value = i + 1; });
-      poolA = byScore.slice(0, 8);
-      poolB = byValue.slice(0, 8);
+      poolA = byScore.slice(0, 6);   // [v16.7] 후보군 8→6/축 (최대 12개): 화자는 지목 제품+대안 3개만 쓰므로 토큰 ~800 절감, 품질 영향 없음
+      poolB = byValue.slice(0, 6);
       }
 
       // 후보군 = 두 축 상위 8의 합집합 (한 축만 잘 보이는 제품도 화자 시야에 들어오게)
