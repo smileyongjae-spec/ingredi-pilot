@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v8.3  (2026-09-18) -->
+<!-- app.html  v8.4  (2026-09-18) -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1218,6 +1218,11 @@ function compareBlock(cat, basis, p, m){
   return `<div class="cl-block">${head}${lines}</div>` + (kids ? kidsCapsuleNote(p) : "");
 }
 
+function reviewLine(p){   // [리뷰 규칙 2026-09-18] 네이버 우선(요약 있으면 그 전체 건수) → 구분 없는 리뷰수 → 쿠팡. 출처는 표기하지 않는다. 근거 낮음(리뷰 적음)만 표시
+  const n = Number(p.reviewCount||0); if (!(n>0)) return "";
+  const low = (p.reviews && p.reviews.evidence==="낮음") ? " · 리뷰 적어 참고만" : "";
+  return `리뷰 ${n.toLocaleString()}건${low}`;
+}
 function renderCardV8(p, ctx){
   const cat = ctx.cat, m = ctx.metrics, st = ctx.stats, uid = ctx.idx;
   const unscored = !!UNSCORED_CATS[cat];   // 밀크씨슬: 등급 배지 없음, 원료사 명기
@@ -1301,7 +1306,7 @@ function renderCardV8(p, ctx){
     ${compareBlock(cat, basis, p, m)}
     ${belowPrimary}
     ${(unscored && !vocChips) ? "" : `<div class="cv-voc">
-      <div class="cv-voc-h"><span class="cv-reviewN">리뷰 ${fmt(num(p.reviewCount))}개 중</span>${vocTag}</div>
+      <div class="cv-voc-h"><span class="cv-reviewN">${reviewLine(p)} 중</span>${vocTag}</div>
       <div class="cv-vchips">${vocChips}</div>
     </div>`}
     ${price>0 ? `<div class="cv-price"><span class="lbl">판매가</span><span class="val">${fmt(price)}원${monthBadge}</span></div>` : ""}
