@@ -1,4 +1,11 @@
-// functions/counsel2.js  v17.5  (2026-09-18)
+// functions/counsel2.js  v17.6  (2026-09-19)
+// [v17.6 — 멀티 SKU 브랜드 "있는데 없다" 오답 수정 (드시모네 실측)]
+//   - 근원: findProductMention의 df 5% 상한이 SKU 10개 브랜드 토큰(드시모네)을 범용어로 오배제
+//     → 카테고리 라우팅·제품 매칭 동시 실패 → 미보유 화법("비교하지 않는 제품") + 맥락 따라 답 요동.
+//   - ① df 상한에 브랜드 선두 예외(매칭 이름 70%+에서 제품명 선두·3자 이상이면 브랜드로 인정)
+//   - ② [3.6] brandMatch: 브랜드 토큰이 2개 이상 제품에 걸치면 코드가 {토큰·개수·목록} 확정,
+//        브랜드만 언급 시 임의 SKU 확정 해제(+구분 토큰으로 좁혀지면 그 SKU로 확정), 브랜드 상위 3개 후보군 주입
+//   - ③ [브랜드 매칭] 플래그 — "비교하지 않는 제품" 발화 금지, 목록 기반 답변/되묻기 강제
 // functions/counsel2.js  [v16.8 — Q(되묻기)에도 상위 3 카드 고정 · 되묻기 대화당 1회]
 // functions/counsel2.js  [v16.7 — 제품 후보군 8→6/축(프롬프트 ~800토큰 절감). 시스템 프롬프트 캐시(cache_control)는 기존 유지]
 // functions/counsel2.js  [v16.6 — 제품명 탐지: 고유 브랜드 단일 토큰 확정 · 대상어(임산부 등) 브랜드 배제]
@@ -399,12 +406,21 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     const parts = [...new Set(String(q).split(/\s+/).map(normEntity)
       .filter(t => t.length >= 2 && !isCategoryWord(t) && !NON_BRAND_RE.test(t) && !/^\d/.test(t)))];
     if (!parts.length) return withScore ? null : null;
-    // 범용 토큰 배제: 전체 제품의 5% 초과(최소 3개 초과)에 등장하면 브랜드가 아님
+    // 범용 토큰 배제: 전체 제품의 5% 초과(최소 3개 초과)에 등장하면 브랜드가 아님.
+    // [v17.6] 예외 — 브랜드 선두 판정: SKU 많은 브랜드(드시모네 10종 등)는 df가 상한을 넘어
+    // 범용어로 오배제됐다("있는데 없다" 오답의 근원). 범용어(플러스·골드·프리미엄)는 이름 중간에
+    // 흩어지고 브랜드는 제품명 선두([대괄호] 접두 제외)에 온다 — 매칭 이름의 70% 이상에서
+    // 선두이고 3자 이상이면 df 상한을 넘어도 브랜드로 인정한다.
     const cap = Math.max(3, Math.floor(recs.length * 0.05));
     const usable = parts.filter(t => {
-      let df = 0;
-      for (const nm of names) { if (nm && nm.indexOf(t) !== -1) { df++; if (df > cap) return false; } }
-      return df > 0;
+      let df = 0, lead = 0;
+      for (const nm of names) {
+        if (!nm || nm.indexOf(t) === -1) continue;
+        df++;
+        if (nm.replace(/^\[[^\]]*\]/, "").indexOf(t) === 0) lead++;
+      }
+      if (!df) return false;
+      return df <= cap || (t.length >= 3 && lead / df >= 0.7);
     });
     // v15.2: 최고 매칭 선정을 (usable 길이합, 전체 토큰 길이합) 사전식으로.
     // usable 동점일 때 배제됐던 흔한 토큰("키즈"·"베이비")까지 커버하는 제품이 이긴다 —
@@ -759,6 +775,40 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       }
     }
 
+    // ─── [3.6] 브랜드 매칭 (v17.6) ────────────────────────────
+    // 멀티 SKU 브랜드는 질의가 브랜드만 가리켜도 "우리가 비교하는 브랜드"라는 사실을 코드가 확정한다.
+    // 존재 여부를 모델 추측에 맡기면 미보유 화법이 오발되고 답이 맥락 따라 요동한다(드시모네 실측).
+    let brandMatch = null;
+    if (matchedCategory && pRecords && pRecords.length) {
+      const bTokens = makeBrandCands(query).filter(t => t.length >= 3);
+      for (const t of bTokens) {
+        const hits = [];
+        for (const r of pRecords) {
+          const nm = normEntity(getField(r.fields || {}, "제품명", "네이버_제품명", "name"));
+          if (nm && nm.indexOf(t) !== -1) hits.push(r);
+        }
+        if (hits.length >= 2 && (!brandMatch || hits.length > brandMatch.count)) {
+          brandMatch = { token: t, count: hits.length, records: hits };
+        }
+      }
+      if (brandMatch) {
+        // 질의의 구분 토큰(숫자·모델명 포함, 브랜드 토큰 제외)으로 SKU를 좁힌다.
+        const rawToks = String(query).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).map(normEntity)
+          .filter(t => t && t !== brandMatch.token && t.length >= 2 && !STOPWORDS.has(t) && !NON_BRAND_RE.test(t) && !isCategoryWord(t));
+        const nmOf = r => normEntity(getField(r.fields || {}, "제품명", "네이버_제품명", "name"));
+        const useToks = rawToks.filter(t => brandMatch.records.some(r => nmOf(r).indexOf(t) !== -1));
+        const narrowed = useToks.length ? brandMatch.records.filter(r => useToks.every(t => nmOf(r).indexOf(t) !== -1)) : [];
+        if (narrowed.length === 1) {
+          productMatchRecord = narrowed[0];            // 브랜드+구분 토큰("드시모네 365")으로 SKU 확정
+        } else if (productMatchRecord) {
+          // 브랜드만 언급됐는데 부분문자열 매칭이 테이블 첫 SKU를 임의 확정한 경우 해제 —
+          // [브랜드 매칭] 플래그가 "어떤 제품인지" 되묻거나 브랜드 수준으로 답하게 한다.
+          const nm0 = nmOf(productMatchRecord);
+          if (nm0.indexOf(brandMatch.token) !== -1 && !useToks.some(t => nm0.indexOf(t) !== -1)) productMatchRecord = null;
+        }
+      }
+    }
+
     // ─── [4] 문서 정규화 + IDF 검색 (v7 계승, 축약 없이) ──
     function docFromFaq(r) {
       const f = r.fields || {};
@@ -1015,6 +1065,16 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
           }
         }
       }
+      // [v17.6] 브랜드 매칭 제품 주입: 축 상위 후보군에 없어도(드시모네 32·36위 등)
+      // 브랜드 상위 3개는 화자 시야에 넣는다 — 등급·수치가 없으면 "없는 제품"으로 답하게 된다.
+      if (brandMatch) {
+        const bids = new Set(brandMatch.records.map(r => String(getField(r.fields || {}, "product_id", "productId") || r.id)));
+        const brandItems = items.filter(p => bids.has(String(p.product_id)))
+          .sort((a, b) => (a.rank_quality || 9e9) - (b.rank_quality || 9e9));
+        for (const p of brandItems.slice(0, 3)) {
+          if (!seen.has(p.product_id)) { seen.add(p.product_id); topProducts.push(p); }
+        }
+      }
       productContext = topProducts;
     }
 
@@ -1077,7 +1137,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 - 상한 초과: 오메가3 EPA+DHA 2,000mg, 비타민C 2,000mg을 넘는 제품은 감점하지 않지만 "상한 초과 — 의사 상담 권고"를 반드시 말합니다.
 - 반려동물(강아지·고양이 등) 질문: 사람용 건강기능식품의 기능성·용량 기준을 동물에 적용할 수 없습니다. 제품을 추천하지 말고 수의사 상담으로 안내하세요(FAQ에 같은 취지의 문서가 있으면 그대로 따릅니다).
 - "누가 만들었나·운영자가 누구냐·회사냐·어떻게 돈 버냐·연락처" 같은 서비스 자체에 대한 질문: 한두 문장으로 답합니다 — "ingredi는 생명과학을 전공하고 건강기능식품 회사에서 근무했던 두 사람이 만든 개인 프로젝트이고, 제품사 광고는 받지 않으며 쿠팡 구매 링크의 파트너스 수수료로 운영됩니다(수수료는 순위에 영향 없고, 쿠팡에 없어 다른 e커머스로 연결되는 경우엔 수수료와 무관). 자세한 소개와 문의는 ingredi.kr/about.html, 이메일 hello@ingredi.kr" — 이 사실 밖의 것(실명·소속·인원 구성 세부)은 지어내지 않고 "공개하지 않는다"고 말합니다. "정보가 없다"거나 "공식 채널로 연락하라"처럼 막다른 답은 하지 않습니다.
-- 제품명을 지목했는데 [제품 데이터] 목록에 그 이름이 없으면: 첫 문장에서 "그 제품은 ingredi가 아직 비교하지 않는 제품"이라고 분명히 말합니다. 아는 범위에서 그 제품·브랜드의 성분 일반 정보는 설명하되 등급·평결·함량 수치는 만들지 않고, "같은 카테고리에서 ingredi가 비교한 제품들과 견줘 보시라"고 목록을 안내합니다. 이름이 비슷한 다른 제품을 그 제품인 것처럼 답하지 않습니다.
+- 제품명을 지목했는데 [제품 데이터] 목록에 그 이름이 없으면: 첫 문장에서 "그 제품은 ingredi가 아직 비교하지 않는 제품"이라고 분명히 말합니다. 단, [대상 제품]이나 [브랜드 매칭] 플래그가 있으면 그 제품/브랜드는 목록에 있는 것이므로 이 규칙을 적용하지 않습니다 — 존재 여부는 플래그와 [제품 데이터]가 전부이며, 당신의 기억으로 "없다"고 단정하지 않습니다. 아는 범위에서 그 제품·브랜드의 성분 일반 정보는 설명하되 등급·평결·함량 수치는 만들지 않고, "같은 카테고리에서 ingredi가 비교한 제품들과 견줘 보시라"고 목록을 안내합니다. 이름이 비슷한 다른 제품을 그 제품인 것처럼 답하지 않습니다.
 - 가성비 우선: 가격 대비 최선(파레토 경계) 순위 — 이보다 싸면서 더 좋은 제품이 없는 것부터.
 - 등급(A~E): 카테고리별 품질 산식의 절대 기준입니다. A는 상위 등급이라는 뜻이지 1위라는 뜻이 아닙니다. 밀크씨슬은 등급을 매기지 않는 카테고리라 등급이 없습니다.
 - 보장균수: 유통기한까지 살아있음을 보장하는 균 수(유산균). 투입균수와 다릅니다.
@@ -1200,6 +1260,10 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       const pmName = getField(productMatchRecord.fields || {}, "제품명", "네이버_제품명", "name");
       flagBlock += `\n\n[대상 제품] 사용자가 언급한 제품이 데이터에 있습니다: "${pmName}". [제품 데이터]에서 이 제품을 찾아 그 수치로 바로 평결하세요. "데이터에 없다"거나 "라벨을 알려달라"고 되묻지 마세요 — 수치는 이미 [제품 데이터]에 있습니다. 이 제품이 다른 카테고리 성분까지 포함한 복합제여도, 우리 카테고리 성분(예: 루테인+지아잔틴)의 표기된 수치로 평결하고, 범위 밖 성분(예: 전립선·쏘팔메토)은 "그 부분은 제 범위 밖이라 판단하지 않아요"라고만 밝히세요. 또한 이 제품의 주된 목적이 우리 카테고리가 아니어도(예: 다이어트 제품에 유산균이 함께 든 경우), 먼저 이 제품이 무엇인지(주된기능성) 밝히고 우리 축 수치로 평결하되, "좋다/나쁘다" 단정보다 사실 위주로 알려주세요.`;
       if (targetSegment) flagBlock += ` 이 제품은 '${targetSegment}' 대상 제품이며, [제품 데이터]의 대안도 모두 같은 '${targetSegment}' 대상입니다 — 대안을 권할 때 "같은 ${targetSegment} 유산균 중에서" 같은 표현으로 대상을 맞춰 안내하세요.`;
+      if (brandMatch && brandMatch.count >= 2) flagBlock += ` 같은 브랜드 제품이 비교 목록에 총 ${brandMatch.count}개 있습니다 — 사용자가 다른 모델을 말하는 것 같으면 어느 제품인지 확인하세요.`;
+    } else if (brandMatch) {
+      const bNames = brandMatch.records.slice(0, 3).map(r => getField(r.fields || {}, "제품명", "네이버_제품명", "name")).filter(Boolean);
+      flagBlock += `\n\n[브랜드 매칭] 사용자가 언급한 "${brandMatch.token}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다(예: ${bNames.join(" / ")}). 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요. 특정 제품은 지목되지 않았으므로: 이 브랜드를 비교하고 있다는 사실을 먼저 밝히고, [제품 데이터]에 있는 이 브랜드 제품의 수치로 답하거나, 어떤 제품인지 칩으로 하나만 되물으세요(Q — 칩에 위 제품명 2~3개 + "잘 모르겠어요"). 등급·수치는 [제품 데이터]에 있는 제품에 대해서만 말합니다. 추천 질의라면 [제품 데이터] 전체 기준으로 추천하되, 이 브랜드 제품의 순위·위치도 함께 짚어주세요.`;
     } else if (productContext.length) {
       flagBlock += `\n\n[비지목] 사용자는 특정 제품을 언급하지 않았습니다. [제품 데이터]의 후보 중 하나를 골라 "이 제품은 권하지 않아요" 식의 단수 평결을 하지 마세요 — 추천 질의에는 추천(성분 우선 상위)으로 답합니다. 후보군에 사용자 상황과 안 맞는 제품(예: 어린이용)이 섞여 있어도 그것을 평결 대상으로 삼지 말고 조용히 제외하세요.`;
       // [v15.8] 명시적 수유/임신으로 여성 세그먼트가 걸렸을 때(제품 미지목) 프레이밍.
@@ -1605,6 +1669,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       matchedDocs: top.map(d => `${d.kind === "faq" ? "F" : "K"}:${d.id}`),
       productMatch: productMatchRecord ? getField(productMatchRecord.fields || {}, "제품명", "네이버_제품명", "name") : null,
       matchedCategory, hintDomain, productLookupFailed, targetSegment, explicitMultiCats,
+      brandMatch: brandMatch ? { token: brandMatch.token, count: brandMatch.count } : null,
       forcedAxis: forcedAxis ? forcedAxis.axis : null, doseIntent,
       askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback, repaired: !!payload.contract_repaired
     };
