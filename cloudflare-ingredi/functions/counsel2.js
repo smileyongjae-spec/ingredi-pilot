@@ -1,4 +1,5 @@
-// functions/counsel2.js  v16.7  (2026-09-18)
+// functions/counsel2.js  v16.8  (2026-09-18)
+// functions/counsel2.js  [v16.8 — Q(되묻기)에도 상위 3 카드 고정 · 되묻기 대화당 1회]
 // functions/counsel2.js  [v16.7 — 제품 후보군 8→6/축(프롬프트 ~800토큰 절감). 시스템 프롬프트 캐시(cache_control)는 기존 유지]
 // functions/counsel2.js  [v16.6 — 제품명 탐지: 고유 브랜드 단일 토큰 확정 · 대상어(임산부 등) 브랜드 배제]
 // [v16.5 — 미보유 제품 지목 시 화법 규칙]
@@ -122,7 +123,9 @@ export async function onRequest(context) {
   const CATEGORY_KEYWORDS = {
     omega3:     ["오메가", "omega", "epa", "dha", "ala", "dpa", "rtg", "알티지", "어유", "fish oil", "크릴", "어류", "goed", "ifos"],
     vitaminC:   ["비타민c", "비타민 c", "비타민씨", "vitamin c", "아스코르브산", "ascorbic", "메가도스", "리포좀"],
-    eye:        ["루테인", "지아잔틴", "아스타잔틴", "황반", "시력", "안구", "눈건강", "lutein", "zeaxanthin", "마리골드"],
+    eye:        ["루테인", "지아잔틴", "아스타잔틴", "황반", "시력", "안구", "눈건강", "lutein", "zeaxanthin", "마리골드",
+                 // [v16.8] "눈"만으로는 오탐(눈치·눈에 띄는)이라 구체 표현만: 재점검·라이브에서 "눈제품 추천"이 카테고리 null → 카드 없음
+                 "눈 제품", "눈제품", "눈 영양제", "눈영양제", "눈에 좋", "눈 건강", "눈 피로", "눈피로", "눈이 피로", "눈이 침침", "눈 침침", "눈이 뻑뻑", "눈 뻑뻑", "눈 노화"],
     probiotics: ["프로바이오틱스", "프리바이오틱스", "신바이오틱스", "포스트바이오틱스", "유산균", "윤산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "lactobacillus", "bifidobacterium", "보장균수", "cfu"],
     milkthistle: ["밀크씨슬", "밀크시슬", "밀크 씨슬", "밀크 시슬", "실리마린", "silymarin", "milk thistle", "milkthistle", "카르두스"]
   };
@@ -1451,7 +1454,9 @@ export async function onRequest(context) {
       //   consistency 3.04(6축 최하위)의 주원인. v15.7의 원래 의도는 "LLM이 1개만 주거나 비웠을 때
       //   카드가 안 뜨는 문제"를 메우는 것이었으므로, 부족분만 채운다. LLM의 선택은 산문과 짝이
       //   맞으므로 보존한다(예: "가성비 1·2위는 B등급이라 3위를 권해요" 같은 판단을 코드가 뭉개지 않음).
-      if (payload.policy === "V" && (payload.verdict_tone === "positive" || payload.verdict_tone === "conditional") && !productMatchRecord && cfg2 && productContext.length && payload.alternatives.length < 3) {
+      // [v16.8] Q(되묻기)에도 같은 규칙 — 성질 급한 사용자가 되묻기 답변에서 바로 제품으로 갈 수 있게 카드 3개를 항상 붙인다.
+      //         (유산균은 화자가 채우고 눈은 비우던 재량 편차를 서버 규칙으로 고정)
+      if ((payload.policy === "V" && (payload.verdict_tone === "positive" || payload.verdict_tone === "conditional") || payload.policy === "Q") && !productMatchRecord && cfg2 && productContext.length && payload.alternatives.length < 3) {
         const axKey = (forcedAxis || AXIS_KEYWORDS[0]);
         const wasEmpty = payload.alternatives.length === 0;
         const have = new Set(payload.alternatives.map(a => String(a.product_id)));
@@ -1465,8 +1470,14 @@ export async function onRequest(context) {
         if (!payload.alternatives_note && wasEmpty && payload.alternatives.length) {
           payload.alternatives_note = cfg2.unscored
             ? `함량 표기 우선 · 가성비 상위 ${payload.alternatives.length}개`   // [v15.23] 무채점: 축 라벨이 거짓이 되므로 실제 기준으로
-            : `${axKey.label} 상위 ${payload.alternatives.length}개`;
+            : (payload.policy === "Q" ? `고르지 않아도 볼 수 있어요 · ${axKey.label} 상위 ${payload.alternatives.length}개` : `${axKey.label} 상위 ${payload.alternatives.length}개`);
         }
+      }
+      // [v16.8] 되묻기는 대화당 1회 — 직전 화자 턴이 이미 Q였으면 이번엔 묻지 않고 기본답으로 답한다(프로틴 상담이 2턴 연속 되묻던 문제).
+      if (payload.policy === "Q" && askedBefore) {
+        payload.policy = "V"; payload.verdict_tone = payload.verdict_tone || "none";
+        if (payload.default_answer && !payload.body) payload.body = payload.default_answer;
+        payload.question = null; payload.default_answer = null;
       }
 
       // [v15.17] 내부 필드명 스크러빙 — LLM이 "가성비 기준(rank_value) 상위 3개"처럼 스키마
