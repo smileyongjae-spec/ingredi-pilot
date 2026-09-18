@@ -1,3 +1,11 @@
+// functions/counsel2.js  v17.7  (2026-09-19)
+// [v17.7 — 브랜드/회사 검색 흐름 확정(목업 승인분) + 구간 계측]
+//   - 회사→브랜드 별칭 사전(COMPANY_ALIASES): 회사명은 제품명에 없어 코드 매핑으로 시작(예: 헥토헬스케어→드시모네).
+//     회사 제품이 2개 이상 카테고리에 있으면 코드 게이트가 즉답 Q(카테고리 칩), 1개면 브랜드 흐름으로 직행.
+//   - 브랜드 Q: 칩=브랜드 제품 상위 4 + "잘 모르겠어요" + "전체 보기(N개)"(go:/app.html?category=…&q=브랜드),
+//     default_answer는 정확히 한 문장(성분 우선 1위 기준), 카드=브랜드 상위 3(타사 백필 금지).
+//   - 지목 평결 A~C: 대안 카드 제거(광고처럼 읽힘) → "브랜드 외 다른 ○○도 추천받기" 칩으로 대체. D(부정)만 대안 유지.
+//   - meta.debug.timing: tables_ms/claude_ms/total_ms — 10초 응답의 병목 확인용.
 // functions/counsel2.js  v17.6  (2026-09-19)
 // [v17.6 — 멀티 SKU 브랜드 "있는데 없다" 오답 수정 (드시모네 실측)]
 //   - 근원: findProductMention의 df 5% 상한이 SKU 10개 브랜드 토큰(드시모네)을 범용어로 오배제
@@ -145,6 +153,12 @@ export async function onRequest(context) {
     eye:        ["아이클리어", "루테인골드"]
   };
   const CAT_KO    = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈", probiotics: "유산균", milkthistle: "밀크씨슬" };
+  // [v17.7] 회사 → 브랜드 별칭 사전. 회사명은 제품명 문자열에 없어서(헥토헬스케어 제품은 "드시모네…"로 시작)
+  // 제품명 매칭만으로는 회사 검색이 0건이 된다. 코드 사전으로 시작하고, 파트너가 Airtable에
+  // 제조사/판매사 컬럼을 채우면 그 컬럼 매칭으로 이관한다. 키·값 모두 normEntity로 비교.
+  const COMPANY_ALIASES = {
+    "헥토헬스케어": ["드시모네"]
+  };
   const KO_CAT    = { "오메가3": "omega3", "비타민C": "vitaminC", "눈": "eye", "유산균": "probiotics", "밀크씨슬": "milkthistle" };
   const CAT_LABEL = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈 건강(루테인)", probiotics: "유산균", milkthistle: "밀크씨슬" };
   const FOUR_CATS = "오메가3, 눈 건강(루테인), 유산균, 비타민C, 밀크씨슬";
@@ -500,6 +514,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
   }
 
   try {
+    const T0 = Date.now(); let tTables = 0, tClaude = 0;   // [v17.7] 구간 계측
     const demographics = parseDemographics(userText);  // [v15.5] 화자 발화 제외
 
     // ─── [0] 코드 게이트: 검색·모델 호출 전 차단 ────
@@ -691,6 +706,46 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       if (bestIdx >= 0) { matchedCategory = ALL_CATS[bestIdx]; hintDomain = null; }
       if (!matchedCategory) productLookupFailed = true;
     }
+
+    // ─── [2.6] 회사명 매칭 (v17.7) ────────────────────────────
+    // 별칭 사전에 있는 회사명이 질의에 보이면, 그 회사의 브랜드 토큰으로 카테고리별 실재를 센다.
+    // 2개 이상 카테고리에 제품이 있으면 코드가 즉답 Q(모델 호출 없음 — 결정적·즉시),
+    // 1개면 그 카테고리의 브랜드 흐름으로 직행, 0개면 기존 미발견 흐름 유지.
+    let companyName = null, aliasBrandTokens = [];
+    {
+      const qn = normEntity(query);
+      for (const comp in COMPANY_ALIASES) {
+        if (qn.indexOf(normEntity(comp)) !== -1) { companyName = comp; aliasBrandTokens = COMPANY_ALIASES[comp].map(normEntity); break; }
+      }
+    }
+    if (companyName && !matchedCategory) {
+      const idxLists2 = await Promise.all(ALL_CATS.map(loadIdx));
+      const catHits = [];
+      for (let i = 0; i < ALL_CATS.length; i++) {
+        let cnt = 0;
+        for (const r of idxLists2[i]) {
+          const nm = normEntity(getField(r.fields || {}, "제품명", "네이버_제품명", "name"));
+          if (nm && aliasBrandTokens.some(b => nm.indexOf(b) !== -1)) cnt++;
+        }
+        if (cnt > 0) catHits.push({ cat: ALL_CATS[i], count: cnt });
+      }
+      if (catHits.length >= 2) {
+        const labels = catHits.map(h => CAT_KO[h.cat]);
+        const main = catHits.slice().sort((a, b) => b.count - a.count)[0];
+        const bMain = COMPANY_ALIASES[companyName][0];
+        return respond(fixedPayload("Q",
+          `${companyName} 제품이 ${labels.join("과 ")}에 있어요. 고르시면 그 카테고리 기준으로 바로 봐드릴게요.`,
+          {
+            question: `${companyName}, 어느 쪽 제품을 보세요?`,
+            default_answer: `안 고르셔도 돼요 — 제품이 가장 많은 ${CAT_KO[main.cat]}부터 보여드릴게요.`,
+            chips: labels.concat(["잘 모르겠어요"]),
+            chips_prompts: catHits.map(h => `${bMain} ${CAT_KO[h.cat]} 보여줘`).concat([`${bMain} ${CAT_KO[main.cat]} 보여줘`])
+          }
+        ), { gate: "company", companyName, demographics });
+      }
+      if (catHits.length === 1) { matchedCategory = catHits[0].cat; hintDomain = null; productLookupFailed = false; }
+    }
+
     // [v15.9] 제품이 실제로 매칭됐으면 복수 카테고리가 아니다 — 제품명에 카테고리어가 2개 든
     // 복합제("닥터스베스트 루테인 오메가3")를 복수 질의로 오인하지 않도록 여기서 해제.
     if (matchedCategory && explicitMultiCats) explicitMultiCats = null;
@@ -708,11 +763,13 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     // 자유 질문의 제품명 감지를 위해 오메가3를 기본 로드(기존 동작 유지).
     const prodCat = (matchedCategory && QUALITY_CFG[matchedCategory]) ? matchedCategory : (!matchedCategory ? "omega3" : null);
     const prodTable = prodCat ? QUALITY_CFG[prodCat].table : null;
+    const _tT = Date.now();   // [v17.7]
     let [kRecords, fRecords, pRecords] = await Promise.all([
       safeGet(KNOW_TABLE),
       safeGet(FAQ_TABLE),
       prodTable ? safeGet(prodTable) : Promise.resolve([])
     ]);
+    tTables = Date.now() - _tT;   // [v17.7]
 
     let productMatchRecord = null;
     if (prodCat) {
@@ -780,7 +837,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     // 존재 여부를 모델 추측에 맡기면 미보유 화법이 오발되고 답이 맥락 따라 요동한다(드시모네 실측).
     let brandMatch = null;
     if (matchedCategory && pRecords && pRecords.length) {
-      const bTokens = makeBrandCands(query).filter(t => t.length >= 3);
+      const bTokens = [...new Set([...makeBrandCands(query).filter(t => t.length >= 3), ...aliasBrandTokens])];   // [v17.7] 회사 별칭 브랜드 포함
       for (const t of bTokens) {
         const hits = [];
         for (const r of pRecords) {
@@ -1071,7 +1128,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         const bids = new Set(brandMatch.records.map(r => String(getField(r.fields || {}, "product_id", "productId") || r.id)));
         const brandItems = items.filter(p => bids.has(String(p.product_id)))
           .sort((a, b) => (a.rank_quality || 9e9) - (b.rank_quality || 9e9));
-        for (const p of brandItems.slice(0, 3)) {
+        for (const p of brandItems.slice(0, 4)) {   // [v17.7] 3→4: 칩 상위 4 + 카드 상위 3
           if (!seen.has(p.product_id)) { seen.add(p.product_id); topProducts.push(p); }
         }
       }
@@ -1117,6 +1174,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 - B: positive + 한계 한 번. "드셔도 됩니다. 최고급은 아니지만 충분히 좋은 제품이에요."
 - C: conditional(무채색). "나쁘지 않아요"로 시작하되, 같은 값에 더 나은 선택이 있음을 말합니다. alternatives는 넣지 말고, chips에 "더 나은 대안 보기" 칩을 포함하세요.
 - D: negative. "솔직히 말씀드리면, 권하지 않아요." alternatives 필수.
+- 지목 평결의 alternatives는 D(부정)에만 담습니다. A~C에서는 alternatives를 비우세요 — 묻지 않은 다른 제품을 카드로 붙이면 광고처럼 읽힙니다. 다른 제품 제안은 칩("다른 ○○도 추천받기")으로만 합니다.
 
 ## 밀크씨슬 — 등급이 없는 카테고리
 밀크씨슬(실리마린)은 등급·품질점수를 매기지 않습니다. 제품 간 품질을 가릴 검증 축이 부족해 채점하지 않기로 한 것이고, 물으면 이 사실을 숨기지 않고 그대로 말합니다: "이 카테고리는 등급을 매기지 않아요. 등급을 줄 근거가 부족한데 주는 게 더 정직하지 않다고 봐서요."
@@ -1262,8 +1320,15 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       if (targetSegment) flagBlock += ` 이 제품은 '${targetSegment}' 대상 제품이며, [제품 데이터]의 대안도 모두 같은 '${targetSegment}' 대상입니다 — 대안을 권할 때 "같은 ${targetSegment} 유산균 중에서" 같은 표현으로 대상을 맞춰 안내하세요.`;
       if (brandMatch && brandMatch.count >= 2) flagBlock += ` 같은 브랜드 제품이 비교 목록에 총 ${brandMatch.count}개 있습니다 — 사용자가 다른 모델을 말하는 것 같으면 어느 제품인지 확인하세요.`;
     } else if (brandMatch) {
-      const bNames = brandMatch.records.slice(0, 3).map(r => getField(r.fields || {}, "제품명", "네이버_제품명", "name")).filter(Boolean);
-      flagBlock += `\n\n[브랜드 매칭] 사용자가 언급한 "${brandMatch.token}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다(예: ${bNames.join(" / ")}). 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요. 특정 제품은 지목되지 않았으므로: 이 브랜드를 비교하고 있다는 사실을 먼저 밝히고, [제품 데이터]에 있는 이 브랜드 제품의 수치로 답하거나, 어떤 제품인지 칩으로 하나만 되물으세요(Q — 칩에 위 제품명 2~3개 + "잘 모르겠어요"). 등급·수치는 [제품 데이터]에 있는 제품에 대해서만 말합니다. 추천 질의라면 [제품 데이터] 전체 기준으로 추천하되, 이 브랜드 제품의 순위·위치도 함께 짚어주세요.`;
+      // [v17.7] 목업 확정안: question 한 문장 + 브랜드 제품 칩(상위 4) + "잘 모르겠어요" + "전체 보기",
+      // default_answer는 정확히 한 문장(B안). 카드(alternatives)는 아래 백필이 브랜드 상위 3으로 채운다.
+      const _bids2 = new Set(brandMatch.records.map(r => String(getField(r.fields || {}, "product_id", "productId") || r.id)));
+      const brandCtx = productContext.filter(p => _bids2.has(String(p.product_id))).sort((a, b) => (a.rank_quality || 9e9) - (b.rank_quality || 9e9));
+      const chipNames = (brandCtx.length ? brandCtx.map(p => p.name) : brandMatch.records.map(r => getField(r.fields || {}, "제품명", "네이버_제품명", "name"))).filter(Boolean).slice(0, 4);
+      const top1 = chipNames[0] || brandMatch.token;
+      const catKo2 = matchedCategory ? CAT_KO[matchedCategory] : "";
+      const shownBrand = companyName ? `${companyName}(${brandMatch.token})` : brandMatch.token;
+      flagBlock += `\n\n[브랜드 매칭] "${shownBrand}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다. 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요 — 존재 여부는 이 플래그가 확정합니다. 특정 제품이 지목되지 않았으므로 Q로 답하세요. question은 "${brandMatch.token}, 어떤 제품이 궁금하세요?" 한 문장. body는 1~2문장(이 브랜드 ${brandMatch.count}개 제품을 비교 중이라는 사실만 — 라벨이나 보장균수를 알려달라고 하지 마세요). chips는 순서대로: ①브랜드 제품명 상위 ${chipNames.length}개 — ${chipNames.join(" / ")} ②"잘 모르겠어요" ③"${brandMatch.token} 전체 보기 (${brandMatch.count}개)". ③의 chips_prompts는 정확히 go:/app.html?category=${catKo2}&q=${brandMatch.token} 로 쓰세요. ①의 chips_prompts는 "해당 제품명 + 평가해줘", ②는 "${brandMatch.token} 중에 추천해줘". default_answer는 정확히 다음 한 문장만: "안 고르셔도 돼요 — ${brandMatch.token} 중 성분 우선 1위인 ${top1} 기준으로 봐드릴게요." 두 번째 문장을 붙이지 마세요. 사용자가 추천을 요청한 질의라면 Q 대신 V로 이 브랜드 제품 중에서 추천하세요. 등급·수치는 [제품 데이터]에 있는 제품만 말합니다.`;
     } else if (productContext.length) {
       flagBlock += `\n\n[비지목] 사용자는 특정 제품을 언급하지 않았습니다. [제품 데이터]의 후보 중 하나를 골라 "이 제품은 권하지 않아요" 식의 단수 평결을 하지 마세요 — 추천 질의에는 추천(성분 우선 상위)으로 답합니다. 후보군에 사용자 상황과 안 맞는 제품(예: 어린이용)이 섞여 있어도 그것을 평결 대상으로 삼지 말고 조용히 제외하세요.`;
       // [v15.8] 명시적 수유/임신으로 여성 세그먼트가 걸렸을 때(제품 미지목) 프레이밍.
@@ -1310,6 +1375,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
       : "https://api.anthropic.com";
     const DIRECT_BASE = "https://api.anthropic.com";
+    const _tC = Date.now();   // [v17.7] 모델 호출 구간 계측 시작
     const reqBody = JSON.stringify({
       model: "claude-sonnet-4-6", max_tokens: 1200,
       // 프롬프트 캐싱: 시스템 프롬프트(페르소나·5정책·산식 설명, ~2,800토큰)는 매 호출 100% 동일하다.
@@ -1374,6 +1440,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       return respond(fixedPayload("X", "잠시 연결이 원활하지 않아요. 조금 뒤에 다시 물어봐 주세요."), { error: "upstream", status: resp ? resp.status : 0 });
     }
     const data = await resp.json();
+    tClaude = Date.now() - _tC;   // [v17.7]
     const rawText = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
 
   // ─── [C가드] 화자 발화 규칙 기계 검출 ────────────────
@@ -1545,9 +1612,12 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       //         (유산균은 화자가 채우고 눈은 비우던 재량 편차를 서버 규칙으로 고정)
       if ((payload.policy === "V" && (payload.verdict_tone === "positive" || payload.verdict_tone === "conditional") || payload.policy === "Q") && !productMatchRecord && cfg2 && productContext.length && payload.alternatives.length < 3) {
         const axKey = (forcedAxis || AXIS_KEYWORDS[0]);
+        // [v17.7] 브랜드 흐름(비지목)에서는 카드도 그 브랜드 제품만 — 타사 카드가 광고처럼 읽힘(실측).
+        const _bset = brandMatch ? new Set(brandMatch.records.map(r => String(getField(r.fields || {}, "product_id", "productId") || r.id))) : null;
+        if (_bset) payload.alternatives = payload.alternatives.filter(a => _bset.has(String(a.product_id)));
         const wasEmpty = payload.alternatives.length === 0;
         const have = new Set(payload.alternatives.map(a => String(a.product_id)));
-        const fill = productContext
+        const fill = (_bset ? productContext.filter(p => _bset.has(String(p.product_id))) : productContext)
           .filter(p => p[axKey.axis] != null && !have.has(String(p.product_id)))
           .sort((a, b) => a[axKey.axis] - b[axKey.axis]);
         for (const p of fill) {
@@ -1555,7 +1625,9 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
           payload.alternatives.push({ product_id: p.product_id, name: p.name, reason: buildReason(p) });
         }
         if (!payload.alternatives_note && wasEmpty && payload.alternatives.length) {
-          payload.alternatives_note = cfg2.unscored
+          payload.alternatives_note = _bset
+            ? `${brandMatch.token} · ${axKey.label} 상위 ${payload.alternatives.length}개`
+            : cfg2.unscored
             ? `함량 표기 우선 · 가성비 상위 ${payload.alternatives.length}개`   // [v15.23] 무채점: 축 라벨이 거짓이 되므로 실제 기준으로
             : (payload.policy === "Q" ? `고르지 않아도 볼 수 있어요 · ${axKey.label} 상위 ${payload.alternatives.length}개` : `${axKey.label} 상위 ${payload.alternatives.length}개`);
         }
@@ -1565,6 +1637,25 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         payload.policy = "V"; payload.verdict_tone = payload.verdict_tone || "none";
         if (payload.default_answer && !payload.body) payload.body = payload.default_answer;
         payload.question = null; payload.default_answer = null;
+      }
+
+      // [v17.7] 지목 평결(긍정·조건부)에는 대안 카드를 붙이지 않는다 — 평결 직후 타사 카드가
+      // 광고처럼 읽힘(실측 피드백). 부정(D)만 "반드시 대안으로 끝낸다" 원칙 유지. 다른 제품 제안은
+      // 긍정 평결에서 칩으로 대체하고, 조건부(C)는 화자의 "더 나은 대안 보기" 칩 규칙을 그대로 둔다.
+      if (productMatchRecord && payload.policy === "V" && payload.verdict_tone !== "negative") {
+        payload.alternatives = [];
+        payload.alternatives_note = null;
+        if (payload.verdict_tone === "positive") {
+          const catLabel2 = (matchedCategory && CAT_KO[matchedCategory]) ? CAT_KO[matchedCategory] : "제품";
+          const suggChip = brandMatch ? `${brandMatch.token} 외 다른 ${catLabel2}도 추천받기` : `다른 ${catLabel2}도 추천받기`;
+          const suggPrompt = `${brandMatch ? brandMatch.token + " 말고 " : ""}다른 ${catLabel2} 추천해줘`;
+          if (!Array.isArray(payload.chips)) payload.chips = [];
+          if (!Array.isArray(payload.chips_prompts)) payload.chips_prompts = [];
+          if (payload.chips.length === payload.chips_prompts.length && !payload.chips.some(c => String(c).indexOf("추천받기") !== -1)) {
+            payload.chips.unshift(suggChip);
+            payload.chips_prompts.unshift(suggPrompt);
+          }
+        }
       }
 
       // [v15.17] 내부 필드명 스크러빙 — LLM이 "가성비 기준(rank_value) 상위 3개"처럼 스키마
@@ -1671,7 +1762,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       matchedCategory, hintDomain, productLookupFailed, targetSegment, explicitMultiCats,
       brandMatch: brandMatch ? { token: brandMatch.token, count: brandMatch.count } : null,
       forcedAxis: forcedAxis ? forcedAxis.axis : null, doseIntent,
-      askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback, repaired: !!payload.contract_repaired
+      askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback, repaired: !!payload.contract_repaired,
+      timing: { tables_ms: tTables, claude_ms: tClaude, total_ms: Date.now() - T0 }   // [v17.7] 10초 병목 확인용
     };
     return respond(payload, meta);
 
