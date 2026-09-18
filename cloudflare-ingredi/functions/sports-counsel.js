@@ -1,3 +1,4 @@
+// functions/sports-counsel.js  v2.0  (2026-09-18)
 // functions/sports-counsel.js  (v1.0 — 층 1: 지식 응답 전용)
 // URL: POST /sports-counsel   body: { message, history?: [{role,content}], weight?: number }
 //
@@ -152,6 +153,7 @@ const SYSTEM_PROMPT = `당신은 ingredi의 스포츠 뉴트리션 AI 상담입�
 {"policy":"V|Q|W|M|X","reply":"응답 본문","chips":[{"label":"칩 문구","action":"sports:카테고리명 또는 ask:후속질문"}]}
 - policy: V=정보 응답, Q=되물음, W=경고 동반, M=의료 이관, X=범위 밖
 - chips는 0~3개. 카테고리 이동은 action "sports:단백질|크레아틴|아미노산|부스터|카르니틴" 형식.
+- 되묻기(Q)는 대화당 한 번만. 사용자가 목적(다이어트·근육 증가 등)이나 유형을 한 번이라도 말했으면 다시 묻지 말고, 그 정보로 바로 답하고 카테고리 이동 칩을 준다. Q일 때도 칩에 "지금 OO 보러가기"(action sports:카테고리)를 반드시 하나 넣는다.
 - JSON 외의 텍스트를 출력하지 않는다.`;
 
 // ─────────────────────────────────────────────────────────────
@@ -416,6 +418,16 @@ async function handle(context, headers) {
     if (POLICIES.indexOf(out.policy) === -1) out.policy = "V";
     if (!Array.isArray(out.chips)) out.chips = [];
     out.chips = out.chips.slice(0, 3).filter(c => c && typeof c.label === "string");
+    // [v2.0] 되묻기는 대화당 1회 — 직전 화자 턴이 Q였으면 강제로 V. 그리고 카테고리가 드러난 대화엔 "지금 OO 보러가기" 칩을 서버가 보장한다.
+    const prevAssistant = (messages || []).filter(m => m.role === "assistant").map(m => String(m.content || ""));
+    const askedBefore = prevAssistant.length > 0 && /\?\s*$|①|어떤 목적|여쭤볼게요|알려주시면/.test(prevAssistant[prevAssistant.length - 1]);
+    if (out.policy === "Q" && askedBefore) out.policy = "V";
+    const allText = (messages || []).filter(m => m.role === "user").map(m => String(m.content || "")).join(" ");
+    const CAT_RE = [["단백질", /단백질|프로틴|웨이|게이너|protein/i], ["크레아틴", /크레아틴|creatine/i], ["아미노산", /eaa|bcaa|hmb|글루타민|아미노산/i], ["부스터", /부스터|프리\s*워크|카페인|베타알라닌|시트룰린|아르기닌/i], ["카르니틴", /카르니틴/i]];
+    const cat = (CAT_RE.find(([, re]) => re.test(allText)) || [])[0];
+    if (cat && !out.chips.some(c => String(c.action || "").indexOf("sports:") === 0)) {
+      out.chips = out.chips.slice(0, 2); out.chips.push({ label: `지금 ${cat} 보러가기`, action: `sports:${cat}` });
+    }
 
     return new Response(JSON.stringify({ ok: true, source: "llm", policy: out.policy, reply: out.reply, chips: out.chips }), { headers });
   } catch (e) {
