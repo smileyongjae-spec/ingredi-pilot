@@ -1,4 +1,4 @@
-// functions/recommend2.js  v8.3  (2026-09-18)
+// functions/recommend2.js  v8.4  (2026-09-18)
 // Cloudflare Pages Function: Unified category recommendation (v7.3)
 // [v6] 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다. 없으면 null.
 // [v7] 품질점수(quality)·절대등급(qualityGrade)·가성비 경계(isPareto)를 서버에서 계산한다.
@@ -361,21 +361,30 @@ export async function onRequest(context) {
       reviewError = rres.err;
     } else {
       const rmap = {};
+  // [v8.4] Airtable 컬럼명에 BOM·제로폭 공백(\u200b)·NBSP가 섞여 들어오는 경우가 있어(CSV 업로드 산물),
+  //        정규화 키로도 찾는다. 2026-09-18 리뷰 결합 0건의 원인이 리뷰 테이블 product_id 컬럼의 보이지 않는 문자였다.
+  const rNormKey = k => String(k).replace(/[\uFEFF\u200B-\u200D\u00A0]/g, "").trim().toLowerCase();
+  function rget(f, ...names) {
+    for (const n of names) { const v = f[n]; if (v !== undefined && v !== null && v !== "") return v; }
+    const map = {}; for (const k in f) map[rNormKey(k)] = f[k];
+    for (const n of names) { const v = map[rNormKey(n)]; if (v !== undefined && v !== null && v !== "") return v; }
+    return "";
+  }
       for (const r of rres.rv) {
         const f = r.fields || {};
-        const pid = readProductId(f, "");
+        const pid = String(rget(f, "product_id", "productId") || readProductId(f, "")).trim();
         if (!pid) continue;
         // [v8.3] 2026-09-18 리뷰 테이블(24열 공통): 비율 good/caution_score_N, 설명 *_text_N, 근거 수준 review_evidence_level(매우 높음/높음/보통), 종합 review_insight_score, 표시 review_count_display("리뷰 인사이트 · 전체 N건")
-        const rate = (k) => num(f[k + "_rate_pct"]) || num(f[k.replace(/_(\d)$/, "_rate_$1_pct")]) || num(f[k.replace(/_(\d)$/, "_score_$1")]);
-        const mk = (k) => str(f[k]).trim() ? { label: str(f[k]).trim(), score: rate(k.replace("_label_", "_")), text: str(f[k.replace("_label_", "_text_")]).trim() || null } : null;
+        const rate = (k) => num(rget(f, k + "_rate_pct")) || num(rget(f, k.replace(/_(\d)$/, "_rate_$1_pct"))) || num(rget(f, k.replace(/_(\d)$/, "_score_$1")));
+        const mk = (k) => str(rget(f, k)).trim() ? { label: str(rget(f, k)).trim(), score: rate(k.replace("_label_", "_")), text: str(rget(f, k.replace("_label_", "_text_"))).trim() || null } : null;
         const good = [mk("good_label_1"), mk("good_label_2")].filter(Boolean);
         const caution = [mk("caution_label_1"), mk("caution_label_2")].filter(Boolean);
         // 포장·배송 라벨은 제품 평가가 아니라 물류 평가 — 다른 라벨이 있으면 뒤로(카드는 앞 2개만 보여줌)
         const isLogi = x => /포장|배송/.test(x.label);
         good.sort((a, b) => (isLogi(a) - isLogi(b)));
-        const totalM = str(f.review_count_display).match(/([\d,]+)\s*건/); const total = totalM ? num(totalM[1].replace(/,/g, "")) : null;
-        rmap[pid] = { good, caution, evidence: (str(f.review_evidence_level).trim() || str(f.evidence_level).trim()) || null,   // [v8.3] 09.18 컬럼명 review_evidence_level insightScore: num(f.review_insight_score) || null, countDisplay: str(f.review_count_display).trim() || null,
-                      total, labeled: num(f.review_count_labeled) || null };
+        const totalM = str(rget(f, "review_count_display")).match(/([\d,]+)\s*건/); const total = totalM ? num(totalM[1].replace(/,/g, "")) : null;
+        rmap[pid] = { good, caution, evidence: str(rget(f, "review_evidence_level", "evidence_level")).trim() || null,   // [v8.3] 09.18 컬럼명 review_evidence_level insightScore: num(rget(f, "review_insight_score")) || null, countDisplay: str(rget(f, "review_count_display")).trim() || null,
+                      total, labeled: num(rget(f, "review_count_labeled")) || null };
       }
       for (const it of items) {
         const rvd = rmap[String(it.id).trim()];
