@@ -1,3 +1,4 @@
+// functions/sports-api.js  v2.2  (2026-09-18)
 // Cloudflare Pages Function: 운동 보충제 추천 (v2.0 — 2026-09-14 기준표 v2.1 전면 반영)
 //   단백질 core = 1회 단백질 g ÷ 25g(순도는 원료 등급 축) · 원료 등급 첫 표기 기준(WPI=WPH 100/MPI 85/ISP 75/WPC 60/미기재 30)
 //   인증 종류별 가산(도핑 검사 40·3rd party 25·GMP 20·FSMS 15·HACCP 10, 배합 속성 0) · 원료 브랜드 축 0.1
@@ -35,8 +36,8 @@ const DEFAULT_WEIGHT = 70;
 const CATEGORIES = {
   "단백질":   { label: "단백질",   subs: ["웨이프로틴", "웨이트게이너"] },
   "크레아틴": { label: "크레아틴", subs: ["크레아틴"] },
-  "아미노산": { label: "아미노산", subs: ["EAA", "HMB", "BCAA", "글루타민"] },
-  "부스터":   { label: "부스터",   subs: ["부스터", "시트룰린", "베타알라닌"] },   // [v2.0] 통합 채점 + 신설 2유형
+  "아미노산": { label: "아미노산", subs: ["EAA", "베타알라닌", "HMB", "BCAA", "글루타민", "시트룰린"] },   // [v2.2] 단일 아미노산 계열 통합(근거 강한 순). 베타알라닌·아르기닌·시트룰린은 부스터에서 이동
+  "부스터":   { label: "부스터",   subs: ["부스터"] },   // [v2.2] 프리워크아웃 혼합 제품 유형 하나 — 카페인 기준
   "카르니틴": { label: "카르니틴", subs: ["카르니틴"] }
 };
 
@@ -119,8 +120,8 @@ const TYPES = {
   // [v2.0] 부스터 통합 — 표방 성분(카페인·시트룰린·베타알라닌) core의 평균. 카페인 유무 2분 폐지.
   "부스터": {
     tier: "issn", label: "부스터",
-    anchorLabel: "카페인 체중×3mg · 시트룰린 3,000mg · 베타알라닌 1,600mg(1회)",
-    note: "표방한 근거 성분마다 ISSN 앵커로 재고 평균합니다. 카페인 3~6mg/kg, 시트룰린 3~6g, 베타알라닌 급성 1.6~3.2g. 아르기닌·타우린만 든 제품은 근거 성분이 없어 등급을 매기지 않습니다.",
+    anchorLabel: "카페인 체중×3mg (시트룰린 3,000mg · 베타알라닌 1,600mg 병기 시 평균)",
+    note: "카페인 함량이 기준입니다 — ISSN 권장 체중 1kg당 3~6mg. 시트룰린·베타알라닌이 유효량으로 들어 있으면 함께 평균합니다. 카페인이 없는 부스터(아르기닌·타우린 기반)는 근거가 없어 등급을 매기지 않아요.",
     multi: (w) => [
       { key: "카페인",   field: "카페인_mg",                       anchor: Math.round(w * 3), min: Math.round(w * 1.5) },
       { key: "시트룰린", field: "L시트룰린_mg (수박과피추출물)",     anchor: 3000,              min: 1500 },
@@ -278,7 +279,7 @@ export async function onRequest(context) {
     return null;
   }
 
-  const anchor = t.anchor ? t.anchor(weight) : null;
+  const anchor = t.anchor ? t.anchor(weight) : (t.multi ? t.multi(weight)[0].anchor : null);   // [v2.2] 부스터: 카페인 앵커(체중 반영)를 대표값으로 — "기준 함량 0mg" 표시 버그 수정
   const items = [];
 
   for (const r of records) {
@@ -327,7 +328,7 @@ export async function onRequest(context) {
           core = cl.reduce((a, c) => a + c.core, 0) / cl.length;
           const main = cl.slice().sort((a, b) => b.core - a.core)[0];
           primary = { v: Math.round(main.v), unit: "mg", label: main.key }; claimed = cl.map(c => c.key);
-        } else { holdReason = "근거 성분 없음"; primary = { v: null, unit: "mg", label: t.label }; }
+        } else { holdReason = "카페인 없음"; primary = { v: null, unit: "mg", label: "카페인" }; }   // [v2.2] 사용자에게 읽히는 사유로
       } else {
         const raw = t.core(f, N);
         if (raw == null || !(raw > 0)) { holdReason = "함량 미표기"; primary = { v: null, unit: t.unit || "mg", label: t.label }; }
