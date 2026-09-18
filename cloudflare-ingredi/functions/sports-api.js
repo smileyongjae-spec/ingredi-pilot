@@ -1,4 +1,4 @@
-// functions/sports-api.js  v2.2  (2026-09-18)
+// functions/sports-api.js  v2.4  (2026-09-18)
 // Cloudflare Pages Function: 운동 보충제 추천 (v2.0 — 2026-09-14 기준표 v2.1 전면 반영)
 //   단백질 core = 1회 단백질 g ÷ 25g(순도는 원료 등급 축) · 원료 등급 첫 표기 기준(WPI=WPH 100/MPI 85/ISP 75/WPC 60/미기재 30)
 //   인증 종류별 가산(도핑 검사 40·3rd party 25·GMP 20·FSMS 15·HACCP 10, 배합 속성 0) · 원료 브랜드 축 0.1
@@ -254,9 +254,14 @@ export async function onRequest(context) {
   }
 
   let records;
+  // [v2.3] 리뷰 인사이트(헬스제품_리뷰인사이트) 병렬 로드 — 실패해도 목록은 나간다
+  const reviewPromise = TABLES["리뷰"] && TABLES["리뷰"]["스포츠"]
+    ? getRecords(env, TABLES["리뷰"]["스포츠"], { ctx: context }).then(rv => ({ ok: true, rv })).catch(e => ({ ok: false, err: String(e && e.message || e).slice(0, 200) }))
+    : Promise.resolve({ ok: true, rv: [] });
   try {
     records = await getRecords(env, TABLE, { ctx: context });
   } catch (e) {
+    try { context.waitUntil(reviewPromise.catch(function () {})); } catch (_) {}
     return new Response(JSON.stringify({ error: "airtable_error", message: e.message }), { status: 500, headers });
   }
 
@@ -300,7 +305,8 @@ export async function onRequest(context) {
       isAffiliate: !!deeplink,
       price: N(f["가격_원"]) || N(f["쿠팡가격"]),   // [v1.1] 09.04 테이블은 가격_원 없이 쿠팡가격만 있음 → 비교표 가격이 전부 "—"였던 원인
       dailyCost: dailyCost(f),
-      reviewCount: N(f["리뷰수"]) || 0,
+      reviewCount: N(f["네이버_리뷰수"]) || N(f["리뷰수"]) || N(f["쿠팡_리뷰수"]) || 0,   // [v2.4] 네이버 → 구분없음 → 쿠팡
+      reviewSource: N(f["네이버_리뷰수"]) ? "naver" : (N(f["리뷰수"]) ? "unknown" : (N(f["쿠팡_리뷰수"]) ? "coupang" : null)),
       form: S(f["제형"]),
       supplier: S(f["원료사"]),
       certs: S(f["인증"]),
@@ -386,6 +392,25 @@ export async function onRequest(context) {
   const scored = items.filter(x => x.quality != null);
   const rest = items.filter(x => x.quality == null);
 
+  // [v2.3] 리뷰 인사이트 조인 (recommend2 v8.2와 같은 형태: {good:[{label,score,text}], caution:[...], evidence})
+  const rres = await reviewPromise;
+  let reviewMatched = 0;
+  if (rres.ok && rres.rv.length) {
+    const rmap = {};
+    for (const r of rres.rv) {
+      const f = r.fields || {};
+      const pid = S(f["product_id"]); if (!pid) continue;
+      const rate = (k) => N(f[k.replace(/_(\d)$/, "_rate_$1_pct")]) || N(f[k.replace(/_(\d)$/, "_score_$1")]);
+      const mk = (k) => S(f[k]) ? { label: S(f[k]), score: rate(k.replace("_label_", "_")), text: S(f[k.replace("_label_", "_text_")]) || null } : null;
+      const good = [mk("good_label_1"), mk("good_label_2")].filter(Boolean);
+      const caution = [mk("caution_label_1"), mk("caution_label_2")].filter(Boolean);
+      const isLogi = x => /포장|배송/.test(x.label);
+      good.sort((a, b) => (isLogi(a) - isLogi(b)));
+      const totalM = S(f["review_count_display"]).match(/([\d,]+)\s*건/);
+      rmap[pid] = { good, caution, evidence: S(f["evidence_level"]) || null, total: totalM ? N(totalM[1].replace(/,/g, "")) : null, labeled: N(f["review_count_labeled"]) || null };
+    }
+    for (const it of items) { const rv = rmap[String(it.id || "").trim()]; if (rv && (rv.good.length || rv.caution.length)) { it.reviews = rv; reviewMatched++; if (rv.total > 0) { it.reviewCount = rv.total; it.reviewSource = "naver"; it.reviewLabeled = rv.labeled || null; } } }   // [v2.4] 요약 있으면 리뷰 수도 네이버 전체 건수
+  }
   let list;
   if (t.tier === "none") {
     const has = items.filter(x => x.primary && x.primary.v != null);
@@ -429,6 +454,7 @@ export async function onRequest(context) {
       cost: dist(list.map(x => x.dailyCost))
     },
     products: list,
+    reviewsReady: !!(rres && rres.ok), reviewMatched,   // [v2.3]
     disclaimer: "본 평가는 국제스포츠영양학회(ISSN) 포지션 스탠드와 공개된 제품 데이터를 기준으로 한 지표입니다. 대부분 일반식품이며, 일부 제품은 식약처 기능성 인정을 별도로 받아 카드에 표시됩니다. 개인의 건강 상태·약물·알레르기에 따라 최적 제품은 다를 수 있습니다."
   }), { status: 200, headers });
 }
