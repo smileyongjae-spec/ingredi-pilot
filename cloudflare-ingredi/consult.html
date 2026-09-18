@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- consult.html  v3.3  (2026-09-18) -->
+<!-- consult.html  v3.4  (2026-09-18) -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -118,6 +118,8 @@
     .mp-actions a { flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; padding: 9px 6px; border-radius: 9px; text-decoration: none; border: 1px solid var(--line); color: var(--green-deep); background: var(--surface); }
     .mp-actions a.buy { background: var(--green-primary); color: var(--surface); border-color: var(--green-primary); }
     .mp-note { font-size: 11.5px; color: var(--ink-soft); margin-top: 8px; }
+    .voice-link { color: var(--green-primary); font-weight: 700; text-decoration: none; border-bottom: 1px solid rgba(45,95,63,0.3); }
+    .voice-link:active { opacity: 0.6; }
     .exit-link { display: inline-block; margin-top: 12px; font-size: 12.5px; font-weight: 700; color: var(--green-deep); text-decoration: none; }
     .exit-link::after { content: " →"; }
     .alt-info { min-width: 0; }
@@ -308,6 +310,12 @@ function esc(s) {
 function voiceHtml(s) {
   var t = esc(s);
   t = t.replace(/(\d[\d,\.]*\s?(?:mg|g|억|만|원|%|IU|CFU|개|알|정|캡슐)|상위\s?\d+%|하위\s?\d+%|\d+위)/g, '<span class="num">$1</span>');
+  // [v3.4] 답변 본문의 ingredi 주소·이메일을 누를 수 있는 링크로. 사용자가 URL을 복사해 붙여넣지 않아도 되게.
+  t = t.replace(/(^|[\s(])((?:https?:\/\/)?ingredi\.kr(?:\/[\w\-./?%&=]*)?)/g, function (m, pre, url) {
+    var href = url.indexOf('http') === 0 ? url : 'https://' + url;
+    return pre + '<a class="voice-link" href="' + href + '">' + url + '</a>';
+  });
+  t = t.replace(/([\w.+-]+@ingredi\.kr)/g, '<a class="voice-link" href="mailto:$1">$1</a>');
   return t;
 }
 function el(tag, cls, html) {
