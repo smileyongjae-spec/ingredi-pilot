@@ -1,3 +1,11 @@
+// functions/counsel2.js  v17.9  (2026-09-19)
+// [v17.9 — 인덱스 422 사고 수리 (v17.8 진단 실측 확정)]
+//   - 원인: 9/11 테이블 교체 후 유산균·눈·비타민C 테이블에 "product_id" 필드명이,
+//     밀크씨슬에 "네이버_제품명"이 없음 → 인덱스의 필드 축소 요청이 422 → safeGet이 삼켜 4개 카테고리 인덱스 0건.
+//     (오메가3만 필드명이 일치해 104건 정상 — 그래서 오메가3 브랜드만 찾아졌음)
+//   - 수리: ① 인덱스는 제품명 계열만 요청(product_id는 이름 매칭에 불필요 — 애초에 안 씀)
+//           ② 제품명 필드도 카테고리 지정 → 제품명 → 네이버_제품명 순으로 시도, 전부 실패하면
+//              전체 필드(무축소, 메인 캐시 재사용)로 폴백 — "축소는 최적화, 실패해도 죽지 않는다"를 구조로 고정.
 // functions/counsel2.js  v17.8  (2026-09-19)
 // [v17.8 — 인덱스 실패 진단: safeGet이 삼키던 에러를 debug로 노출]
 //   - 실측(디버그 응답): v17.7 서빙 중인데 5개 카테고리 인덱스 조회가 전부 빈손(productLookupFailed).
@@ -681,10 +689,18 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     }
     const ALL_CATS = ["omega3", "eye", "probiotics", "vitaminC", "milkthistle"];
     async function loadIdx(cat) {
-      // [v15.23] 밀크씨슬 테이블은 제품명 컬럼이 네이버_제품명 — 존재하지 않는 필드를 fields에
-      // 넣으면 Airtable이 422를 내므로(→ safeGet이 삼켜 인덱스가 조용히 비는 사고) 카테고리별로 지정.
-      const nameField = QUALITY_CFG[cat].nameField || "제품명";
-      return safeGet(QUALITY_CFG[cat].table, { variant: "idx", fields: [nameField, "product_id"] });
+      // [v17.9] 인덱스는 이름 매칭 전용 — product_id는 쓰지 않으므로 요청하지 않는다(422 원천 제거).
+      // 이름 필드는 카테고리 지정값 → 제품명 → 네이버_제품명 순으로 시도하고(테이블 교체로 필드명이
+      // 바뀌어도 다음 후보가 받는다), 전부 빈손이면 전체 필드(무축소 = 메인 캐시 키 재사용)로 폴백.
+      // 축소는 최적화일 뿐이며, 실패가 조용히 0건이 되던 v15.23계 사고를 구조적으로 차단한다.
+      const prefer = QUALITY_CFG[cat].nameField || "제품명";
+      const tried = new Set();
+      for (const nf of [prefer, "제품명", "네이버_제품명"]) {
+        if (tried.has(nf)) continue; tried.add(nf);
+        const slim = await safeGet(QUALITY_CFG[cat].table, { variant: "idx-" + nf, fields: [nf] });
+        if (slim.length) return slim;
+      }
+      return safeGet(QUALITY_CFG[cat].table, {});
     }
     // 크로스 매칭 검증: 찾은 제품명에 브랜드 토큰이 2개 이상 또는 합계 5자 이상 들어가야 확정.
     // (토큰 1개·짧은 우연 일치로 카테고리를 갈아타는 오전환 방지)
