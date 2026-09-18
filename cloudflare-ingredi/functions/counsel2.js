@@ -1,4 +1,5 @@
-// functions/counsel2.js  [v16.5 — 미보유 제품 지목 시 화법 규칙]
+// functions/counsel2.js  [v16.6 — 제품명 탐지: 고유 브랜드 단일 토큰 확정 · 대상어(임산부 등) 브랜드 배제]
+// [v16.5 — 미보유 제품 지목 시 화법 규칙]
 // [v16.4 — meta.matchedProduct: 지목 제품 카드 데이터(이미지·링크·가격·등급) 응답]
 // [v16.3 — knowledge 중복 문서 제거 안전망 · 반려동물 안내 규칙]
 // [v16.2 — 옛 산식 정의(QUALITY_CFG.calc·qualityFor·scoresOf·gradeFromQuality) 삭제: 규칙 모듈이 유일한 출처]
@@ -123,6 +124,14 @@ export async function onRequest(context) {
     probiotics: ["프로바이오틱스", "프리바이오틱스", "신바이오틱스", "포스트바이오틱스", "유산균", "윤산균", "장건강", "probiotics", "마이크로바이옴", "유익균", "비피더스", "락토바실러스", "비피도박테리움", "lactobacillus", "bifidobacterium", "보장균수", "cfu"],
     milkthistle: ["밀크씨슬", "밀크시슬", "밀크 씨슬", "밀크 시슬", "실리마린", "silymarin", "milk thistle", "milkthistle", "카르두스"]
   };
+  // [v16.6] 브랜드 → 카테고리 힌트. 라우팅(catFrom)에만 쓰고 제품명 탐지의 카테고리어(isCategoryWord)에는 넣지 않는다 —
+  //         넣으면 "락티젠"처럼 DB에 있는 브랜드까지 브랜드 토큰에서 빠져 제품 매칭이 죽는다(재점검에서 실측).
+  const BRAND_CATEGORY_HINTS = {
+    probiotics: ["락토핏", "듀오락", "비오비타", "자도필러스", "컬처렐", "메디락", "바이오가이아", "지큐랩"],
+    omega3:     ["프로메가", "노르딕내추럴", "nordic naturals", "세노비스 오메가"],
+    vitaminC:   ["고려은단 비타민", "레모나"],
+    eye:        ["아이클리어", "루테인골드"]
+  };
   const CAT_KO    = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈", probiotics: "유산균", milkthistle: "밀크씨슬" };
   const KO_CAT    = { "오메가3": "omega3", "비타민C": "vitaminC", "눈": "eye", "유산균": "probiotics", "밀크씨슬": "milkthistle" };
   const CAT_LABEL = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈 건강(루테인)", probiotics: "유산균", milkthistle: "밀크씨슬" };
@@ -169,7 +178,7 @@ export async function onRequest(context) {
   const GENERIC_TERMS = ["영양제", "건강기능식품", "건기식", "보충제", "서플리먼트", "supplement", "뭐 먹", "무엇을 먹", "뭘 먹", "뭐가 좋", "뭐 사"];
   // 제품명 직접 조회 발동 시, 브랜드성 토큰이 아닌 것(도메인·증상·범용어)을 배제하는 목록.
   // 정규화(소문자·공백제거)된 토큰과 정확히 일치할 때만 제외 — 조사 붙은 형태는 실재 매칭(bestLen>=3)이 거른다.
-  const NON_BRAND_RE = /^(다이어트|체중|체지방|수면|불면|숙면|멜라토닌|관절|무릎|연골|피부|여드름|뾰루지|주름|기미|콜라겐|미백|뼈|골다공증|골밀도|칼슘|혈압|기억력|인지|집중력|치매|두뇌|면역|피로|활력|컨디션|무기력|간|숙취|커큐민|강황|울금|글루타치온|추천|추천해줘|좋은|좋아|좋을까|괜찮|괜찮아|어때|어떤|알려|알려줘|먹어|먹으면|복용|영양제|건강기능식품|건기식|보충제|제품|성분|효능|효과|뭐가|뭐|뭘|무엇|무슨|어느|나아|나은|낫|골라|골라줘|추천좀|눈영양제)$/;
+  const NON_BRAND_RE = /^(임산부|임신|임신부|수유|수유부|산모|어린이|아이|아동|유아|청소년|성인|남성|여성|남자|여자|노인|어르신|시니어|중학생|고등학생|초등학생|용량|함량|하루|매일|아침|저녁|식후|식전|공복|다이어트|체중|체지방|수면|불면|숙면|멜라토닌|관절|무릎|연골|피부|여드름|뾰루지|주름|기미|콜라겐|미백|뼈|골다공증|골밀도|칼슘|혈압|기억력|인지|집중력|치매|두뇌|면역|피로|활력|컨디션|무기력|간|숙취|커큐민|강황|울금|글루타치온|추천|추천해줘|좋은|좋아|좋을까|괜찮|괜찮아|어때|어떤|알려|알려줘|먹어|먹으면|복용|영양제|건강기능식품|건기식|보충제|제품|성분|효능|효과|뭐가|뭐|뭘|무엇|무슨|어느|나아|나은|낫|골라|골라줘|추천좀|눈영양제)$/;
   // [v15.8] 안전 프로필 감지.
   //  - SAFETY_PROFILE_RE: "아기엄마" 등 출산/육아 정황 → 되묻지 말고 추천+경고+칩 제안(세그먼트는 안 걸음).
   //  - EXPLICIT_MATERNAL_RE: 사용자가 직접 수유/임신을 밝힘(칩 클릭 포함) → 유산균은 여성 세그먼트로 재추천.
@@ -336,7 +345,15 @@ export async function onRequest(context) {
     }
     return false;
   }
+  // [v16.6] "네이처셋오메가3"·"락티젠유산균"처럼 브랜드와 카테고리어를 붙여 쓴 질의는 카테고리어 앞에서 띄어 브랜드 토큰을 살린다
+  const SPLIT_WORDS = ["오메가3", "오메가", "유산균", "프로바이오틱스", "비타민c", "비타민씨", "루테인", "지아잔틴", "아스타잔틴", "밀크씨슬", "밀크시슬", "실리마린", "알티지"];
+  function splitBrandCat(q) {
+    let s = String(q || "");
+    for (const w of SPLIT_WORDS) { const re = new RegExp("([가-힣a-z0-9])(" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"); s = s.replace(re, "$1 $2"); }
+    return s;
+  }
   function detectProductName(q, records) {
+    q = splitBrandCat(q);
     const qn = normEntity(q);
     if (qn.length < 3) return null;
     // 브랜드성 토큰이 하나는 있어야 제품 언급으로 본다 — "비타민C 1000"처럼
@@ -364,6 +381,7 @@ export async function onRequest(context) {
   // 제품명에 없으니 자연히 0점. 많은 제품명에 흔한 범용 토큰(고함량·프리미엄 등)은
   // 문서빈도 필터로 배제. 브랜드성 매칭 길이 3자 이상일 때만 확정.
   function findProductMention(q, records, withScore) {
+    q = splitBrandCat(q);   // [v16.6]
     const recs = records || [];
     if (!recs.length) return null;
     const names = recs.map(r => normEntity(getField(r.fields || {}, "제품명", "네이버_제품명", "name")));
@@ -401,8 +419,12 @@ export async function onRequest(context) {
     // 약한 우연 일치일 수 있다("GNM 건조한 눈엔"이 다른 GNM 제품에 3자 매칭). AND-폴백으로 넘긴다.
     const presentAll = parts.filter(t => names.some(nm => nm && nm.indexOf(t) !== -1));
     if (best && bestLen >= 3) {
+      const bn = normEntity(getField(best.fields || {}, "제품명", "네이버_제품명", "name"));
+      // [v16.6] 고유 브랜드 토큰(문서빈도 ≤2, 3자 이상)이 최적 제품명에 있으면 다른 흔한 단어("용량"·"성분")가 섞여 있어도 확정.
+      //         "위드바인 용량 너무 많은 거 아닌가요"가 4자 단일 브랜드라 기각되던 결함 수정(재점검 rc_105).
+      const rare = usable.filter(t => t.length >= 3 && bn.indexOf(t) !== -1 && names.filter(n => n && n.indexOf(t) !== -1).length <= 2);
+      if (rare.length) return withScore ? { rec: best, score: bestAll } : best;
       if (presentAll.length >= 2) {
-        const bn = normEntity(getField(best.fields || {}, "제품명", "네이버_제품명", "name"));
         const hitToks = presentAll.filter(t => bn.indexOf(t) !== -1);
         if (hitToks.length >= 2 || hitToks.join("").length >= 5) return withScore ? { rec: best, score: bestAll } : best;
       } else return withScore ? { rec: best, score: bestAll } : best;
@@ -556,6 +578,8 @@ export async function onRequest(context) {
     function catFrom(text) {
       const t = String(text).toLowerCase();
       for (const cat in CATEGORY_KEYWORDS) if (CATEGORY_KEYWORDS[cat].some(k => t.indexOf(k) !== -1)) return cat;
+      const tn = t.replace(/\s+/g, "");
+      for (const cat in BRAND_CATEGORY_HINTS) if (BRAND_CATEGORY_HINTS[cat].some(k => tn.indexOf(k.replace(/\s+/g, "")) !== -1)) return cat;   // [v16.6]
       return null;
     }
     // [v15.9] 최신 메시지에 서로 다른 카테고리어가 2개 이상이면(예: "유산균과 오메가3 추천")
@@ -1019,7 +1043,9 @@ export async function onRequest(context) {
 - 1일 비용: 제품 가격을 1일 섭취량 기준으로 나눈 값. 용량·구성이 제각각이라 같은 잣대로 비교하려고 씁니다.
 - 성분 우선: 품질점수 순위. 목록 페이지의 탭 이름이기도 합니다.
 - 품질점수 산식(카테고리별, 가중치 합 1.0): 오메가3 = [함량 × 0.5] + [제형 등급 × 0.3] + [인증 × 0.2] / 눈 = [함량 × 0.7] + [원료사 등급 × 0.3] / 유산균 = [함량 × 0.8] + [인증 × 0.2] (균주 근거 축은 데이터 도입 후 [함량 0.45]+[균주 근거 0.35]+[인증 0.2]로 전환 예정; 코팅·냉장은 점수 아님) / 비타민C = [함량 × 0.6] + [원료사 등급 × 0.3] + [인증 × 0.1]. 함량 = 근거 용량 대비 충족률(초과분 무가점). 원료사 등급은 브랜드 원료(임상·규격 공개) 85 / 그 외 표기 70 / 미기재 35 — 원산지(노르웨이·인도 등)로는 차등을 두지 않습니다. 오메가3 제형은 rTG 100 / nTG·TG 75 / EE 50 / 미기재 25. 인증은 종류별 가산(오메가3: IFOS 5-Star 55·IFOS 40·GOED 25·GMP 20 …, 상한 100)이며 Halal·Kosher·Non-GMO·Vegan은 품질 인증이 아니라 점수에 넣지 않습니다(필요한 분에겐 정보로 안내).
-- 미표기 규칙: 함량이 표기돼 있지 않으면 등급을 매기지 않고 "평가 보류". 제형·원료사처럼 등급의 일부인 항목이 비어 있으면 그 항목 최하 점수의 절반을 주고 등급을 매깁니다 — rTG·브랜드 원료 같은 우위는 제품이 반드시 표기하므로 표기가 없다는 것도 정보입니다. 인증란이 비면 0(인증 없음이라는 사실).
+- 미표기 규칙: 함량이 표기돼 있지 않으면 등급을 매기지 않고 "평가 보류". 제형·원료사처럼 등급의 일부인 항목이 비어 있으면 그 항목에 미기재 점수를 주고 등급을 매깁니다 — 미기재 점수는 "최하 표기 점수의 절반"으로 이미 계산된 고정값이라 더 나누지 않습니다: 오메가3 제형 미기재 25점(EE 50의 절반), 원료사 미기재 35점(그 외 표기 70의 절반). "35의 절반"이라고 말하면 오답입니다. rTG·브랜드 원료 같은 우위는 제품이 반드시 표기하므로 표기가 없다는 것도 정보입니다. 인증란이 비면 0(인증 없음이라는 사실).
+- 산식을 말할 때의 규칙: 위 카테고리별 산식의 숫자와 축 구성을 그대로 인용합니다. 카테고리마다 축이 다르니 섞지 않습니다 — 오메가3엔 원료사 축이 없고(정보만), 눈엔 인증·제형 축이 없고, 유산균엔 원료사·제형 축이 없고(임시 산식 함량 0.8+인증 0.2), 비타민C엔 제형 축이 없습니다. 기억이 불확실하면 숫자를 지어내지 말고 "목록 화면의 '등급과 비교, 이렇게 정해요'에 전체 기준이 있다"고 안내합니다.
+- 눈 기능성 구분: "눈이 피로하다·뻑뻑하다"는 아스타잔틴(식약처 눈 피로도 개선), "침침하다·황반·노화·시력 유지"는 루테인·지아잔틴(황반색소밀도 유지)로 답합니다. 눈 피로 질문에 루테인만 권하면 기능성이 어긋납니다.
 - 눈 함량 규칙: 표방한 기능성 성분마다 따로 잽니다 — 루테인+지아잔틴 합계(≥10mg)는 20mg 기준, 아스타잔틴(≥4mg)은 12mg 기준. 둘 다 하한 이상이면 두 충족률의 평균. 그래서 아스타잔틴을 4mg만 얹은 제품은 루테인이 만점이어도 함량 점수가 내려갑니다 — "표방했으면 각 기능성의 근거 용량을 채웠는지 본다"는 규칙이라고 설명하세요. 지아잔틴을 합산하는 근거는 고시형 루테인(10~20mg)과 개별인정형 루테인지아잔틴복합추출물(합 10~20mg)의 상한이 같기 때문입니다.
 - 상한 초과: 오메가3 EPA+DHA 2,000mg, 비타민C 2,000mg을 넘는 제품은 감점하지 않지만 "상한 초과 — 의사 상담 권고"를 반드시 말합니다.
 - 반려동물(강아지·고양이 등) 질문: 사람용 건강기능식품의 기능성·용량 기준을 동물에 적용할 수 없습니다. 제품을 추천하지 말고 수의사 상담으로 안내하세요(FAQ에 같은 취지의 문서가 있으면 그대로 따릅니다).
@@ -1395,7 +1421,7 @@ export async function onRequest(context) {
         const byId = new Map(productContext.map(p => [String(p.product_id), p]));
         payload.alternatives = payload.alternatives.filter(a => {
           const p = byId.get(String(a.product_id));
-          return !p || p.core_full !== false;   // [v16.0] 근거 용량 충족(core 100) 기준 — 눈 복합 앵커 대응
+          return !p || (p.core_full !== false && !p.over_limit);   // [v16.0/16.6] 근거 용량 충족·상한 초과 제외
         });
         // 백필: 자격(임상 앵커 이상) 갖춘 대안이 2개 미만이면 채운다(최소 2개 보장).
         if (payload.alternatives.length < 2) {
@@ -1404,7 +1430,7 @@ export async function onRequest(context) {
             ? String(getField(productMatchRecord.fields || {}, "product_id", "productId") || productMatchRecord.id)
             : null;
           const fillers = productContext.filter(p =>
-            p.core_full === true &&
+            p.core_full === true && !p.over_limit &&
             !have.has(String(p.product_id)) && String(p.product_id) !== mentionedId
           ).slice(0, 3 - payload.alternatives.length);
           for (const p of fillers) payload.alternatives.push({ product_id: p.product_id, name: p.name, reason: buildReason(p) });
@@ -1475,7 +1501,7 @@ export async function onRequest(context) {
         if (payload.verdict_tone === "negative") {
           ranked = cfg2.unscored
             ? ranked.filter(p => p.content_noted)
-            : ranked.filter(p => p.core_full !== false);
+            : ranked.filter(p => p.core_full !== false && !p.over_limit);   // [v16.6] 상한 초과 제품은 대안 제외
         }
         ranked = ranked.sort((a, b) => a[rk] - b[rk]).slice(0, 3);
         if (ranked.length >= 2) {
