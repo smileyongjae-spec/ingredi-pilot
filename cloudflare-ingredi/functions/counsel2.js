@@ -1,4 +1,4 @@
-// functions/counsel2.js  v17.2  (2026-09-18)
+// functions/counsel2.js  v17.4  (2026-09-18)
 // functions/counsel2.js  [v16.8 — Q(되묻기)에도 상위 3 카드 고정 · 되묻기 대화당 1회]
 // functions/counsel2.js  [v16.7 — 제품 후보군 8→6/축(프롬프트 ~800토큰 절감). 시스템 프롬프트 캐시(cache_control)는 기존 유지]
 // functions/counsel2.js  [v16.6 — 제품명 탐지: 고유 브랜드 단일 토큰 확정 · 대상어(임산부 등) 브랜드 배제]
@@ -490,10 +490,20 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     // [v17.1] 운영 주체·연락처·수익 구조 질문은 META_QUERY(자기소개 정형문)보다 먼저 답한다.
     //   "누가 만들었어"가 META_QUERY에 걸려 "저는 AI 상담이에요…제품 데이터로 판단해요"만 나가던 문제.
     if (ABOUT_QUERY.test(query)) {
-      return respond(fixedPayload("X",
-        "ingredi는 생명과학을 전공하고 건강기능식품 회사에서 근무했던 두 사람이 만든 개인 프로젝트예요. 회사가 아니고 제품사와도 관계가 없어요.\n\n운영은 쿠팡 구매 링크의 파트너스 수수료로 해요. 수수료는 순위·등급·추천에 영향을 주지 않고, 쿠팡에 없어 다른 곳으로 연결되는 경우엔 수수료와 무관해요. 광고비나 협찬은 받지 않습니다.\n\n· 소개 페이지: ingredi.kr/about.html\n· 이메일: hello@ingredi.kr (데이터 오류 제보·제휴·문의)\n· 짧은 의견은 화면 아래 '서비스 의견 보내기'로도 보내실 수 있어요.",
-        { chips: ["소개 페이지 보기", "등급 기준이 궁금해요", "서비스 의견 보내기"],
-          chips_prompts: ["ingredi 소개 페이지를 보여줘", "등급은 어떤 기준으로 정해요?", "의견을 보내고 싶어요"] }),
+      // [v17.3] 물어본 것만 답한다. 만든 사람 / 수익 구조 / 연락처를 구분하고, 나머지는 소개 페이지에 맡긴다.
+      const q0 = query;
+      const isMoney   = /돈은?\s*(어떻게|어디서)|수익|수수료|어떻게\s*(돈을?\s*)?(버|벌)|무료|공짜|광고\s*(받|하나|해요)|협찬|후원|스폰서|제휴/.test(q0);
+      const isContact = /연락|문의|이메일|메일\s*주소|고객\s*?센터|공식\s*(채널|계정)|제보/.test(q0);
+      const moneyFirst = isMoney && !isContact;   // "제휴 문의"처럼 둘 다 걸리면 문의 의도를 우선
+      const body = moneyFirst
+        ? "제품사 광고나 협찬은 받지 않아요. 쿠팡 구매 링크를 통해 구매가 일어나면 파트너스 수수료를 받는 구조이고, 수수료는 순위·등급·추천에 영향을 주지 않아요. 쿠팡에 없어 다른 곳으로 연결되는 경우엔 수수료와 무관합니다.\n\n자세한 운영 방식은 소개 페이지에 적어두었어요 — ingredi.kr/about.html"
+        : isContact
+        ? "문의는 hello@ingredi.kr로 보내주세요. 데이터 오류 제보, 제휴·협업, 그 밖의 문의 모두 환영이고 보통 2~3일 안에 답장드려요.\n\n짧은 의견은 화면 아래 '서비스 의견 보내기'로도 보내실 수 있어요. 서비스 소개는 ingredi.kr/about.html에 있습니다."
+        : "생명과학을 전공하고 건강기능식품 회사에서 근무했던 두 사람이 만든 개인 프로젝트예요. 회사가 아니고 제품사와도 관계가 없어요.\n\n만든 이유와 운영 방식은 소개 페이지에 정리해 두었어요 — ingredi.kr/about.html";
+      return respond(fixedPayload("X", body,
+        // [v17.4] 본문에 이미 링크가 있으므로 같은 곳으로 가는 칩은 두지 않는다. 남기는 칩은 "다음에 할 일"만.
+        { chips: ["등급 기준이 궁금해요", "오메가3 보러가기", "운동 보충제 보러가기"],
+          chips_prompts: ["등급은 어떤 기준으로 정해요?", "go:/app.html?category=오메가3", "go:/sports.html"] }),
         { category: null, gate: "about" });
     }
     if (META_QUERY.test(query)) {
