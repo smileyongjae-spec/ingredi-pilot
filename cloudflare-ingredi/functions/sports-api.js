@@ -393,6 +393,16 @@ export async function onRequest(context) {
   const rest = items.filter(x => x.quality == null);
 
   // [v2.3] 리뷰 인사이트 조인 (recommend2 v8.2와 같은 형태: {good:[{label,score,text}], caution:[...], evidence})
+  // [v2.6] Airtable 컬럼명에 BOM·제로폭 공백(\u200b)·NBSP가 섞여 들어오는 경우가 있어(CSV 업로드 산물),
+  //        정규화 키로도 찾는다. 2026-09-18 리뷰 결합 0건의 원인이 리뷰 테이블 product_id 컬럼의 보이지 않는 문자였다.
+  const normKey = k => String(k).replace(/[\uFEFF\u200B-\u200D\u00A0]/g, "").trim().toLowerCase();
+  function fget(f, ...names) {
+    for (const n of names) { const v = f[n]; if (v !== undefined && v !== null && v !== "") return v; }
+    const map = {}; for (const k in f) map[normKey(k)] = f[k];
+    for (const n of names) { const v = map[normKey(n)]; if (v !== undefined && v !== null && v !== "") return v; }
+    return "";
+  }
+
   const rres = await reviewPromise;
   let reviewMatched = 0;
   const rmapDiag = {};   // [v2.5] 진단용 참조
@@ -400,15 +410,15 @@ export async function onRequest(context) {
     const rmap = rmapDiag;
     for (const r of rres.rv) {
       const f = r.fields || {};
-      const pid = S(f["product_id"]); if (!pid) continue;
-      const rate = (k) => N(f[k.replace(/_(\d)$/, "_rate_$1_pct")]) || N(f[k.replace(/_(\d)$/, "_score_$1")]);
-      const mk = (k) => S(f[k]) ? { label: S(f[k]), score: rate(k.replace("_label_", "_")), text: S(f[k.replace("_label_", "_text_")]) || null } : null;
+      const pid = S(fget(f, "product_id")); if (!pid) continue;
+      const rate = (k) => N(fget(f, k.replace(/_(\d)$/, "_rate_$1_pct"))) || N(fget(f, k.replace(/_(\d)$/, "_score_$1")));
+      const mk = (k) => S(fget(f, k)) ? { label: S(fget(f, k)), score: rate(k.replace("_label_", "_")), text: S(fget(f, k.replace("_label_", "_text_"))) || null } : null;
       const good = [mk("good_label_1"), mk("good_label_2")].filter(Boolean);
       const caution = [mk("caution_label_1"), mk("caution_label_2")].filter(Boolean);
       const isLogi = x => /포장|배송/.test(x.label);
       good.sort((a, b) => (isLogi(a) - isLogi(b)));
-      const totalM = S(f["review_count_display"]).match(/([\d,]+)\s*건/);
-      rmap[pid] = { good, caution, evidence: S(f["review_evidence_level"]) || S(f["evidence_level"]) || null, insightScore: N(f["review_insight_score"]) || null, /* [v2.3] 09.18 컬럼명 */ total: totalM ? N(totalM[1].replace(/,/g, "")) : null, labeled: N(f["review_count_labeled"]) || null };
+      const totalM = S(fget(f, "review_count_display")).match(/([\d,]+)\s*건/);
+      rmap[pid] = { good, caution, evidence: S(fget(f, "review_evidence_level", "evidence_level")) || null, insightScore: N(fget(f, "review_insight_score")) || null, /* [v2.3] 09.18 컬럼명 */ total: totalM ? N(totalM[1].replace(/,/g, "")) : null, labeled: N(fget(f, "review_count_labeled")) || null };
     }
     for (const it of items) { const rv = rmap[String(it.id || "").trim()]; if (rv && (rv.good.length || rv.caution.length)) { it.reviews = rv; reviewMatched++; if (rv.total > 0) { it.reviewCount = rv.total; it.reviewSource = "naver"; it.reviewLabeled = rv.labeled || null; } } }   // [v2.4] 요약 있으면 리뷰 수도 네이버 전체 건수
   }
@@ -462,7 +472,7 @@ export async function onRequest(context) {
       reviewRows: (rres && rres.ok && rres.rv) ? rres.rv.length : 0,
       reviewFieldKeys: (rres && rres.ok && rres.rv && rres.rv[0]) ? Object.keys(rres.rv[0].fields || {}) : [],
       reviewSampleRaw: (rres && rres.ok && rres.rv && rres.rv[0]) ? {
-        product_id: rres.rv[0].fields["product_id"], good_label_1: rres.rv[0].fields["good_label_1"],
+        product_id: fget(rres.rv[0].fields, "product_id"), good_label_1: rres.rv[0].fields["good_label_1"],
         good_score_1: rres.rv[0].fields["good_score_1"], review_evidence_level: rres.rv[0].fields["review_evidence_level"]
       } : null,
       reviewMapKeys: Object.keys(rmapDiag).slice(0, 5),
