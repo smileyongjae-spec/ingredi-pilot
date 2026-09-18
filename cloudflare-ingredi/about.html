@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- about.html  v1.1  (2026-09-18) -->
+<!-- about.html  v1.2  (2026-09-19) -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -62,7 +62,8 @@
   <div class="card">
     <a class="mail" href="mailto:hello@ingredi.kr">hello@ingredi.kr</a>
     <p class="note" style="margin-top:6px">데이터 오류 제보, 제휴·협업, 기타 문의. 보통 2~3일 안에 답장합니다.</p>
-    <a class="btn" href="mailto:hello@ingredi.kr?subject=ingredi%20문의">이메일 보내기</a><a class="btn ghost" href="/">홈으로</a>
+    <a class="btn" id="mailBtn" href="mailto:hello@ingredi.kr?subject=ingredi%20%EB%AC%B8%EC%9D%98">이메일 보내기</a><a class="btn ghost" href="/">홈으로</a>
+    <p class="note" id="mailHint" style="margin-top:8px; display:none">메일 앱이 열리지 않으면 <b>hello@ingredi.kr</b> 로 보내주세요. (주소를 복사했습니다)</p>
   </div>
 
   <h2>개인정보</h2>
@@ -79,5 +80,18 @@
     쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있습니다. 이 서비스는 의료 자문이 아니며, 질병의 진단·치료는 의사·약사와 상의하세요.
   </div>
 </div>
+<script>
+(function () {
+  var btn = document.getElementById('mailBtn');
+  var hint = document.getElementById('mailHint');
+  if (!btn || !hint) return;
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText('hello@ingredi.kr').catch(function () {});
+    }
+    setTimeout(function () { hint.style.display = 'block'; }, 400);
+  });
+})();
+</script>
 </body>
 </html>
