@@ -1,3 +1,8 @@
+// functions/counsel2.js  v17.8  (2026-09-19)
+// [v17.8 — 인덱스 실패 진단: safeGet이 삼키던 에러를 debug로 노출]
+//   - 실측(디버그 응답): v17.7 서빙 중인데 5개 카테고리 인덱스 조회가 전부 빈손(productLookupFailed).
+//     원인 후보(429 rate limit / KV 바인딩 부재 / 필드 422)를 가리기 위해
+//     diagErrors(테이블별 에러 메시지)·idxCounts(카테고리별 인덱스 건수)·cacheBound(env.CACHE 유무)를 debug에 추가.
 // functions/counsel2.js  v17.7  (2026-09-19)
 // [v17.7 — 브랜드/회사 검색 흐름 확정(목업 승인분) + 구간 계측]
 //   - 회사→브랜드 별칭 사전(COMPANY_ALIASES): 회사명은 제품명에 없어 코드 매핑으로 시작(예: 헥토헬스케어→드시모네).
@@ -660,7 +665,12 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     }
 
     // ─── [3] 테이블 로드 ────────────────────────────
-    async function safeGet(t, opts) { try { return await getRecords(env, t, opts); } catch (_) { return []; } }
+    const diagErrors = [];   // [v17.8] safeGet이 삼키는 에러를 debug로 노출 (원인: 429/422/env 미설정 판별)
+    let idxCounts = null;    // [v17.8] [2.5] 인덱스 카테고리별 건수
+    async function safeGet(t, opts) {
+      try { return await getRecords(env, t, opts); }
+      catch (e) { if (diagErrors.length < 8) diagErrors.push(String(t) + ": " + String((e && e.message) || e).slice(0, 180)); return []; }
+    }
 
     // 브랜드성 토큰 추출 — 카테고리어·범용어·불용어·숫자 제외 (제품명 탐색 공용)
     function makeBrandCands(text) {
@@ -692,6 +702,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     const brandCands = makeBrandCands(query);
     if (!matchedCategory && brandCands.length) {
       const idxLists = await Promise.all(ALL_CATS.map(loadIdx));
+      idxCounts = {}; ALL_CATS.forEach((c, i) => { idxCounts[c] = idxLists[i].length; });   // [v17.8]
       // 정제된 브랜드 후보만 매칭에 사용 — 원 질의를 넘기면 findProductMention이 도메인어
       // (다이어트 등)를 다시 토큰화해 엉뚱한 제품명에 오매칭할 수 있다.
       // v15.2: 첫 매칭에서 멈추지 않고 4개 카테고리 전부의 매칭 강도(전체 토큰 커버 길이)를 비교해
@@ -1763,7 +1774,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       brandMatch: brandMatch ? { token: brandMatch.token, count: brandMatch.count } : null,
       forcedAxis: forcedAxis ? forcedAxis.axis : null, doseIntent,
       askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback, repaired: !!payload.contract_repaired,
-      timing: { tables_ms: tTables, claude_ms: tClaude, total_ms: Date.now() - T0 }   // [v17.7] 10초 병목 확인용
+      timing: { tables_ms: tTables, claude_ms: tClaude, total_ms: Date.now() - T0 },   // [v17.7] 10초 병목 확인용
+      idxCounts, diagErrors, cacheBound: !!env.CACHE   // [v17.8] 인덱스 실패 원인 판별용
     };
     return respond(payload, meta);
 
