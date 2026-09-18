@@ -479,6 +479,10 @@
     .feedback-done-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--green-light); display: flex; align-items: center; justify-content: center; }
     .feedback-done-icon svg { width: 30px; height: 30px; color: var(--green-primary); }
     .feedback-done-text { font-size: 16px; font-weight: 600; color: var(--green-deep); line-height: 1.6; }
+      .site-foot { max-width: 640px; margin: 28px auto 24px; padding: 14px 20px 0; border-top: 1px solid var(--line, #E4E4E1); font-size: 11.5px; color: var(--ink-faint, #9A9A94); line-height: 1.6; text-align: center; }
+    .site-foot a { color: var(--green-primary, #2D5F3F); text-decoration: none; font-weight: 700; }
+    .fb-mail { width: 100%; box-sizing: border-box; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line, #E4E4E1); border-radius: 10px; font-family: inherit; font-size: 14px; background: var(--surface, #fff); color: var(--ink, #2B2B28); }
+    .fb-mail:focus { outline: none; border-color: var(--green-primary, #2D5F3F); }
   </style>
 </head>
 <body>
@@ -612,6 +616,7 @@
         </div>
         <div class="feedback-modal-body">
           <div class="feedback-desc">서비스 개선사항이나 버그, 바라는 점을 들려주세요</div>
+          <input class="fb-mail" type="email" id="fbMail-home" placeholder="답장 받을 이메일 (선택)" autocomplete="email">
           <textarea class="feedback-textarea" id="fbText-home" placeholder="자유롭게 적어주세요"></textarea>
           <div class="feedback-err" id="fbErr-home"></div>
         </div>
@@ -666,6 +671,7 @@
         </div>
         <div class="feedback-modal-body">
           <div class="feedback-desc">서비스 개선사항이나 버그, 바라는 점을 들려주세요</div>
+          <input class="fb-mail" type="email" id="fbMail-category" placeholder="답장 받을 이메일 (선택)" autocomplete="email">
           <textarea class="feedback-textarea" id="fbText-category" placeholder="자유롭게 적어주세요"></textarea>
           <div class="feedback-err" id="fbErr-category"></div>
         </div>
@@ -1557,9 +1563,10 @@ async function fbSubmit(id){
   const ta = document.getElementById("fbText-" + id);
   const err = document.getElementById("fbErr-" + id);
   const btn = document.getElementById("fbSend-" + id);
-  const content = ((ta && ta.value) || "").trim();
+  let content = ((ta && ta.value) || "").trim();
   if (err) err.textContent = "";
   if (!content){ if (ta) ta.focus(); return; }
+  { const mi = document.getElementById("fbMail-" + id); const mail = ((mi && mi.value) || "").trim(); if (mail) content = "[답장: " + mail + "]\n" + content; }   // [v8.4] 답장 경로
   if (btn){ btn.disabled = true; btn.textContent = "보내는 중…"; }
   const payload = { 내용: content, 화면: FB_SCREEN[id] || id };
   if (id === "category" && typeof activeCat === "string" && activeCat) payload.카테고리 = activeCat;
@@ -1603,5 +1610,6 @@ document.addEventListener('click', function (e) {
 });
 </script>
   <script src="/install-v1.js" defer></script>
+<footer class="site-foot">ingredi는 광고를 받지 않고 공개된 제품 데이터로 비교합니다. 쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있으며, 수수료는 순위에 영향을 주지 않습니다. · <a href="/about.html">소개 · 문의</a></footer>
 </body>
 </html>
