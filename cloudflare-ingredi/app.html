@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v8.7  (2026-09-19) — [v8.7] "모든 대상" 탭 신설: 검색은 선택된 대상 탭을 존중(여성·키즈 탭이 검색 결과도 좁힘), 상담 전체보기 딥링크는 모든 대상 탭으로 진입 / [v8.5] ?q= 지원 -->
+<!-- app.html  v8.8  (2026-09-19) — [v8.8] 상세 카드 "AI 평가보기": 구매 버튼 옆 버튼 → 카드 안 인라인 패널로 상담 평결 표시(페이지 이동 없음, 제품별 캐시) / [v8.7] 모든 대상 탭 / [v8.5] ?q= -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -409,6 +409,18 @@
     .cv-buybtn:hover { background: var(--green-deep); }
     .cv-buybtn:active { transform: scale(0.99); }
     .cv-buybtn.disabled { background: var(--line); color: var(--ink-faint); box-shadow: none; pointer-events: none; }
+    /* [v8.8] AI 평가보기 — 구매 버튼 옆 보조 버튼 + 카드 안 인라인 평결 패널 */
+    .cv-buyrow { display: flex; gap: 8px; align-items: stretch; }
+    .cv-buyrow .cv-buybtn { flex: 1 1 auto; }
+    .cv-aieval { flex: 0 0 auto; margin-top: 13px; padding: 0 14px; background: var(--surface); color: var(--green-primary); border: 1px solid var(--green-primary); border-radius: 12px; font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; }
+    .cv-aieval:active { transform: scale(0.98); }
+    .cv-aipanel { margin-top: 10px; border: 1px solid var(--line-soft); border-radius: 12px; background: #FBFAF7; padding: 12px 14px; font-size: 13px; line-height: 1.7; color: var(--ink); }
+    .cv-aipanel .aiev-verdict { font-weight: 800; color: var(--green-deep); font-size: 14px; margin-bottom: 6px; }
+    .cv-aipanel .aiev-warn { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); color: #8A6D3B; font-size: 12.5px; }
+    .cv-aipanel .aiev-note { margin-top: 8px; font-size: 11.5px; color: var(--ink-faint); }
+    .cv-aipanel .aiev-loading { color: var(--ink-soft); }
+    .cv-aipanel .aiev-loading::after { content: "…"; animation: aievDots 1.2s steps(4, end) infinite; }
+    @keyframes aievDots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 
     /* ── 고객 피드백 ── */
     @keyframes fbFade { from { opacity: 0; } to { opacity: 1; } }
@@ -1286,9 +1298,11 @@ function renderCardV8(p, ctx){
 
   const coldBadge = (cat==="마이크로바이옴" && truthyStr(p.extra && p.extra["냉장유통"])) ? `<span class="cv-cold">❄️ 냉장보관</span>` : "";
   const cartSvg = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
-  const buyBtn = p.link
+  const buyBtnCore = p.link
     ? `<a class="cv-buybtn" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">${cartSvg}구매하러 가기</a>`
     : `<span class="cv-buybtn disabled">${cartSvg}구매하러 가기</span>`;
+  // [v8.8] 구매 버튼 옆 "AI 평가보기" + 카드 안 인라인 평결 패널(누르면 내려오고 다시 누르면 접힘)
+  const buyBtn = `<div class="cv-buyrow">${buyBtnCore}<button class="cv-aieval" type="button" data-aieval="${escapeHtml(p.name || '')}" data-aikey="${escapeHtml(String(p.id || p.name || ''))}">AI 평가보기</button></div><div class="cv-aipanel" data-aipanel hidden></div>`;
 
   const basis = ctx.basis || buildBasis([p]);
   const rankLabel = `${ctx.rank || ((ctx.idx||0)+1)}위`;
@@ -1357,6 +1371,43 @@ function renderRestCardV8(p, ctx){
     <div class="cr-expanded"><div class="cr-collapse" onclick="toggleCatExpand(${ctx.idx})">접기 ▲</div>${full}</div>
   </div>`;
 }
+// [v8.8] AI 평가보기 — 카드 안 인라인 평결. counsel2를 직접 호출해 verdict·body만 그린다.
+//        같은 제품 재클릭은 접기/펼치기 토글, 결과는 제품별로 캐시(모델 재호출 없음).
+const aiEvalCache = new Map();
+function aievFmt(t){
+  return escapeHtml(String(t || "")).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+}
+async function runAiEval(btn){
+  const row = btn.closest('.cv-buyrow');
+  const panel = row && row.nextElementSibling && row.nextElementSibling.hasAttribute('data-aipanel') ? row.nextElementSibling : null;
+  if (!panel) return;
+  if (!panel.hidden){ panel.hidden = true; btn.textContent = 'AI 평가보기'; return; }
+  panel.hidden = false; btn.textContent = '평가 접기';
+  const name = btn.getAttribute('data-aieval') || '';
+  const key = btn.getAttribute('data-aikey') || name;
+  if (aiEvalCache.has(key)){ panel.innerHTML = aiEvalCache.get(key); return; }
+  panel.innerHTML = '<div class="aiev-loading">AI가 이 제품을 평가하고 있어요</div>';
+  try {
+    const res = await fetch('/counsel2?q=' + encodeURIComponent(name + ' 평가해줘'));
+    const data = await res.json();
+    const pl = (data && data.payload) || {};
+    if (!pl.verdict && !pl.body) throw new Error('empty');
+    let html = '';
+    if (pl.verdict) html += '<div class="aiev-verdict">' + aievFmt(pl.verdict) + '</div>';
+    if (pl.body) html += '<div class="aiev-body">' + aievFmt(pl.body) + '</div>';
+    if (pl.warning) html += '<div class="aiev-warn">' + aievFmt(pl.warning) + '</div>';
+    html += '<div class="aiev-note">의료 자문이 아니며, 질환·복용약·임신 여부는 전문가와 상의하세요.</div>';
+    aiEvalCache.set(key, html);
+    panel.innerHTML = html;
+  } catch (e) {
+    panel.innerHTML = '<div class="aiev-body">지금 평가를 불러오지 못했어요. <a href="/consult.html?q=' + encodeURIComponent(name + ' 평가해줘') + '">상담 화면에서 보기 →</a></div>';
+  }
+}
+document.addEventListener('click', function(e){
+  const b = e.target.closest && e.target.closest('[data-aieval]');
+  if (b) runAiEval(b);
+});
+
 window.toggleCatExpand = function(idx){
   const c = document.getElementById('cr-'+idx);
   if (c) c.classList.toggle('open');
