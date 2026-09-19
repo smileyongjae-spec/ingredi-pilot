@@ -1,3 +1,10 @@
+// functions/counsel2.js  v17.12  (2026-09-19)
+// [v17.12 — 복수 카테고리 브랜드 일반화 (종근당 실측)]
+//   - 문제: 카테고리 되묻기가 별칭 사전(회사)에만 적용되고, 제품명 매칭 브랜드는 최고 점수
+//     한 카테고리로 수렴(동점이면 순회 순서상 오메가3) — 종근당이 오메가3로만 안내됨.
+//   - 수리: [2.5]에서 브랜드 토큰의 카테고리 분포를 센다(브랜드 선두 판정 재사용).
+//     2개 이상 카테고리에 실재하면 회사 흐름과 동일한 즉답 Q(실재 카테고리 칩), 1개면 그 카테고리로 직행.
+//     복합 토큰 제품 질의는 기존 점수 비교로 폴백.
 // functions/counsel2.js  v17.11  (2026-09-19)
 // [v17.11 — 브랜드 Q 칩 완전 제거 · 전체보기 라벨]
 //   - "잘 모르겠어요" 칩 제거: 기본답(한 문장)과 카드의 평가보기 버튼이 역할을 대신해 칩이 무의미했고,
@@ -736,13 +743,54 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       // v15.2: 첫 매칭에서 멈추지 않고 4개 카테고리 전부의 매칭 강도(전체 토큰 커버 길이)를 비교해
       // 가장 강한 카테고리를 택한다 — "종근당건강 락토핏 키즈"가 순회 순서상 앞인 오메가3(종근당건강만
       // 커버)에서 확정돼 정답 유산균(락토핏·키즈까지 커버)을 못 보던 오라우팅 수정.
-      const brandQuery = brandCands.join(" ");
-      let bestIdx = -1, bestScore = 0;
-      for (let i = 0; i < ALL_CATS.length; i++) {
-        const r = findProductMention(brandQuery, idxLists[i], true);
-        if (r && r.score > bestScore) { bestScore = r.score; bestIdx = i; }
+      // [v17.12] 브랜드 토큰의 카테고리 분포 — 종근당처럼 여러 카테고리에 실재하는 종합 브랜드를
+      // 한 카테고리로 수렴시키지 않는다. 판정은 findProductMention과 같은 브랜드 선두 규칙을 쓴다.
+      function brandHitCount(tok, recs) {
+        let df = 0, lead = 0;
+        const cap = Math.max(3, Math.floor((recs.length || 1) * 0.05));
+        for (const r of recs) {
+          const nm = normEntity(getField(r.fields || {}, "제품명", "네이버_제품명", "name"));
+          if (!nm || nm.indexOf(tok) === -1) continue;
+          df++;
+          if (nm.replace(/^\[[^\]]*\]/, "").indexOf(tok) === 0) lead++;
+        }
+        return { df, ok: df > 0 && (df <= cap || (tok.length >= 3 && lead / df >= 0.7)) };
       }
-      if (bestIdx >= 0) { matchedCategory = ALL_CATS[bestIdx]; hintDomain = null; }
+      let bestTok = null, bestHits = null, bestTotal = 0;
+      for (const tk of brandCands.filter(t => t.length >= 3)) {
+        const hits = []; let total = 0;
+        for (let i = 0; i < ALL_CATS.length; i++) {
+          const h = brandHitCount(tk, idxLists[i]);
+          if (h.ok) { hits.push({ cat: ALL_CATS[i], count: h.df }); total += h.df; }
+        }
+        if (total > bestTotal) { bestTotal = total; bestTok = tk; bestHits = hits; }
+      }
+      if (bestHits && bestHits.length >= 2) {
+        // 복수 카테고리 실재 → 회사 흐름과 동일한 즉답 Q(모델 호출 없음). 칩은 실재 카테고리만.
+        const labels = bestHits.map(h => CAT_KO[h.cat]);
+        const main = bestHits.slice().sort((a, b) => b.count - a.count)[0];
+        return respond(fixedPayload("Q",
+          `${bestTok} 제품이 ${labels.join("과 ")}에 있어요. 고르시면 그 카테고리 기준으로 바로 봐드릴게요.`,
+          {
+            question: `${bestTok}, 어느 쪽 제품을 보세요?`,
+            default_answer: `안 고르셔도 돼요 — 제품이 가장 많은 ${CAT_KO[main.cat]}부터 보여드릴게요.`,
+            chips: labels.concat(["잘 모르겠어요"]),
+            chips_prompts: bestHits.map(h => `${bestTok} ${CAT_KO[h.cat]} 보여줘`).concat([`${bestTok} ${CAT_KO[main.cat]} 보여줘`])
+          }
+        ), { gate: "brand-multicat", brandToken: bestTok, demographics });
+      }
+      if (bestHits && bestHits.length === 1) {
+        matchedCategory = bestHits[0].cat; hintDomain = null;
+      } else {
+        // 폴백: 복합 토큰 제품 질의 — 전체 토큰 커버 길이로 최강 카테고리 선택(v15.2 방식)
+        const brandQuery = brandCands.join(" ");
+        let bestIdx = -1, bestScore = 0;
+        for (let i = 0; i < ALL_CATS.length; i++) {
+          const r = findProductMention(brandQuery, idxLists[i], true);
+          if (r && r.score > bestScore) { bestScore = r.score; bestIdx = i; }
+        }
+        if (bestIdx >= 0) { matchedCategory = ALL_CATS[bestIdx]; hintDomain = null; }
+      }
       if (!matchedCategory) productLookupFailed = true;
     }
 
