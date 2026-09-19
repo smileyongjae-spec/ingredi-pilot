@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- consult.html  v3.5  (2026-09-18) -->
+<!-- consult.html  v3.6  (2026-09-19) — [v3.6] 대안 카드 버튼 2개(자세히 보기·평가보기) · payload.more_link(브랜드 전체 보기) 렌더 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -125,8 +125,13 @@
     .alt-info { min-width: 0; }
     .alt-name { font-size: 14px; color: var(--ink); font-weight: 500; }
     .alt-reason { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
-    .alt-badge { font-size: 12px; color: var(--green-primary); border: 0.5px solid var(--green-primary); border-radius: 999px; padding: 3px 10px; flex-shrink: 0; white-space: nowrap; }
+    .alt-badge { font-size: 12px; color: var(--green-primary); border: 0.5px solid var(--green-primary); border-radius: 999px; padding: 3px 10px; flex-shrink: 0; white-space: nowrap; background: none; font-family: inherit; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
+    /* [v3.6] 카드 우측 액션 2개(자세히 보기·평가보기) 세로 배치 */
+    .alt-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; align-items: stretch; }
     .alt-cta { margin-top: 10px; }
+    /* [v3.6] 브랜드 전체 보기 — 카드 묶음 바로 아래 전폭 버튼 */
+    .more-link-btn { display: block; margin-top: 8px; text-align: center; font-size: 13px; font-weight: 700; color: var(--green-deep); background: var(--surface); border: 1px solid var(--green-primary); border-radius: 10px; padding: 11px 0; text-decoration: none; }
+    .more-link-btn:active { transform: scale(0.99); }
 
     /* 후속 행동 버튼 */
     .followups { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
@@ -465,12 +470,20 @@ function addAssistantTurn(payload, meta) {
       var a = payload.alternatives[j];
       ids.push(a.product_id);
       var appCat = CAT_APP_PARAM[lastCategory] || '오메가3';
-      h += '<a class="alt-card" href="/app.html?category=' + encodeURIComponent(appCat) + '&focus=' + encodeURIComponent(a.product_id) + '">' +
+      // [v3.6] 카드에 액션 2개: 자세히 보기(목록 딥링크) + 평가보기(상담으로 평결 요청)
+      h += '<div class="alt-card">' +
            '<div class="alt-info"><div class="alt-name">' + esc(a.name) + '</div>' +
            (a.reason ? '<div class="alt-reason">' + esc(a.reason) + '</div>' : '') + '</div>' +
-           '<span class="alt-badge">자세히 보기</span></a>';
+           '<div class="alt-actions">' +
+           '<a class="alt-badge" href="/app.html?category=' + encodeURIComponent(appCat) + '&focus=' + encodeURIComponent(a.product_id) + '">자세히 보기</a>' +
+           '<button class="alt-badge" type="button" data-prompt="' + esc(a.name + ' 평가해줘') + '">평가보기</button>' +
+           '</div></div>';
     }
     h += '</div>';
+    // [v3.6] 브랜드 전체 보기 — counsel2가 확정한 more_link를 카드 바로 아래 버튼으로
+    if (payload.more_link && payload.more_link.href) {
+      h += '<a class="more-link-btn" href="' + esc(payload.more_link.href) + '">' + esc(payload.more_link.label || '전체 보기') + '</a>';
+    }
     if (ids.length >= 2) {
       var cmpCat = CAT_APP_PARAM[lastCategory] || '오메가3';
       h += '<div class="alt-cta"><a class="fu-link" href="/compare.html?category=' + encodeURIComponent(cmpCat) + '&ids=' + esc(ids.join(',')) + '">' + ids.length + '개 비교하기 ↗</a></div>';
