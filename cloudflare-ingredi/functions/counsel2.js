@@ -1,3 +1,8 @@
+// functions/counsel2.js  v17.10  (2026-09-19)
+// [v17.10 — 브랜드 흐름 UX 정리 (실측 피드백: 제품 노출 중복 · 전체 보기 대문행)]
+//   - 전체 보기 대문행 원인: app.html 카테고리 키는 CAT_KO("유산균")가 아니라 "마이크로바이옴" —
+//     CAT_APP 매핑 추가, 링크 생성을 모델 칩에서 떼어 코드 확정(payload.more_link, consult v3.6이 카드 아래 버튼으로 렌더).
+//   - 브랜드 Q의 제품 칩 제거(카드와 중복) — 칩은 "잘 모르겠어요" 하나로 코드가 덮어쓴다. 제품 선택은 카드의 평가보기 버튼.
 // functions/counsel2.js  v17.9  (2026-09-19)
 // [v17.9 — 인덱스 422 사고 수리 (v17.8 진단 실측 확정)]
 //   - 원인: 9/11 테이블 교체 후 유산균·눈·비타민C 테이블에 "product_id" 필드명이,
@@ -172,6 +177,8 @@ export async function onRequest(context) {
   const COMPANY_ALIASES = {
     "헥토헬스케어": ["드시모네"]
   };
+  // [v17.10] app.html 딥링크용 카테고리 키 — CATS의 key와 일치해야 한다(유산균의 키는 "마이크로바이옴").
+  const CAT_APP = { omega3: "오메가3", eye: "눈", probiotics: "마이크로바이옴", vitaminC: "비타민C", milkthistle: "밀크씨슬" };
   const KO_CAT    = { "오메가3": "omega3", "비타민C": "vitaminC", "눈": "eye", "유산균": "probiotics", "밀크씨슬": "milkthistle" };
   const CAT_LABEL = { omega3: "오메가3", vitaminC: "비타민C", eye: "눈 건강(루테인)", probiotics: "유산균", milkthistle: "밀크씨슬" };
   const FOUR_CATS = "오메가3, 눈 건강(루테인), 유산균, 비타민C, 밀크씨슬";
@@ -1355,7 +1362,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       const top1 = chipNames[0] || brandMatch.token;
       const catKo2 = matchedCategory ? CAT_KO[matchedCategory] : "";
       const shownBrand = companyName ? `${companyName}(${brandMatch.token})` : brandMatch.token;
-      flagBlock += `\n\n[브랜드 매칭] "${shownBrand}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다. 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요 — 존재 여부는 이 플래그가 확정합니다. 특정 제품이 지목되지 않았으므로 Q로 답하세요. question은 "${brandMatch.token}, 어떤 제품이 궁금하세요?" 한 문장. body는 1~2문장(이 브랜드 ${brandMatch.count}개 제품을 비교 중이라는 사실만 — 라벨이나 보장균수를 알려달라고 하지 마세요). chips는 순서대로: ①브랜드 제품명 상위 ${chipNames.length}개 — ${chipNames.join(" / ")} ②"잘 모르겠어요" ③"${brandMatch.token} 전체 보기 (${brandMatch.count}개)". ③의 chips_prompts는 정확히 go:/app.html?category=${catKo2}&q=${brandMatch.token} 로 쓰세요. ①의 chips_prompts는 "해당 제품명 + 평가해줘", ②는 "${brandMatch.token} 중에 추천해줘". default_answer는 정확히 다음 한 문장만: "안 고르셔도 돼요 — ${brandMatch.token} 중 성분 우선 1위인 ${top1} 기준으로 봐드릴게요." 두 번째 문장을 붙이지 마세요. 사용자가 추천을 요청한 질의라면 Q 대신 V로 이 브랜드 제품 중에서 추천하세요. 등급·수치는 [제품 데이터]에 있는 제품만 말합니다.`;
+      flagBlock += `\n\n[브랜드 매칭] "${shownBrand}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다. 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요 — 존재 여부는 이 플래그가 확정합니다. 특정 제품이 지목되지 않았으므로 Q로 답하세요. question은 "${brandMatch.token}, 어떤 제품이 궁금하세요?" 한 문장. body는 1~2문장(이 브랜드 ${brandMatch.count}개 제품을 비교 중이라는 사실만 — 라벨이나 보장균수를 알려달라고 하지 마세요). chips는 "잘 모르겠어요" 하나만 두세요(chips_prompts는 "${brandMatch.token} 중에 추천해줘") — 제품 선택지는 서버가 카드로 붙이므로 칩으로 제품명을 나열하지 마세요. default_answer는 정확히 다음 한 문장만: "안 고르셔도 돼요 — ${brandMatch.token} 중 성분 우선 1위인 ${top1} 기준으로 봐드릴게요." 두 번째 문장을 붙이지 마세요. 사용자가 추천을 요청한 질의라면 Q 대신 V로 이 브랜드 제품 중에서 추천하세요. 등급·수치는 [제품 데이터]에 있는 제품만 말합니다.`;
     } else if (productContext.length) {
       flagBlock += `\n\n[비지목] 사용자는 특정 제품을 언급하지 않았습니다. [제품 데이터]의 후보 중 하나를 골라 "이 제품은 권하지 않아요" 식의 단수 평결을 하지 마세요 — 추천 질의에는 추천(성분 우선 상위)으로 답합니다. 후보군에 사용자 상황과 안 맞는 제품(예: 어린이용)이 섞여 있어도 그것을 평결 대상으로 삼지 말고 조용히 제외하세요.`;
       // [v15.8] 명시적 수유/임신으로 여성 세그먼트가 걸렸을 때(제품 미지목) 프레이밍.
@@ -1657,6 +1664,23 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
             : cfg2.unscored
             ? `함량 표기 우선 · 가성비 상위 ${payload.alternatives.length}개`   // [v15.23] 무채점: 축 라벨이 거짓이 되므로 실제 기준으로
             : (payload.policy === "Q" ? `고르지 않아도 볼 수 있어요 · ${axKey.label} 상위 ${payload.alternatives.length}개` : `${axKey.label} 상위 ${payload.alternatives.length}개`);
+        }
+      }
+      // [v17.10] 브랜드 흐름(비지목) UX를 코드가 확정한다 — 모델 편차 차단.
+      //   ① Q의 칩은 "잘 모르겠어요" 하나만(제품 선택은 카드의 평가보기 버튼과 중복되므로 제거)
+      //   ② 전체 보기 링크는 CAT_APP 키로 코드가 생성해 more_link로 내려보낸다(consult v3.6이 카드 아래 버튼으로 렌더;
+      //      CAT_KO "유산균"을 쓰면 app.html이 모르는 키라 대문으로 떨어진다 — 실측 버그).
+      if (brandMatch && !productMatchRecord) {
+        if (payload.policy === "Q") {
+          payload.chips = ["잘 모르겠어요"];
+          payload.chips_prompts = [`${brandMatch.token} 중에 추천해줘`];
+        }
+        const appCatKey = (matchedCategory && CAT_APP[matchedCategory]) || (matchedCategory && CAT_KO[matchedCategory]) || "";
+        if (appCatKey) {
+          payload.more_link = {
+            label: `${brandMatch.token} 전체 보기 (${brandMatch.count}개)`,
+            href: `/app.html?category=${encodeURIComponent(appCatKey)}&q=${encodeURIComponent(brandMatch.token)}`
+          };
         }
       }
       // [v16.8] 되묻기는 대화당 1회 — 직전 화자 턴이 이미 Q였으면 이번엔 묻지 않고 기본답으로 답한다(프로틴 상담이 2턴 연속 되묻던 문제).
