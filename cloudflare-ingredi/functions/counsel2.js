@@ -1,3 +1,10 @@
+// functions/counsel2.js  v17.13  (2026-09-19)
+// [v17.13 — 응답 속도·비용 (실측: claude_ms 8.4~8.8s = 전체의 85%)]
+//   - 출력 다이어트: body 문장 상한(V 3문장·Q 2문장), question 1문장·default_answer 2문장,
+//     alternatives reason 20자 내외, max_tokens 1200→700 — 생성 시간은 출력 토큰에 비례.
+//   - 모델 스위치: ?m=haiku 로 claude-haiku-4-5 호출(자체점검 세트 품질 비교용). 기본은 sonnet 유지,
+//     비교 통과 시 기본값 한 줄 교체로 전환.
+//   - meta.debug.usage: input/output/cache_read/cache_write 토큰 + model — 클릭당 비용 실측용.
 // functions/counsel2.js  v17.12  (2026-09-19)
 // [v17.12 — 복수 카테고리 브랜드 일반화 (종근당 실측)]
 //   - 문제: 카테고리 되묻기가 별칭 사전(회사)에만 적용되고, 제품명 매칭 브랜드는 최고 점수
@@ -1262,6 +1269,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 - C: conditional(무채색). "나쁘지 않아요"로 시작하되, 같은 값에 더 나은 선택이 있음을 말합니다. alternatives는 넣지 말고, chips에 "더 나은 대안 보기" 칩을 포함하세요.
 - D: negative. "솔직히 말씀드리면, 권하지 않아요." alternatives 필수.
 - 지목 평결의 alternatives는 D(부정)에만 담습니다. A~C에서는 alternatives를 비우세요 — 묻지 않은 다른 제품을 카드로 붙이면 광고처럼 읽힙니다. 다른 제품 제안은 칩("다른 ○○도 추천받기")으로만 합니다.
+- 길이 상한(엄수): body는 V 3문장·Q 2문장 이내, question 1문장, default_answer 2문장 이내, alternatives의 reason은 20자 내외. 이 상한을 넘기지 마세요 — 생성 길이가 곧 응답 대기 시간입니다. 짧아서 빠진 내용은 사용자가 되물으면 그때 답합니다.
 
 ## 밀크씨슬 — 등급이 없는 카테고리
 밀크씨슬(실리마린)은 등급·품질점수를 매기지 않습니다. 제품 간 품질을 가릴 검증 축이 부족해 채점하지 않기로 한 것이고, 물으면 이 사실을 숨기지 않고 그대로 말합니다: "이 카테고리는 등급을 매기지 않아요. 등급을 줄 근거가 부족한데 주는 게 더 정직하지 않다고 봐서요."
@@ -1461,10 +1469,12 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     const ANTHROPIC_BASE = (env.CF_ACCOUNT_ID && env.CF_AI_GATEWAY)
       ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_AI_GATEWAY}/anthropic`
       : "https://api.anthropic.com";
+    // [v17.13] ?m=haiku → Haiku 4.5로 호출(품질 비교용). 통과하면 아래 기본값만 교체.
+    const MODEL = url.searchParams.get("m") === "haiku" ? "claude-haiku-4-5" : "claude-sonnet-4-6";
     const DIRECT_BASE = "https://api.anthropic.com";
     const _tC = Date.now();   // [v17.7] 모델 호출 구간 계측 시작
     const reqBody = JSON.stringify({
-      model: "claude-sonnet-4-6", max_tokens: 1200,
+      model: MODEL, max_tokens: 700,   // [v17.13] 출력 상한 축소 — 프롬프트 길이 상한과 세트
       // 프롬프트 캐싱: 시스템 프롬프트(페르소나·5정책·산식 설명, ~2,800토큰)는 매 호출 100% 동일하다.
       // 캐시 블록으로 표시하면 같은 프롬프트를 5분 내 재호출 시 이 부분 입력 단가가 0.1배로 떨어진다
       // (첫 기록만 1.25배). 상담은 멀티턴이라 2번째 턴부터 바로 절감. 캐시 최소 길이(Sonnet 1,024토큰) 충족.
@@ -1869,6 +1879,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       forcedAxis: forcedAxis ? forcedAxis.axis : null, doseIntent,
       askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback, repaired: !!payload.contract_repaired,
       timing: { tables_ms: tTables, claude_ms: tClaude, total_ms: Date.now() - T0 },   // [v17.7] 10초 병목 확인용
+      model: MODEL,   // [v17.13]
+      usage: (data && data.usage) ? { in_tok: data.usage.input_tokens, out_tok: data.usage.output_tokens, cache_read: data.usage.cache_read_input_tokens || 0, cache_write: data.usage.cache_creation_input_tokens || 0 } : null,   // [v17.13] 클릭당 비용 실측
       idxCounts, diagErrors, cacheBound: !!env.CACHE   // [v17.8] 인덱스 실패 원인 판별용
     };
     return respond(payload, meta);
