@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v8.5  (2026-09-19) — [v8.5] 딥링크 ?q= 검색어 지원: 상담 "브랜드 전체 보기" 칩이 목록을 검색 상태로 연다 -->
+<!-- app.html  v8.6  (2026-09-19) — [v8.6] 검색어가 있으면 대상(세그먼트) 필터 무시: 브랜드 검색이 키즈·베이비 포함 전체를 보여준다 / [v8.5] 딥링크 ?q= 지원 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1368,7 +1368,10 @@ function renderCategory(data){
   // [UX-2] 제품명 검색 — 서브필터 위에 한 번 더 거른다(정렬·통계는 걸러진 집합 기준, 비교 기준은 카테고리 전체)
   const qRaw = (document.getElementById('catSearch') || {}).value || "";
   const qTok = qRaw.toLowerCase().split(/\s+/).filter(Boolean);
-  const filtered = qTok.length ? filteredSub.filter(p => { const nm = String(p.name || "").toLowerCase(); return qTok.every(t => nm.indexOf(t) !== -1); }) : filteredSub;
+  // [v8.6] 검색은 대상(세그먼트) 필터를 무시하고 카테고리 전체에서 — "드시모네" 검색이 기본 탭
+  //        일반(온가족)에 걸려 키즈·베이비 4종이 빠지고 6개만 보이던 문제(실측). 검색 없을 때는 기존 그대로.
+  const searchBase = qTok.length ? all : filteredSub;
+  const filtered = qTok.length ? searchBase.filter(p => { const nm = String(p.name || "").toLowerCase(); return qTok.every(t => nm.indexOf(t) !== -1); }) : filteredSub;
   renderSubBar(cat);
   const unscored = !!UNSCORED_CATS[cat];
   // 무채점 카테고리는 프로필(성분/가성비) 선택이 의미 없어 바를 숨긴다
@@ -1379,12 +1382,12 @@ function renderCategory(data){
   // 무채점: 서버의 2단 정렬(함량 표기 → 1일비용 오름차순)을 그대로 쓴다
   const products = unscored ? filtered.slice() : applyProfile(filtered, activeProfile);
   // [UX-2] 순위는 검색 결과 안이 아니라 카테고리 전체(같은 정렬·서브필터)에서의 자리 — "안국" 검색 결과 1개가 1위로 보이지 않게
-  const rankedAll = unscored ? filteredSub.slice() : applyProfile(filteredSub, activeProfile);
+  const rankedAll = unscored ? searchBase.slice() : applyProfile(searchBase, activeProfile);   // [v8.6] 검색 시 순위 기준도 전체
   const rankOf = new Map(rankedAll.map((p, i) => [p.id, i + 1]));
   const subLabel = subs ? ` · ${((subs.find(s=>s.key===subKey)||{}).label)||""}` : "";
   document.getElementById('catMeta').textContent = unscored
     ? `${cat} · ${filtered.length}개 · 가성비 정렬 (함량 표기 우선)`
-    : `${cat}${subLabel} · ${qTok.length ? `${filteredSub.length}개 중 검색 ${filtered.length}개` : `${filtered.length}개`} · ${profileOf(activeProfile).label} 정렬 (순위는 전체 기준)`;
+    : `${cat}${qTok.length ? " · 모든 대상" : subLabel} · ${qTok.length ? `검색 ${filtered.length}개` : `${filtered.length}개`} · ${profileOf(activeProfile).label} 정렬 (순위는 전체 기준)`;   // [v8.6] 검색 중엔 대상 라벨 대신 "모든 대상"
   document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
   document.getElementById('catCompareCta').innerHTML = "";
   const el = document.getElementById('catCards');
