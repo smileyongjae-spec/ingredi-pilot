@@ -1,3 +1,8 @@
+// functions/counsel2.js  v17.11  (2026-09-19)
+// [v17.11 — 브랜드 Q 칩 완전 제거 · 전체보기 라벨]
+//   - "잘 모르겠어요" 칩 제거: 기본답(한 문장)과 카드의 평가보기 버튼이 역할을 대신해 칩이 무의미했고,
+//     칩 클릭 시 라벨과 다른 문장("드시모네 중에 추천해줘")이 사용자 발화로 찍히는 어색함도 함께 제거.
+//   - more_link 라벨: "○○ 제품 전체보기 (N개)"로.
 // functions/counsel2.js  v17.10  (2026-09-19)
 // [v17.10 — 브랜드 흐름 UX 정리 (실측 피드백: 제품 노출 중복 · 전체 보기 대문행)]
 //   - 전체 보기 대문행 원인: app.html 카테고리 키는 CAT_KO("유산균")가 아니라 "마이크로바이옴" —
@@ -1362,7 +1367,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       const top1 = chipNames[0] || brandMatch.token;
       const catKo2 = matchedCategory ? CAT_KO[matchedCategory] : "";
       const shownBrand = companyName ? `${companyName}(${brandMatch.token})` : brandMatch.token;
-      flagBlock += `\n\n[브랜드 매칭] "${shownBrand}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다. 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요 — 존재 여부는 이 플래그가 확정합니다. 특정 제품이 지목되지 않았으므로 Q로 답하세요. question은 "${brandMatch.token}, 어떤 제품이 궁금하세요?" 한 문장. body는 1~2문장(이 브랜드 ${brandMatch.count}개 제품을 비교 중이라는 사실만 — 라벨이나 보장균수를 알려달라고 하지 마세요). chips는 "잘 모르겠어요" 하나만 두세요(chips_prompts는 "${brandMatch.token} 중에 추천해줘") — 제품 선택지는 서버가 카드로 붙이므로 칩으로 제품명을 나열하지 마세요. default_answer는 정확히 다음 한 문장만: "안 고르셔도 돼요 — ${brandMatch.token} 중 성분 우선 1위인 ${top1} 기준으로 봐드릴게요." 두 번째 문장을 붙이지 마세요. 사용자가 추천을 요청한 질의라면 Q 대신 V로 이 브랜드 제품 중에서 추천하세요. 등급·수치는 [제품 데이터]에 있는 제품만 말합니다.`;
+      flagBlock += `\n\n[브랜드 매칭] "${shownBrand}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다. 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요 — 존재 여부는 이 플래그가 확정합니다. 특정 제품이 지목되지 않았으므로 Q로 답하세요. question은 "${brandMatch.token}, 어떤 제품이 궁금하세요?" 한 문장. body는 1~2문장(이 브랜드 ${brandMatch.count}개 제품을 비교 중이라는 사실만 — 라벨이나 보장균수를 알려달라고 하지 마세요). chips는 빈 배열로 두세요 — 제품 선택지는 서버가 카드(평가보기 버튼 포함)로 붙이고, 무선택은 default_answer가 받습니다. default_answer는 정확히 다음 한 문장만: "안 고르셔도 돼요 — ${brandMatch.token} 중 성분 우선 1위인 ${top1} 기준으로 봐드릴게요." 두 번째 문장을 붙이지 마세요. 사용자가 추천을 요청한 질의라면 Q 대신 V로 이 브랜드 제품 중에서 추천하세요. 등급·수치는 [제품 데이터]에 있는 제품만 말합니다.`;
     } else if (productContext.length) {
       flagBlock += `\n\n[비지목] 사용자는 특정 제품을 언급하지 않았습니다. [제품 데이터]의 후보 중 하나를 골라 "이 제품은 권하지 않아요" 식의 단수 평결을 하지 마세요 — 추천 질의에는 추천(성분 우선 상위)으로 답합니다. 후보군에 사용자 상황과 안 맞는 제품(예: 어린이용)이 섞여 있어도 그것을 평결 대상으로 삼지 말고 조용히 제외하세요.`;
       // [v15.8] 명시적 수유/임신으로 여성 세그먼트가 걸렸을 때(제품 미지목) 프레이밍.
@@ -1672,13 +1677,14 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       //      CAT_KO "유산균"을 쓰면 app.html이 모르는 키라 대문으로 떨어진다 — 실측 버그).
       if (brandMatch && !productMatchRecord) {
         if (payload.policy === "Q") {
-          payload.chips = ["잘 모르겠어요"];
-          payload.chips_prompts = [`${brandMatch.token} 중에 추천해줘`];
+          // [v17.11] 브랜드 Q에는 칩을 두지 않는다 — 기본답이 무선택을, 카드의 평가보기가 선택을 담당.
+          payload.chips = [];
+          payload.chips_prompts = [];
         }
         const appCatKey = (matchedCategory && CAT_APP[matchedCategory]) || (matchedCategory && CAT_KO[matchedCategory]) || "";
         if (appCatKey) {
           payload.more_link = {
-            label: `${brandMatch.token} 전체 보기 (${brandMatch.count}개)`,
+            label: `${brandMatch.token} 제품 전체보기 (${brandMatch.count}개)`,
             href: `/app.html?category=${encodeURIComponent(appCatKey)}&q=${encodeURIComponent(brandMatch.token)}`
           };
         }
