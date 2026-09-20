@@ -1,3 +1,17 @@
+// functions/counsel2.js  v17.17  (2026-09-20)
+// [v17.17 — 순수 브랜드/회사 검색 즉답 게이트]
+//   - 브랜드 Q 화면은 v17.16에서 질문·본문·기본답·칩·카드·전체보기가 전부 코드 확정이 되어
+//     모델 받아쓰기(8~9초)가 낭비였다 — 종근당 복수 카테고리 게이트처럼 모델 호출 없이 즉답한다.
+//   - 게이트 조건(보수적): 첫 턴 + 질의 토큰이 브랜드/회사명·중립어(제품·보여줘 등)뿐일 때만.
+//     "추천해줘·어때·아이가 먹어도" 등 의도·맥락이 붙으면 기존 모델 경로 유지.
+// functions/counsel2.js  v17.16  (2026-09-20)
+// [v17.16 — 브랜드 Q의 body 문장 고정 (실측: "골라주시면 평가해드릴게요" 뒤에 "고르지 않으셔도 됩니다"가 붙어 모순)]
+//   - body의 선택 요청 문장이 default_answer("안 고르셔도 돼요")와 충돌 — 선택 요청은 question이,
+//     무선택 안내는 default_answer가 담당하므로 body는 비교 중 사실 문장으로 고정(회사면 다리 문장 + 사실 문장).
+// functions/counsel2.js  v17.15  (2026-09-20)
+// [v17.15 — 회사→브랜드 다리 문장 (실측: "헥토헬스케어" 검색이 연결 설명 없이 드시모네로 시작)]
+//   - 회사명 검색이 단일 카테고리 브랜드 흐름으로 직행할 때, question에 회사명을 병기하고
+//     body 첫 문장이 회사↔브랜드 연결("헥토헬스케어 제품은 드시모네 브랜드로 비교")을 짚도록 플래그 지시 보강.
 // functions/counsel2.js  v17.14  (2026-09-19)
 // [v17.14 — 평가보기 경량 모드(?mode=eval) + 인증 서술 규칙]
 //   - eval 모드(app 평가보기 버튼 전용, 상담창 무변경): 지식·FAQ 미주입(불필요 입력 제거),
@@ -1432,7 +1446,54 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       const top1 = chipNames[0] || brandMatch.token;
       const catKo2 = matchedCategory ? CAT_KO[matchedCategory] : "";
       const shownBrand = companyName ? `${companyName}(${brandMatch.token})` : brandMatch.token;
-      flagBlock += `\n\n[브랜드 매칭] "${shownBrand}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다. 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요 — 존재 여부는 이 플래그가 확정합니다. 특정 제품이 지목되지 않았으므로 Q로 답하세요. question은 "${brandMatch.token}, 어떤 제품이 궁금하세요?" 한 문장. body는 1~2문장(이 브랜드 ${brandMatch.count}개 제품을 비교 중이라는 사실만 — 라벨이나 보장균수를 알려달라고 하지 마세요). chips는 빈 배열로 두세요 — 제품 선택지는 서버가 카드(평가보기 버튼 포함)로 붙이고, 무선택은 default_answer가 받습니다. default_answer는 정확히 다음 한 문장만: "안 고르셔도 돼요 — ${brandMatch.token} 중 성분 우선 1위인 ${top1} 기준으로 봐드릴게요." 두 번째 문장을 붙이지 마세요. 사용자가 추천을 요청한 질의라면 Q 대신 V로 이 브랜드 제품 중에서 추천하세요. 등급·수치는 [제품 데이터]에 있는 제품만 말합니다.`;
+      // [v17.17] 순수 브랜드/회사 검색이면 모델을 부르지 않고 즉답 — 문구는 아래 플래그가 지시하던 것과 동일.
+      {
+        const NEUTRAL_TOK = /^(제품|브랜드|정보|것|거|좀|검색|보여줘요?|보여주세요|알려줘요?|알려주세요|찾아줘|찾아)$/;
+        const _qToks = String(query).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).filter(Boolean).map(normEntity).filter(Boolean);
+        const _compN = companyName ? normEntity(companyName) : "";
+        const pureBrand = messages.length === 1 && _qToks.length > 0 &&
+          _qToks.every(t => t === brandMatch.token || (_compN && _compN.indexOf(t) !== -1) || NEUTRAL_TOK.test(t));
+        if (pureBrand) {
+          const catKo3 = matchedCategory ? CAT_KO[matchedCategory] : "";
+          const qHead3 = companyName ? `${companyName}의 ${brandMatch.token}` : brandMatch.token;
+          // buildReason은 이 지점보다 뒤에 정의된 const라 직접 쓸 수 없어(TDZ) 같은 형식으로 조립한다.
+          const _cfgG = matchedCategory && QUALITY_CFG[matchedCategory];
+          const reasonOf = (p) => {
+            const bits = [];
+            if (_cfgG && p.primary_mg != null) bits.push(`${_cfgG.primaryLabel} ${p.primary_mg.toLocaleString()}${_cfgG.unit}`);
+            if (p.daily_cost) bits.push(`하루 ${p.daily_cost.toLocaleString()}원`);
+            return bits.join(" · ");
+          };
+          const alts = brandCtx.filter(p => p.rank_quality != null).slice(0, 3)
+            .map(p => ({ product_id: p.product_id, name: p.name, reason: reasonOf(p) }));
+          const appCatKey3 = (matchedCategory && CAT_APP[matchedCategory]) || catKo3 || "";
+          return respond(fixedPayload("Q",
+            companyName
+              ? `${companyName} 제품은 ${brandMatch.token} 브랜드(${catKo3})로 비교하고 있어요. 지금 ${brandMatch.count}개를 비교 중이에요.`
+              : `${brandMatch.token} 브랜드 제품 ${brandMatch.count}개를 비교하고 있어요.`,
+            {
+              question: `${qHead3}, 어떤 제품이 궁금하세요?`,
+              default_answer: `안 고르셔도 돼요 — ${brandMatch.token} 중 성분 우선 1위인 ${top1} 기준으로 봐드릴게요.`,
+              chips: [], chips_prompts: [],
+              alternatives: alts,
+              alternatives_note: alts.length ? `${brandMatch.token} · 성분 우선 상위 ${alts.length}개` : null,
+              more_link: appCatKey3 ? {
+                label: `${brandMatch.token} 제품 전체보기 (${brandMatch.count}개)`,
+                href: `/app.html?category=${encodeURIComponent(appCatKey3)}&q=${encodeURIComponent(brandMatch.token)}`
+              } : null
+            }
+          ), { gate: "brand-direct", category: catKo3 || null, brandToken: brandMatch.token, companyName, demographics });
+        }
+      }
+      // [v17.15] 회사명으로 들어온 검색은 question·body가 회사↔브랜드 연결을 먼저 짚는다 —
+      // 연결 설명 없이 브랜드 얘기로 시작하면 사용자는 회사가 인식됐는지 알 수 없다(실측 피드백).
+      const qHead = companyName ? `${companyName}의 ${brandMatch.token}` : brandMatch.token;
+      // [v17.16] body를 문장 단위로 고정 — "골라주시면" 같은 선택 요청이 default_answer("안 고르셔도 돼요")와
+      // 모순을 만들던 실측 재발 방지. 선택 요청은 question, 무선택 안내는 default_answer의 몫.
+      const bodyFixed = companyName
+        ? `"${companyName} 제품은 ${brandMatch.token} 브랜드(${catKo2})로 비교하고 있어요. 지금 ${brandMatch.count}개를 비교 중이에요."`
+        : `"${brandMatch.token} 브랜드 제품 ${brandMatch.count}개를 비교하고 있어요."`;
+      flagBlock += `\n\n[브랜드 매칭] "${shownBrand}" 브랜드 제품이 비교 목록에 ${brandMatch.count}개 있습니다. 절대 "비교하지 않는 제품/브랜드"라고 말하지 마세요 — 존재 여부는 이 플래그가 확정합니다. 특정 제품이 지목되지 않았으므로 Q로 답하세요. question은 "${qHead}, 어떤 제품이 궁금하세요?" 한 문장. body는 정확히 다음 문장만 쓰세요: ${bodyFixed} — 여기에 "골라주시면"류 선택 요청이나 라벨·보장균수 요청 문장을 덧붙이지 마세요. chips는 빈 배열로 두세요 — 제품 선택지는 서버가 카드(평가보기 버튼 포함)로 붙이고, 무선택은 default_answer가 받습니다. default_answer는 정확히 다음 한 문장만: "안 고르셔도 돼요 — ${brandMatch.token} 중 성분 우선 1위인 ${top1} 기준으로 봐드릴게요." 두 번째 문장을 붙이지 마세요. 사용자가 추천을 요청한 질의라면 Q 대신 V로 이 브랜드 제품 중에서 추천하세요. 등급·수치는 [제품 데이터]에 있는 제품만 말합니다.`;
     } else if (productContext.length) {
       flagBlock += `\n\n[비지목] 사용자는 특정 제품을 언급하지 않았습니다. [제품 데이터]의 후보 중 하나를 골라 "이 제품은 권하지 않아요" 식의 단수 평결을 하지 마세요 — 추천 질의에는 추천(성분 우선 상위)으로 답합니다. 후보군에 사용자 상황과 안 맞는 제품(예: 어린이용)이 섞여 있어도 그것을 평결 대상으로 삼지 말고 조용히 제외하세요.`;
       // [v15.8] 명시적 수유/임신으로 여성 세그먼트가 걸렸을 때(제품 미지목) 프레이밍.
