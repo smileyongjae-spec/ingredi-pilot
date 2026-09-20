@@ -1,4 +1,8 @@
-// functions/_lib/axis-scores.js — 건강기능식품 core·축 점수 규칙 (v2.1, 2026-09-14)
+// functions/_lib/axis-scores.js — 건강기능식품 core·축 점수 규칙 (v2.3, 2026-09-19)
+// [v2.3] 인증 가산 교정(팩트체크 반영): GMP 20→10 — 국내 건기식은 2020년부터 GMP 전면 의무라
+//        변별 요소가 아니며 표기 성실성 수준의 가점만 남긴다. HACCP 5→0(삭제) — 일반식품 인증으로
+//        건기식 제도와 무관. BPOM 5→0(삭제) — 국내 소비자 변별력 없음. 자발적 3rd party
+//        (IFOS·GOED·NSF·NDI·QPS·GRAS)와 국제 FSMS(ISO22000)는 유지. 적용 시 일부 제품 등급 이동 가능.
 // [v2.2] 유산균 임시 산식 [Core 0.8]+[인증 0.2] — 제형점수 의존 제거(병합 불필요).
 // [v2.1] 눈 core: 루테인+지아잔틴 합산(ANCHORS.눈.multi[0].addFields) — 근거는 아래 주석 참조.
 //
@@ -85,16 +89,15 @@ function supplierScore(cat, raw) {
 // 인증 가산표 (상한 100). [정규식, 점수, 태그]. 배합 속성(Halal·Kosher·Non-GMO·Vegan 등)은 표에 없으므로 0.
 const CERT_TABLES = {
   "오메가3": [
-    [/IFOS\s*5/i, 55, "IFOS5"], [/IFOS/i, 40, "IFOS"], [/GOED/i, 25, "GOED"], [/C?GMP/i, 20, "GMP"], [/NSF/i, 15, "NSF"], [/MSC/i, 15, "MSC"],
-    [/ISO\s*22000|FSSC\s*22000/i, 15, "ISO22000"], [/IFFO|MARIN\s*TRUST/i, 10, "IFFO"], [/HACCP/i, 5, "HACCP"],
+    [/IFOS\s*5/i, 55, "IFOS5"], [/IFOS/i, 40, "IFOS"], [/GOED/i, 25, "GOED"], [/C?GMP/i, 10, "GMP"], [/NSF/i, 15, "NSF"], [/MSC/i, 15, "MSC"],
+    [/ISO\s*22000|FSSC\s*22000/i, 15, "ISO22000"], [/IFFO|MARIN\s*TRUST/i, 10, "IFFO"],
     [/\bFOS\b|FRIEND/i, 15, "FOS"]
   ],
   "마이크로바이옴": [
-    [/FDA\s*NDI|EFSA\s*QPS/i, 20, "REG"], [/C?GMP/i, 20, "GMP"], [/GRAS/i, 15, "GRAS"], [/ISO\s*22000|FSSC?\s*22000/i, 15, "ISO22000"], [/NSF/i, 15, "NSF"],
-    [/HACCP/i, 5, "HACCP"], [/BPOM/i, 5, "BPOM"]
+    [/FDA\s*NDI|EFSA\s*QPS/i, 20, "REG"], [/C?GMP/i, 10, "GMP"], [/GRAS/i, 15, "GRAS"], [/ISO\s*22000|FSSC?\s*22000/i, 15, "ISO22000"], [/NSF/i, 15, "NSF"]
   ],
   "비타민C": [
-    [/NSF/i, 20, "NSF"], [/C?GMP/i, 20, "GMP"], [/ISO\s*22000|FSSC\s*22000/i, 15, "ISO22000"], [/HACCP/i, 5, "HACCP"]
+    [/NSF/i, 20, "NSF"], [/C?GMP/i, 10, "GMP"], [/ISO\s*22000|FSSC\s*22000/i, 15, "ISO22000"]
   ]
 };
 function certScore(cat, raw) {
