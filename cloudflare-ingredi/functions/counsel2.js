@@ -1,3 +1,10 @@
+// functions/counsel2.js  v17.14  (2026-09-19)
+// [v17.14 — 평가보기 경량 모드(?mode=eval) + 인증 서술 규칙]
+//   - eval 모드(app 평가보기 버튼 전용, 상담창 무변경): 지식·FAQ 미주입(불필요 입력 제거),
+//     chips·되묻기·기본답·대안 생성 금지 + 코드 강제, body 3문장 초과 시 코드 절단, max_tokens 450.
+//     실측(out 440tok·45tok/s) 기준 목표 5초대.
+//   - 인증 서술 규칙(전 모드): 적힌 인증만 사실로. 부재를 감점처럼 서술 금지. 건기식 GMP는
+//     법적 의무(2020~)라 강점/결격 서술 금지, HACCP는 건기식 평가 기준 아님 — GMP·HACCP 오서술 실측 재발 방지.
 // functions/counsel2.js  v17.13  (2026-09-19)
 // [v17.13 — 응답 속도·비용 (실측: claude_ms 8.4~8.8s = 전체의 85%)]
 //   - 출력 다이어트: body 문장 상한(V 3문장·Q 2문장), question 1문장·default_answer 2문장,
@@ -138,6 +145,7 @@ export async function onRequest(context) {
 
   const url = new URL(request.url);
   const wantDebug = url.searchParams.get("debug") === "1";
+  const evalMode = url.searchParams.get("mode") === "eval";   // [v17.14] 카드 안 평가보기 전용 경량 모드
 
   // ─── 입력: POST messages[] 우선, GET ?q= 호환 ────
   let messages = [];
@@ -859,8 +867,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     const prodTable = prodCat ? QUALITY_CFG[prodCat].table : null;
     const _tT = Date.now();   // [v17.7]
     let [kRecords, fRecords, pRecords] = await Promise.all([
-      safeGet(KNOW_TABLE),
-      safeGet(FAQ_TABLE),
+      evalMode ? Promise.resolve([]) : safeGet(KNOW_TABLE),   // [v17.14] 평가 모드: 지식·FAQ 미주입(지목 평결에 불필요)
+      evalMode ? Promise.resolve([]) : safeGet(FAQ_TABLE),
       prodTable ? safeGet(prodTable) : Promise.resolve([])
     ]);
     tTables = Date.now() - _tT;   // [v17.7]
@@ -1270,6 +1278,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 - D: negative. "솔직히 말씀드리면, 권하지 않아요." alternatives 필수.
 - 지목 평결의 alternatives는 D(부정)에만 담습니다. A~C에서는 alternatives를 비우세요 — 묻지 않은 다른 제품을 카드로 붙이면 광고처럼 읽힙니다. 다른 제품 제안은 칩("다른 ○○도 추천받기")으로만 합니다.
 - 길이 상한(엄수): body는 V 3문장·Q 2문장 이내, question 1문장, default_answer 2문장 이내, alternatives의 reason은 20자 내외. 이 상한을 넘기지 마세요 — 생성 길이가 곧 응답 대기 시간입니다. 짧아서 빠진 내용은 사용자가 되물으면 그때 답합니다.
+- 인증 서술 규칙: [제품 데이터]에 적힌 인증만 사실로 말합니다. 적히지 않은 인증의 부재를 감점 사유처럼 말하지 마세요(예: "HACCP·ISO 같은 안전 인증이 확인되지 않아 아쉽다" 금지). 국내 건강기능식품 제조에는 GMP가 법적 의무(2020년 전면 시행)라 GMP를 특별한 강점처럼도, 미표기를 결격처럼도 쓰지 않습니다. HACCP는 일반식품 인증으로 건강기능식품의 평가 기준이 아닙니다.
 
 ## 밀크씨슬 — 등급이 없는 카테고리
 밀크씨슬(실리마린)은 등급·품질점수를 매기지 않습니다. 제품 간 품질을 가릴 검증 축이 부족해 채점하지 않기로 한 것이고, 물으면 이 사실을 숨기지 않고 그대로 말합니다: "이 카테고리는 등급을 매기지 않아요. 등급을 줄 근거가 부족한데 주는 게 더 정직하지 않다고 봐서요."
@@ -1458,7 +1467,9 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 
     const claudeMessages = messages.slice(0, -1).concat([{
       role: "user",
-      content: contextBlock + productBlock + flagBlock + "\n\n[사용자 질문]\n" + query
+      content: contextBlock + productBlock + flagBlock
+        + (evalMode ? "\n\n[평가 모드] 이 요청은 제품 카드 안 즉석 평가입니다. verdict 한 문장과 body 최대 3문장만 생성하세요. chips·chips_prompts는 빈 배열, question·default_answer·alternatives_note는 null, alternatives는 빈 배열. 되묻지 말고(Q 금지) 지금 데이터로 판단합니다." : "")
+        + "\n\n[사용자 질문]\n" + query
     }]);
 
     // ─── [9] Claude 호출 (비스트리밍) ───────────────
@@ -1474,7 +1485,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     const DIRECT_BASE = "https://api.anthropic.com";
     const _tC = Date.now();   // [v17.7] 모델 호출 구간 계측 시작
     const reqBody = JSON.stringify({
-      model: MODEL, max_tokens: 700,   // [v17.13] 출력 상한 축소 — 프롬프트 길이 상한과 세트
+      model: MODEL, max_tokens: evalMode ? 450 : 700,   // [v17.13/14] 출력 상한 — 평가 모드는 더 짧게
       // 프롬프트 캐싱: 시스템 프롬프트(페르소나·5정책·산식 설명, ~2,800토큰)는 매 호출 100% 동일하다.
       // 캐시 블록으로 표시하면 같은 프롬프트를 5분 내 재호출 시 이 부분 입력 단가가 0.1배로 떨어진다
       // (첫 기록만 1.25배). 상담은 멀티턴이라 2번째 턴부터 바로 절감. 캐시 최소 길이(Sonnet 1,024토큰) 충족.
@@ -1770,6 +1781,18 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
             payload.chips.unshift(suggChip);
             payload.chips_prompts.unshift(suggPrompt);
           }
+        }
+      }
+
+      // [v17.14] 평가 모드 코드 강제 — 패널은 verdict·body만 그린다. 모델이 지시를 어겨도 출력을 확정.
+      if (evalMode) {
+        if (payload.policy === "Q") { payload.policy = "V"; if (!payload.body && payload.default_answer) payload.body = payload.default_answer; }
+        payload.chips = []; payload.chips_prompts = [];
+        payload.question = null; payload.default_answer = null;
+        payload.alternatives = []; payload.alternatives_note = null;
+        if (payload.body) {
+          const _sents = String(payload.body).split(/(?<=[.!?])\s+/);
+          if (_sents.length > 3) payload.body = _sents.slice(0, 3).join(" ");   // 문장 상한 미준수 실측 → 코드 절단
         }
       }
 
