@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v2.5  (2026-09-19) — [v2.5] 상세 카드 "AI 평가보기": 카드가 가진 등급·순위·함량·단가·인증으로 코드가 즉시 평결 조립(모델 호출·비용 0, 건기식 v8.8과 동일 UI) -->
+<!-- sports.html  v2.6  (2026-09-19) — [v2.6] 코드 평결에 비교 맥락 주입: 유형 내 백분위·순위·가격대와 C·D 약점 지목("당연한 말" 탈피) / [v2.5] AI 평가보기 인라인 패널 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -514,19 +514,32 @@ function aievBuild(o){
   } else {
     sents.push(`솔직히 말씀드리면, ${shortName}은(는) 권하지 않아요.`);
   }
-  // ② 근거 — 확인된 값만
-  const why = [];
-  if (o.grade) why.push(`등급 ${o.grade}`);
-  if (o.rank && o.total) why.push(`${o.cat} ${o.total}개 중 ${o.rank}위`);
-  if (o.primary && o.primary.v > 0) why.push(`${o.primary.label} ${fmt(o.primary.v)}${o.primary.unit || ''}`);
-  if (o.dailyCost > 0) why.push(`1회 ${fmt(o.dailyCost)}원`);
-  if (why.length) sents.push(why.join(' · ') + '.');
+  // ② 근거 — 확인된 값 + 유형 내 비교 맥락(v2.6: 절대값만 나열하던 "당연한 말" 탈피)
+  if (o.grade && o.rank && o.total) sents.push(`등급 ${o.grade}, ${o.subLabel || o.cat} ${o.total}개 중 ${o.rank}위예요.`);
+  if (o.primary && o.primary.v > 0) {
+    const pc = o.primaryCmp;
+    const pos = pc ? (pc.band === 'top' ? `상위 ${pc.pct}% (${pc.rank}위)` : pc.band === 'mid' ? `중간대 (${pc.rank}위)` : `낮은 편 (${pc.rank}위)`) : '';
+    sents.push(`${o.primary.label} ${fmt(o.primary.v)}${o.primary.unit || ''}${pos ? ` — 같은 유형에서 ${pos}` : ''}.`);
+  }
+  if (o.dailyCost > 0) {
+    const cc = o.costCmp;
+    const pos = cc ? (cc.band === 'top' ? `저렴한 편 (${cc.rank}위)` : cc.band === 'mid' ? `중간대 (${cc.rank}위)` : `비싼 편 (${cc.rank}위)`) : '';
+    sents.push(`1회 ${fmt(o.dailyCost)}원${pos ? ` — 가격은 ${pos}` : ''}.`);
+  }
   const certs = o.certs.split(/[,\/·]/).map(x=>x.trim()).filter(Boolean);
   if (o.mfds) sents.push(`식약처 인정 기능성(${o.mfds})이 있는 제품이에요.`);
   if (certs.length) sents.push(`인증은 ${certs.slice(0,4).join(' · ')}이 확인됐어요.`);
   else if (o.tier !== 'none') sents.push(`제조·검사 인증은 확인되지 않았어요.`);
   if (o.pareto) sents.push(`같은 값이면 이보다 나은 선택이 없는 가성비 경계 제품이에요.`);
-  // ③ 주의 — 라벨·리뷰에서 확인된 것만
+  // ③ 주의 — 라벨·리뷰에서 확인된 것만. C·D는 어디서 깎였는지 지목(v2.6).
+  if (o.grade === 'C' || o.grade === 'D') {
+    const weak = [];
+    if (o.primaryCmp && o.primaryCmp.band === 'low') weak.push(`함량이 유형 내 낮은 편(${o.primaryCmp.rank}위)인 점`);
+    const certList = o.certs.split(/[,\/·]/).map(x=>x.trim()).filter(Boolean);
+    if (!certList.length) weak.push('확인된 인증이 없는 점');
+    if (o.costCmp && o.costCmp.band === 'low') weak.push(`가격이 비싼 편(${o.costCmp.rank}위)인 점`);
+    if (weak.length) warns.push(`${weak.join('과 ')}이 아쉬운 부분이에요.`);
+  }
   if (o.leucineLow != null) warns.push(`류신 ${fmt(o.leucineLow)}mg — ISSN 근합성 역치 2,500mg 미만이에요.`);
   if (o.cautions.length) warns.push(`구매 리뷰에서 ${o.cautions.join(' · ')} 언급이 있어요.`);
   let html = '<div class="aiev-verdict">' + esc(sents[0]) + '</div>';
@@ -667,9 +680,15 @@ function card(p,d){
     ? `<a class="cv-buybtn" href="${esc(p.link)}" target="_blank" rel="noopener">${cart}구매하러 가기</a>`
     : `<span class="cv-buybtn disabled">${cart}구매하러 가기</span>`;
   // [v2.5] AI 평가보기 — 평결 재료를 등록해 두고(모델 호출 없음) 버튼·패널을 카드에 심는다.
+  // [v2.6] 비교 맥락 — 목록의 compare()와 같은 분포(d.dist)·함수로 백분위·순위를 계산해 넘긴다.
+  const _pa = d.dist && d.dist.primary && d.dist.primary.arr, _ca = d.dist && d.dist.cost && d.dist.cost.arr;
+  const _pv = p.primary && p.primary.v;
   AIEV[String(p.id)] = {
     name: p.name, grade: p.qualityGrade || null, tier: d.tier, cat: d.category, total: d.total,
+    subLabel: ((d.subs || []).find(x => x.key === d.sub) || {}).label || d.category,
     rank: p.rank, primary: p.primary || null, dailyCost: p.dailyCost || 0,
+    primaryCmp: (_pv > 0 && _pa) ? { pct: pctOf(_pa, _pv, true), rank: rankOf(_pa, _pv, true), band: tierWord(pctOf(_pa, _pv, true)) } : null,
+    costCmp: (p.dailyCost > 0 && _ca) ? { pct: pctOf(_ca, p.dailyCost, false), rank: rankOf(_ca, p.dailyCost, false), band: tierWord(pctOf(_ca, p.dailyCost, false)) } : null,
     certs: String(p.certs || ''), mfds: p.mfdsFunction || null, leucineLow: p.leucineLow,
     hold: holdReason(p, d), cautions: ((p.reviews && p.reviews.caution) || []).map(x => x.label).filter(Boolean).slice(0, 2),
     pareto: !!p.isPareto
