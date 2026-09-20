@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v8.8  (2026-09-19) — [v8.8] 상세 카드 "AI 평가보기": 구매 버튼 옆 버튼 → 카드 안 인라인 패널로 상담 평결 표시(페이지 이동 없음, 제품별 캐시) / [v8.7] 모든 대상 탭 / [v8.5] ?q= -->
+<!-- app.html  v8.9  (2026-09-19) — [v8.9] 평가보기: counsel2 경량 모드(?mode=eval) 호출 + 로딩 문구 단계화 / [v8.8] 인라인 평가 패널 / [v8.7] 모든 대상 탭 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1386,9 +1386,10 @@ async function runAiEval(btn){
   const name = btn.getAttribute('data-aieval') || '';
   const key = btn.getAttribute('data-aikey') || name;
   if (aiEvalCache.has(key)){ panel.innerHTML = aiEvalCache.get(key); return; }
-  panel.innerHTML = '<div class="aiev-loading">AI가 이 제품을 평가하고 있어요</div>';
+  panel.innerHTML = '<div class="aiev-loading">제품 확인 중</div>';
+  const _lt = setTimeout(function(){ const l = panel.querySelector('.aiev-loading'); if (l) l.textContent = '평가 작성 중'; }, 1300);   // [v8.9] 대기 체감 완화
   try {
-    const res = await fetch('/counsel2?q=' + encodeURIComponent(name + ' 평가해줘'));
+    const res = await fetch('/counsel2?mode=eval&q=' + encodeURIComponent(name + ' 평가해줘'));   // [v8.9] 경량 모드
     const data = await res.json();
     const pl = (data && data.payload) || {};
     if (!pl.verdict && !pl.body) throw new Error('empty');
@@ -1401,7 +1402,7 @@ async function runAiEval(btn){
     panel.innerHTML = html;
   } catch (e) {
     panel.innerHTML = '<div class="aiev-body">지금 평가를 불러오지 못했어요. <a href="/consult.html?q=' + encodeURIComponent(name + ' 평가해줘') + '">상담 화면에서 보기 →</a></div>';
-  }
+  } finally { clearTimeout(_lt); }
 }
 document.addEventListener('click', function(e){
   const b = e.target.closest && e.target.closest('[data-aieval]');
