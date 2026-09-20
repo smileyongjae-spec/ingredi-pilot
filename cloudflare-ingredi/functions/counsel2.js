@@ -1,3 +1,10 @@
+// functions/counsel2.js  v17.20  (2026-09-20)
+// [v17.20 — 평가보기에 리뷰 요약 문단 추가 (코드 조립)]
+//   - 배선: 리뷰인사이트 테이블(TABLES.리뷰[카테고리])을 카테고리 확정 시 로드해 productContext에 붙인다
+//     (기존엔 counsel2가 리뷰를 전혀 읽지 않았다 — 목록/스포츠만 사용).
+//   - 문장은 코드가 조립한다(v17.19 인증 문장과 같은 원칙): 비율은 "리뷰에서 언급된 비중"임을 표기하고,
+//     판단 대신 조건 제시("○○가 중요하면 / ○○가 걸리면")로 쓴다. 리뷰 없으면 문단 자체를 만들지 않고,
+//     근거가 빈약하면(evidence_level 낮음·소량) 언급 사실만 말하고 조건 문장은 붙이지 않는다.
 // functions/counsel2.js  v17.19  (2026-09-20)
 // [v17.19 — 지목 평결의 인증 문장을 코드가 확정 (서술 규칙 3회 이탈 실측 → 지시 통제 포기)]
 //   - 모델은 지목 평결에서 인증을 언급하지 않는다(플래그 지시). 언급하면 코드가 그 문장을 제거하고,
@@ -891,10 +898,14 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     const prodCat = (matchedCategory && QUALITY_CFG[matchedCategory]) ? matchedCategory : (!matchedCategory ? "omega3" : null);
     const prodTable = prodCat ? QUALITY_CFG[prodCat].table : null;
     const _tT = Date.now();   // [v17.7]
-    let [kRecords, fRecords, pRecords] = await Promise.all([
+    // [v17.20] 리뷰인사이트 — 카테고리가 확정됐을 때만(제품 테이블과 1:1) 로드한다.
+    const REVIEW_KEY = { omega3: "오메가3", eye: "눈", probiotics: "마이크로바이옴", vitaminC: "비타민C", milkthistle: "밀크씨슬" };
+    const reviewTable = (matchedCategory && TABLES["리뷰"]) ? TABLES["리뷰"][REVIEW_KEY[matchedCategory]] : null;
+    let [kRecords, fRecords, pRecords, rRecords] = await Promise.all([
       evalMode ? Promise.resolve([]) : safeGet(KNOW_TABLE),   // [v17.14] 평가 모드: 지식·FAQ 미주입(지목 평결에 불필요)
       evalMode ? Promise.resolve([]) : safeGet(FAQ_TABLE),
-      prodTable ? safeGet(prodTable) : Promise.resolve([])
+      prodTable ? safeGet(prodTable) : Promise.resolve([]),
+      reviewTable ? safeGet(reviewTable) : Promise.resolve([])
     ]);
     tTables = Date.now() - _tT;   // [v17.7]
 
@@ -1171,9 +1182,36 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
           // [v15.23] 밀크씨슬(무채점)용 — 원료사는 명기만(점수 축 아님), raw_mg는 실리마린 미표기지만
           // 추출물 함량은 표기한 제품 식별용. 다른 카테고리에선 빈 값이라 영향 없다.
           supplier: asText(getField(f, "원료사")).trim() || null,
-          raw_mg: numOrNull(getField(f, "밀크씨슬_mg"))
+          raw_mg: numOrNull(getField(f, "밀크씨슬_mg")),
+          reviews: null   // [v17.20] 아래에서 리뷰인사이트를 매칭해 채운다
         };
       }).filter(p => p.name && p.pass !== "Fail" && (!targetSegment || p.segment === targetSegment));
+
+      // [v17.20] 리뷰인사이트 매칭 — sports-api와 같은 컬럼 규격(good/caution_label_N·_rate_N_pct|_score_N,
+      // review_evidence_level, review_count_display). product_id 기준으로 붙인다.
+      if ((rRecords || []).length) {
+        const rmap = new Map();
+        for (const r of rRecords) {
+          const rf = r.fields || {};
+          const pid = String(getField(rf, "product_id", "productId") || "").trim();
+          if (!pid) continue;
+          const rate = (n, kind) => numOrNull(getField(rf, `${kind}_rate_${n}_pct`)) ?? numOrNull(getField(rf, `${kind}_score_${n}`));
+          const mk = (n, kind) => {
+            const label = asText(getField(rf, `${kind}_label_${n}`)).trim();
+            return label ? { label, pct: rate(n, kind) } : null;
+          };
+          const good = [mk(1, "good"), mk(2, "good")].filter(Boolean);
+          const caution = [mk(1, "caution"), mk(2, "caution")].filter(Boolean);
+          if (!good.length && !caution.length) continue;
+          const totalM = asText(getField(rf, "review_count_display")).match(/([\d,]+)\s*건/);
+          rmap.set(pid, {
+            good, caution,
+            evidence: asText(getField(rf, "review_evidence_level", "evidence_level")).trim() || null,
+            total: totalM ? numOrNull(totalM[1].replace(/,/g, "")) : null
+          });
+        }
+        for (const p of items) { const rv = rmap.get(String(p.product_id).trim()); if (rv) p.reviews = rv; }
+      }
 
       // 축별 순위 계산 (전체 모집단 기준). 축은 2개 — 성분 우선(품질점수순)·가성비(파레토).
       // 둘 다 app.html의 "성분 우선"·"가성비 우선" 탭과 동일 로직이라 순위가 일치한다.
@@ -1880,6 +1918,44 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
           ? `인증은 ${_certToks.slice(0, 4).join("·")}가 표기되어 있어요.`
           : `인증 표기는 확인되지 않았어요.`;
         payload.body = (_kept.join(" ") + " " + _certSent).trim();
+      }
+
+      // [v17.20] 리뷰 요약 문단 — 코드가 조립해 body 끝에 덧붙인다(모델은 리뷰를 쓰지 않는다).
+      //   원칙 ① 리뷰 없으면 문단 자체 없음 ② 비율은 "리뷰에서 언급된 비중"으로 표기(만족도 아님)
+      //   ③ 판단("○○께 추천") 대신 조건 제시("○○가 중요하면 / ○○가 걸리면") ④ 근거 빈약하면 사실만.
+      if (productMatchRecord && payload.policy === "V" && typeof payload.body === "string") {
+        const _pm = productContext.find(p => String(p.product_id) === String(getField(productMatchRecord.fields || {}, "product_id", "productId") || productMatchRecord.id));
+        const _rv = _pm && _pm.reviews;
+        if (_rv && (_rv.good.length || _rv.caution.length)) {
+          const pctOf = (x) => (x.pct > 0 ? ` (${Math.round(x.pct)}%)` : "");
+          const totalTxt = _rv.total > 0 ? `리뷰 ${_rv.total.toLocaleString()}건에서 ` : "리뷰에서 ";
+          // 근거 충분 판정: evidence_level이 높음/중간 계열이거나 리뷰 200건 이상
+          const thin = !(/상|high|충분|중|medium/i.test(_rv.evidence || "") || (_rv.total || 0) >= 200);
+          const g = _rv.good, b = _rv.caution;
+          // 받침 여부로 조사 선택 — "가격 부담이" / "재구매가"
+          const josa = (w, withBat, noBat) => {
+            const ch = String(w).trim().slice(-1).charCodeAt(0);
+            const hasBat = ch >= 0xAC00 && ch <= 0xD7A3 ? ((ch - 0xAC00) % 28) !== 0 : true;
+            return w + (hasBat ? withBat : noBat);
+          };
+          let s = "";
+          if (thin) {
+            // 빈약: 언급 사실만. 조건 문장 없음.
+            const mentions = g.concat(b).slice(0, 3).map(x => x.label + pctOf(x)).join(" · ");
+            s = `${totalTxt}${mentions} 언급이 있어요. 아직 표본이 적어 참고만 하세요.`;
+          } else {
+            const parts = [];
+            if (g.length) parts.push(`${totalTxt}${g.map(x => x.label + pctOf(x)).join("·")} 언급이 많아요`);
+            if (b.length) parts.push(`${g.length ? "" : totalTxt}${b.map(x => x.label + pctOf(x)).join("·")} 언급${g.length ? "도 있고요" : "이 있어요"}`);
+            s = parts.join(", ") + ".";
+            // 조건 제시 — 좋은 점만 있으면 어미를 종결형으로 닫는다("…잘 맞고."가 되지 않게)
+            const cond = [];
+            if (g.length) cond.push(`${josa(g[0].label, "이", "가")} 중요하면 ${b.length ? "잘 맞고" : "잘 맞는 제품이에요"}`);
+            if (b.length) cond.push(`${josa(b[0].label, "이", "가")} 걸리면 같은 등급의 다른 제품도 함께 보세요`);
+            if (cond.length) s += ` ${cond.join(", ")}.`;
+          }
+          payload.body = (payload.body + " " + s).trim();
+        }
       }
 
       // [v15.17] 내부 필드명 스크러빙 — LLM이 "가성비 기준(rank_value) 상위 3개"처럼 스키마
