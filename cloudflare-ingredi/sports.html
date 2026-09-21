@@ -729,6 +729,8 @@ function card(p,d){
     pareto: !!p.isPareto
   };
   // [v2.8] 한 줄 3버튼 — 구매가 가장 크고(flex 1.5), AI 평가·제품 비교는 작게(각 flex 1).
+  //        _on은 아래 카드 루트에서도 쓰므로 여기서 먼저 선언한다(TDZ 방지).
+  const _on = cmpHas(p.id);
   const buy = `<div class="cv-buyrow">${buyCore}`
     + `<button class="cv-sbtn" type="button" data-aieval="${esc(String(p.id))}"><span class="sb-t">AI 평가</span></button>`
     + `<button class="cv-sbtn cv-cmpbtn${_on ? ' on' : ''}" type="button" data-pick="${esc(String(p.id))}" data-pname="${esc(p.name||'')}" data-pimg="${esc(p.image||'')}">`
@@ -741,7 +743,6 @@ function card(p,d){
   // 가성비 경계 배지는 가성비 탭에서만. 성분 탭에서 띄우면 축이 섞여 보인다.
   // 정렬에는 쓰지 않고 "같은 값이면 이보다 나은 선택이 없다"는 정보로만 남긴다.
   const pareto = (profile==='value' && p.isPareto) ? `<span class="cv-pareto">가성비 경계</span>` : '';
-  const _on = cmpHas(p.id);
   return `<div class="cv-card${_on ? ' picked' : ''}" id="prod-${esc(p.id)}" data-pcard="${esc(String(p.id))}">
     <div class="cv-top"><span class="cv-rank">${p.rank}위${pareto}</span>
       ${badge}</div>
