@@ -1,3 +1,10 @@
+// functions/counsel2.js  v17.23  (2026-09-21)
+// [v17.23 — 모델 비교(Sonnet/Haiku) 전 코드 확정 3건 — 어느 모델이든 품질 하한을 코드가 보장]
+//   - chips_prompts 생성 중단: 칩 문구를 그대로 발화로 보낸다(코드가 chips에서 복사). 출력 절감.
+//     플래그가 특정 발화를 지정하는 경우(안전 프로필 등)만 모델이 쓴 같은 길이의 값을 보존.
+//   - 지목 평결의 순위·등급 문장 코드 확정: "성분 우선 N위, ○등급 제품이에요."를 body 첫 문장으로.
+//     모델이 쓴 순위·등급 문장은 제거(Haiku 실측: 락티젠 평결에 근거 누락 / 모델별 편차 차단).
+//   - Q 응답 body의 물음표 문장 제거: question과 같은 질문을 두 번 하던 문제(guard dup_question 실측).
 // functions/counsel2.js  v17.22  (2026-09-21)
 // [v17.22 — 출력 잘림 시 제품 카드 소실 수리 (실측: 3회 중 2회 out_tok 700 도달 → repaired·alternatives [])]
 //   - 원인 ①: 복구(salvage) 경로가 정규화 블록 전체를 건너뛰어 v15.7 카드 백필·body 3문장 절단·
@@ -1402,9 +1409,9 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 - 같은 대화에서 판단을 번복하지 않습니다. 새 정보가 나오면 번복이 아니라 갱신임을 명시합니다.
 
 ## 출력 (반드시 이 JSON만, 코드펜스·인사말 금지)
-{"policy":"V|Q|M|X","verdict_tone":"positive|negative|conditional|none","verdict":"평결 한 문장(V 필수, 외 null)","alternatives":[{"product_id":"...","reason":"20자 내외"}],"alternatives_note":"대안·추천 목록의 선정 기준 한 줄 (없으면 null)","body":"본문","warning":"경고(없으면 null)","question":"되묻기 질문 한 문장·물음표로 끝냄(Q만)","chips":["..."],"chips_prompts":["칩을 눌렀을 때 사용자 발화로 보낼 자연어 문장"],"default_answer":"Q의 완결된 기본 답·되묻기 금지(Q만)","handoff":"M일 때 병원에서 물어볼 것(외 null)"}
+{"policy":"V|Q|M|X","verdict_tone":"positive|negative|conditional|none","verdict":"평결 한 문장(V 필수, 외 null)","alternatives":[{"product_id":"...","reason":"20자 내외"}],"alternatives_note":"대안·추천 목록의 선정 기준 한 줄 (없으면 null)","body":"본문","warning":"경고(없으면 null)","question":"되묻기 질문 한 문장·물음표로 끝냄(Q만)","chips":["눌렀을 때 그대로 사용자 발화로 보낼 짧은 문장"],"default_answer":"Q의 완결된 기본 답·되묻기 금지(Q만)","handoff":"M일 때 병원에서 물어볼 것(외 null)"}
 - verdict_tone 규칙: positive=긍정 평결, negative=부정 평결(alternatives 필수), conditional=조건부(warning 필수), none=Q/M/X.
-- chips와 chips_prompts는 같은 길이. alternatives의 product_id는 [제품 데이터]에 있는 것만. alternatives에는 제품명을 쓰지 마세요(화면이 정본 이름을 붙입니다). 키 순서는 위 형식 그대로 지키세요.
+- chips_prompts는 쓰지 마세요 — 칩 문구가 그대로 사용자 발화로 전송되므로, 칩은 짧아도 그 자체로 뜻이 통하게 씁니다(예: "가성비 좋은 걸로 보여줘"). alternatives의 product_id는 [제품 데이터]에 있는 것만. alternatives에는 제품명을 쓰지 마세요(화면이 정본 이름을 붙입니다). 키 순서는 위 형식 그대로 지키세요.
 - rank_quality·rank_value·primary_mg 같은 내부 필드명을 사용자에게 보이는 문장에 쓰지 마세요. 한국어로("성분 우선", "가성비") 쓰세요.
 - JSON 문자열 값 안에서 큰따옴표(")를 쓰지 마세요. 인용이 필요하면 홑따옴표(\'')나 낫표(「」)를 쓰세요. 큰따옴표를 쓰면 응답 전체가 깨집니다.`;
 
@@ -1491,7 +1498,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     }
     if (productMatchRecord) {
       const pmName = getField(productMatchRecord.fields || {}, "제품명", "네이버_제품명", "name");
-      flagBlock += `\n\n[대상 제품] 사용자가 언급한 제품이 데이터에 있습니다: "${pmName}". [제품 데이터]에서 이 제품을 찾아 그 수치로 바로 평결하세요. "데이터에 없다"거나 "라벨을 알려달라"고 되묻지 마세요 — 수치는 이미 [제품 데이터]에 있습니다. 이 제품이 다른 카테고리 성분까지 포함한 복합제여도, 우리 카테고리 성분(예: 루테인+지아잔틴)의 표기된 수치로 평결하고, 범위 밖 성분(예: 전립선·쏘팔메토)은 "그 부분은 제 범위 밖이라 판단하지 않아요"라고만 밝히세요. 또한 이 제품의 주된 목적이 우리 카테고리가 아니어도(예: 다이어트 제품에 유산균이 함께 든 경우), 먼저 이 제품이 무엇인지(주된기능성) 밝히고 우리 축 수치로 평결하되, "좋다/나쁘다" 단정보다 사실 위주로 알려주세요. 인증(GMP·HACCP 등)은 언급하지 마세요 — 인증 문장은 서버가 데이터에서 만들어 붙입니다.`;
+      flagBlock += `\n\n[대상 제품] 사용자가 언급한 제품이 데이터에 있습니다: "${pmName}". [제품 데이터]에서 이 제품을 찾아 그 수치로 바로 평결하세요. "데이터에 없다"거나 "라벨을 알려달라"고 되묻지 마세요 — 수치는 이미 [제품 데이터]에 있습니다. 이 제품이 다른 카테고리 성분까지 포함한 복합제여도, 우리 카테고리 성분(예: 루테인+지아잔틴)의 표기된 수치로 평결하고, 범위 밖 성분(예: 전립선·쏘팔메토)은 "그 부분은 제 범위 밖이라 판단하지 않아요"라고만 밝히세요. 또한 이 제품의 주된 목적이 우리 카테고리가 아니어도(예: 다이어트 제품에 유산균이 함께 든 경우), 먼저 이 제품이 무엇인지(주된기능성) 밝히고 우리 축 수치로 평결하되, "좋다/나쁘다" 단정보다 사실 위주로 알려주세요. 인증(GMP·HACCP 등)은 언급하지 마세요 — 인증 문장은 서버가 데이터에서 만들어 붙입니다. 성분 우선 순위와 등급도 쓰지 마세요 — "성분 우선 N위, ○등급" 문장은 서버가 본문 첫머리에 붙이니, body는 그 뒤에 이어질 이 제품의 특징(함량·대상·가격) 두 문장으로만 쓰세요.`;
       if (targetSegment) flagBlock += ` 이 제품은 '${targetSegment}' 대상 제품이며, [제품 데이터]의 대안도 모두 같은 '${targetSegment}' 대상입니다 — 대안을 권할 때 "같은 ${targetSegment} 유산균 중에서" 같은 표현으로 대상을 맞춰 안내하세요.`;
       if (brandMatch && brandMatch.count >= 2) flagBlock += ` 같은 브랜드 제품이 비교 목록에 총 ${brandMatch.count}개 있습니다 — 사용자가 다른 모델을 말하는 것 같으면 어느 제품인지 확인하세요.`;
     } else if (brandMatch) {
@@ -1770,7 +1777,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       if (payload.policy !== "Q") { payload.question = null; payload.default_answer = null; }
       if (!Array.isArray(payload.chips)) payload.chips = null;
       if (!Array.isArray(payload.chips_prompts)) payload.chips_prompts = null;
-      if (payload.chips && payload.chips_prompts && payload.chips.length !== payload.chips_prompts.length) payload.chips_prompts = payload.chips.slice();
+      // [v17.23] 모델은 chips_prompts를 쓰지 않는다 — 칩 문구를 그대로 발화로. 플래그 지정으로 같은 길이가 오면 보존.
+      if (payload.chips && (!payload.chips_prompts || payload.chips.length !== payload.chips_prompts.length)) payload.chips_prompts = payload.chips.slice();
       if (!Array.isArray(payload.alternatives)) payload.alternatives = [];
       // alternatives는 제품 컨텍스트에 실재하는 ID만 통과 (환각 차단)
       const validIds = new Set(productContext.map(p => String(p.product_id)));
@@ -1933,6 +1941,13 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         }
       }
 
+      // [v17.23] Q 응답 body의 물음표 문장 제거 — 질문은 question 필드가 한 번만 한다(dup_question 실측).
+      if (payload.policy === "Q" && payload.question && typeof payload.body === "string" && payload.body) {
+        const _qs = payload.body.split(/(?<=[.!?？])\s+/);
+        const _qk = _qs.filter(x => !/[?？]\s*$/.test(x.trim()));
+        if (_qk.length && _qk.length < _qs.length) payload.body = _qk.join(" ");
+      }
+
       // [v17.21] V 응답 body 3문장 상한을 전 모드에 코드로 적용 — 프롬프트 지시만으론 지켜지지 않음(실측).
       if (!evalMode && payload.policy === "V" && typeof payload.body === "string") {
         const _bs = payload.body.split(/(?<=[.!?])\s+/);
@@ -1946,11 +1961,18 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         const _certRaw = String(getField(productMatchRecord.fields || {}, "인증") || "").trim();
         const _certToks = _certRaw.split(/[,\/·]/).map(t => t.trim()).filter(Boolean);
         const _CERT_RE = /GMP|HACCP|FSSC|ISO\s*-?\s*\d*|NSF|GRAS|IFOS|GOED|BPOM|인증/i;
-        const _kept = String(payload.body).split(/(?<=[.!?])\s+/).filter(s => !_CERT_RE.test(s));
+        // [v17.23] 순위·등급 문장도 코드가 확정한다 — 모델별로 근거가 빠지거나(Haiku 실측) 수치가 흔들린다.
+        const _pmId = String(getField(productMatchRecord.fields || {}, "product_id", "productId") || productMatchRecord.id);
+        const _pm = productContext.find(p => String(p.product_id) === _pmId);
+        const _rankSent = (_pm && _pm.grade && _pm.rank_quality && !(QUALITY_CFG[matchedCategory] || {}).unscored)
+          ? `성분 우선 ${_pm.rank_quality}위, ${_pm.grade}등급 제품이에요.` : null;
+        const _RANK_RE = /\d+\s*위|[A-E]\s*등급/;
+        let _kept = String(payload.body).split(/(?<=[.!?])\s+/).filter(s => !_CERT_RE.test(s));
+        if (_rankSent) _kept = _kept.filter(s => !_RANK_RE.test(s)).slice(0, 2);
         const _certSent = _certToks.length
           ? `인증은 ${_certToks.slice(0, 4).join("·")}가 표기되어 있어요.`
           : `인증 표기는 확인되지 않았어요.`;
-        payload.body = (_kept.join(" ") + " " + _certSent).trim();
+        payload.body = ((_rankSent ? _rankSent + " " : "") + _kept.join(" ") + " " + _certSent).replace(/\s{2,}/g, " ").trim();
       }
 
 
