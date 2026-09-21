@@ -1,3 +1,9 @@
+// functions/counsel2.js  v17.21  (2026-09-20)
+// [v17.21 — FAQ 871행 확장 후 출력 폭증 대응 (실측: out_tok 700 = max_tokens 상한 도달 → JSON 잘림·repaired)]
+//   - 원인: 새 FAQ 답변 평균 195자(기존 145자) + 풀이 풍부해져 상위 8건 중 7건이 FAQ → 재료가 많아
+//     모델이 길게 쓰다 상한에 잘림. max_tokens 상향은 더 느려지므로 재료를 줄인다.
+//   - 주입 문서 8→5건, 각 답변은 문장 경계 기준 160자로 요약 주입(핵심 1~2문장은 보존).
+//   - body 3문장 상한을 평가 모드뿐 아니라 전 V 응답에 코드로 적용(표시 품질 보장).
 // functions/counsel2.js  v17.20  (2026-09-20)
 // [v17.20 — 약물 병용 게이트 (옛 fallback 정책표 F4 대조 결과 유일한 누락)]
 //   - "와파린이랑 오메가3 같이 먹어도 돼?"처럼 약 이름 + 병용 표현이 오는 질의는
@@ -1130,7 +1136,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         });
       }
     }
-    const top = scored.slice(0, 8).map(x => x.d);
+    const top = scored.slice(0, 5).map(x => x.d);   // [v17.21] 8→5: FAQ 871행 확장 후 재료 과다로 출력이 상한(700)에 잘리던 문제
 
     // ─── [5] W 플래그 (v7 riskKeywords 계승) ────────
     const riskKeywords = {
@@ -1397,13 +1403,19 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     let contextBlock = "[검색된 지식]\n";
     const knowledgeMatched = top.filter(d => d.kind === "knowledge");
     const faqMatched = top.filter(d => d.kind === "faq");
+    // [v17.21] 문서 답변은 문장 경계 기준 160자로 요약해 주입 — 핵심은 앞 1~2문장에 있다.
+    const clip = (t, n = 160) => {
+      const s = String(t || "").trim(); if (s.length <= n) return s;
+      const cut = s.slice(0, n); const p = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("다."), cut.lastIndexOf("요."));
+      return (p > 60 ? cut.slice(0, p + 1) : cut) + "…";
+    };
     knowledgeMatched.forEach((d, i) => {
       contextBlock += `\n[K${i+1}] ${d.id} (${d.topic}): ${d.oneline}`;
-      if (d.answer) contextBlock += ` — ${d.answer}`;
+      if (d.answer) contextBlock += ` — ${clip(d.answer)}`;
       if (d.evidence) contextBlock += ` (근거: ${d.evidence})`;
     });
     faqMatched.forEach((d, i) => {
-      contextBlock += `\n[F${i+1}] Q: ${d.question} / A: ${d.answer}`;
+      contextBlock += `\n[F${i+1}] Q: ${d.question} / A: ${clip(d.answer)}`;
       if (d.evidence) contextBlock += ` (근거: ${d.evidence})`;
     });
     if (knowledgeMatched.length === 0 && faqMatched.length === 0) contextBlock += "\n(없음)";
@@ -1891,6 +1903,12 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
           const _sents = String(payload.body).split(/(?<=[.!?])\s+/);
           if (_sents.length > 3) payload.body = _sents.slice(0, 3).join(" ");   // 문장 상한 미준수 실측 → 코드 절단
         }
+      }
+
+      // [v17.21] V 응답 body 3문장 상한을 전 모드에 코드로 적용 — 프롬프트 지시만으론 지켜지지 않음(실측).
+      if (!evalMode && payload.policy === "V" && typeof payload.body === "string") {
+        const _bs = payload.body.split(/(?<=[.!?])\s+/);
+        if (_bs.length > 3) payload.body = _bs.slice(0, 3).join(" ");
       }
 
       // [v17.19] 지목 평결의 인증 문장은 코드가 확정한다 — 모델이 쓴 인증 문장은 제거하고 정본을 붙인다.
