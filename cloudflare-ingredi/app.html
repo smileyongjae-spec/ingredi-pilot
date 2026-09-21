@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v9.0  (2026-09-20) — [v9.0] 비교 담기: 카드·리스트에서 보면서 체크 → 하단 고정 바(2~4개) → compare.html로 전달 / [v8.9] 평가보기 경량 모드 / [v8.7] 모든 대상 탭 -->
+<!-- app.html  v9.1  (2026-09-20) — [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -440,6 +440,15 @@
     .cv-buyrow .cv-buybtn { flex: 1 1 auto; }
     .cv-aieval { flex: 0 0 auto; margin-top: 13px; padding: 0 14px; background: var(--surface); color: var(--green-primary); border: 1px solid var(--green-primary); border-radius: 12px; font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; }
     .cv-aieval:active { transform: scale(0.98); }
+    /* [v9.1] 구매 줄 3버튼 — 구매가 주, 보조 2개는 작게 */
+    .cv-buyrow .cv-buybtn { flex: 1.5 1 0; font-size: 14px; padding-left: 0; padding-right: 0; }
+    .cv-sbtn { flex: 1 1 0; margin-top: 13px; background: var(--surface); color: var(--green-primary); border: 1px solid var(--green-primary); border-radius: 12px; padding: 6px 2px; font-family: inherit; cursor: pointer; line-height: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+    .cv-sbtn .sb-t { font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+    .cv-sbtn .sb-s { font-size: 9.5px; color: var(--ink-soft); white-space: nowrap; }
+    .cv-sbtn:active { transform: scale(0.98); }
+    .cv-cmpbtn.on { background: var(--green-tint); border-width: 1.5px; color: var(--green-deep); }
+    .cv-cmpbtn.on .sb-t { font-weight: 800; }
+    .cv-cmpbtn.on .sb-s { color: var(--green-deep); }
     .cv-aipanel { margin-top: 10px; border: 1px solid var(--line-soft); border-radius: 12px; background: #FBFAF7; padding: 12px 14px; font-size: 13px; line-height: 1.7; color: var(--ink); }
     .cv-aipanel .aiev-verdict { font-weight: 800; color: var(--green-deep); font-size: 14px; margin-bottom: 6px; }
     .cv-aipanel .aiev-warn { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); color: #8A6D3B; font-size: 12.5px; }
@@ -1329,7 +1338,12 @@ function renderCardV8(p, ctx){
     ? `<a class="cv-buybtn" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">${cartSvg}구매하러 가기</a>`
     : `<span class="cv-buybtn disabled">${cartSvg}구매하러 가기</span>`;
   // [v8.8] 구매 버튼 옆 "AI 평가보기" + 카드 안 인라인 평결 패널(누르면 내려오고 다시 누르면 접힘)
-  const buyBtn = `<div class="cv-buyrow">${buyBtnCore}<button class="cv-aieval" type="button" data-aieval="${escapeHtml(p.name || '')}" data-aikey="${escapeHtml(String(p.id || p.name || ''))}">AI 평가보기</button></div><div class="cv-aipanel" data-aipanel hidden></div>`;
+  // [v9.1] 한 줄 3버튼 — 구매가 가장 크고(flex 1.5), AI 평가·제품 비교는 작게(각 flex 1).
+  const buyBtn = `<div class="cv-buyrow">${buyBtnCore}`
+    + `<button class="cv-sbtn" type="button" data-aieval="${escapeHtml(p.name || '')}" data-aikey="${escapeHtml(_pid || p.name || '')}"><span class="sb-t">AI 평가</span></button>`
+    + `<button class="cv-sbtn cv-cmpbtn${_on ? ' on' : ''}" type="button" data-pick="${escapeHtml(_pid)}" data-pname="${escapeHtml(p.name || '')}" data-pimg="${escapeHtml(p.image || '')}">`
+    + `<span class="sb-t">${_on ? '✓ 담음' : '제품 비교'}</span><span class="sb-s">${_on ? '빼기' : '(3개까지)'}</span></button>`
+    + `</div><div class="cv-aipanel" data-aipanel hidden></div>`;
 
   const basis = ctx.basis || buildBasis([p]);
   const rankLabel = `${ctx.rank || ((ctx.idx||0)+1)}위`;
@@ -1347,9 +1361,6 @@ function renderCardV8(p, ctx){
   return `<div class="cv-card${_on ? ' picked' : ''}" id="prod-${escapeHtml(_pid)}" data-pcard="${escapeHtml(_pid)}">
     <div class="cv-top">
       <span class="cv-rank">${rankLabel}</span>
-      <button class="cv-pick${_on ? ' on' : ''}" type="button" data-pick="${escapeHtml(_pid)}" data-pname="${escapeHtml(p.name || '')}" data-pimg="${escapeHtml(p.image || '')}">
-        <span class="cvp-box"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="cvp-txt">${_on ? '담음' : '비교 담기'}</span>
-      </button>
       <span class="cv-gwrap">
         ${unscored ? "" : (grade
           ? `<span class="cv-grade" style="background:${gb};color:${gt};border-color:${gbd}">${grade}</span>`
@@ -1445,7 +1456,7 @@ document.addEventListener('click', function(e){
 // ── [v9.0] 비교 담기 ─────────────────────────────────────────
 // 카드·리스트 어디서든 체크하면 하단 바가 올라오고, 2~4개일 때 compare.html로 넘긴다.
 // 선택은 카테고리·대상 탭 단위로만 유효하다(다른 유형끼리는 비교가 성립하지 않음) → 탭 이동 시 초기화.
-const PICK_MAX = 4;
+const PICK_MAX = 3;   // [v9.1] 비교 화면 기준
 let picks = [];   // [{id, name, img}]
 function pickHas(id){ return picks.some(x => x.id === String(id)); }
 function pickClear(){ if (picks.length){ picks = []; renderPickBar(); } }
@@ -1463,7 +1474,9 @@ function syncPickUI(){
   document.querySelectorAll('[data-pick]').forEach(function(b){
     const on = pickHas(b.getAttribute('data-pick'));
     b.classList.toggle('on', on);
-    const t = b.querySelector('.cvp-txt'); if (t) t.textContent = on ? '담음' : '비교 담기';
+    const t = b.querySelector('.sb-t'); if (t) t.textContent = on ? '✓ 담음' : '제품 비교';
+    const sb = b.querySelector('.sb-s'); if (sb) sb.textContent = on ? '빼기' : `(${PICK_MAX}개까지)`;
+    const legacy = b.querySelector('.cvp-txt'); if (legacy) legacy.textContent = on ? '담음' : '비교 담기';
   });
   document.querySelectorAll('[data-pcard]').forEach(function(c){
     c.classList.toggle('picked', pickHas(c.getAttribute('data-pcard')));
