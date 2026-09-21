@@ -825,7 +825,7 @@ function cmpRenderBar(){
   const go = document.getElementById('pbGo');
   go.classList.toggle('on', ready);
   go.textContent = ready ? '비교하기 →' : '비교하기';
-  go.href = ready ? `/compare.html?domain=sports&category=${encodeURIComponent(activeSub || activeCat)}&picks=${encodeURIComponent(cmpPicks.map(p => p.id).join(","))}` : '#';
+  go.href = ready ? `/compare.html?domain=sports&category=${encodeURIComponent(activeSub || activeCat)}&ids=${encodeURIComponent(cmpPicks.map(p => p.id).join(","))}` : '#';   // [v2.8] compare.html은 ids로 받는다
   document.body.style.paddingBottom = '78px';
 }
 document.addEventListener('click', function(e){
