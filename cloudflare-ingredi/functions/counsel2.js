@@ -1,3 +1,12 @@
+// functions/counsel2.js  v17.22  (2026-09-21)
+// [v17.22 — 출력 잘림 시 제품 카드 소실 수리 (실측: 3회 중 2회 out_tok 700 도달 → repaired·alternatives [])]
+//   - 원인 ①: 복구(salvage) 경로가 정규화 블록 전체를 건너뛰어 v15.7 카드 백필·body 3문장 절단·
+//     인증 정본 문장·내부 필드명 스크러빙이 전부 적용되지 않았다. → 복구본도 같은 정규화를 통과시킨다.
+//   - 원인 ②: 스키마에서 alternatives가 뒤쪽(chips 다음)이라 잘릴 때 먼저 잘려 나갔다.
+//     → alternatives·alternatives_note를 verdict 바로 뒤로 이동, 복구 시 완결된 항목은 살린다.
+//   - 출력 절감: alternatives의 name을 모델이 쓰지 않는다(코드가 DB 정본명을 붙이므로 중복 생성이었음).
+//   - max_tokens 700→900: 자연 종료(1회차 621tok)는 속도 변화 없음, 넘치던 경우만 늦어진다.
+//   - debug: stop_reason, scores(성분 우선 상위 제품의 실시간 점수·등급 — axis 규칙 반영 확인용).
 // functions/counsel2.js  v17.21  (2026-09-20)
 // [v17.21 — FAQ 871행 확장 후 출력 폭증 대응 (실측: out_tok 700 = max_tokens 상한 도달 → JSON 잘림·repaired)]
 //   - 원인: 새 FAQ 답변 평균 195자(기존 145자) + 풀이 풍부해져 상위 8건 중 7건이 FAQ → 재료가 많아
@@ -1393,9 +1402,9 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 - 같은 대화에서 판단을 번복하지 않습니다. 새 정보가 나오면 번복이 아니라 갱신임을 명시합니다.
 
 ## 출력 (반드시 이 JSON만, 코드펜스·인사말 금지)
-{"policy":"V|Q|M|X","verdict_tone":"positive|negative|conditional|none","verdict":"평결 한 문장(V 필수, 외 null)","body":"본문","warning":"경고(없으면 null)","question":"되묻기 질문 한 문장·물음표로 끝냄(Q만)","chips":["..."],"chips_prompts":["칩을 눌렀을 때 사용자 발화로 보낼 자연어 문장"],"default_answer":"Q의 완결된 기본 답·되묻기 금지(Q만)","alternatives":[{"product_id":"...","name":"...","reason":"한 줄"}],"alternatives_note":"대안·추천 목록의 선정 기준 한 줄 (없으면 null)","handoff":"M일 때 병원에서 물어볼 것(외 null)"}
+{"policy":"V|Q|M|X","verdict_tone":"positive|negative|conditional|none","verdict":"평결 한 문장(V 필수, 외 null)","alternatives":[{"product_id":"...","reason":"20자 내외"}],"alternatives_note":"대안·추천 목록의 선정 기준 한 줄 (없으면 null)","body":"본문","warning":"경고(없으면 null)","question":"되묻기 질문 한 문장·물음표로 끝냄(Q만)","chips":["..."],"chips_prompts":["칩을 눌렀을 때 사용자 발화로 보낼 자연어 문장"],"default_answer":"Q의 완결된 기본 답·되묻기 금지(Q만)","handoff":"M일 때 병원에서 물어볼 것(외 null)"}
 - verdict_tone 규칙: positive=긍정 평결, negative=부정 평결(alternatives 필수), conditional=조건부(warning 필수), none=Q/M/X.
-- chips와 chips_prompts는 같은 길이. alternatives의 product_id는 [제품 데이터]에 있는 것만.
+- chips와 chips_prompts는 같은 길이. alternatives의 product_id는 [제품 데이터]에 있는 것만. alternatives에는 제품명을 쓰지 마세요(화면이 정본 이름을 붙입니다). 키 순서는 위 형식 그대로 지키세요.
 - rank_quality·rank_value·primary_mg 같은 내부 필드명을 사용자에게 보이는 문장에 쓰지 마세요. 한국어로("성분 우선", "가성비") 쓰세요.
 - JSON 문자열 값 안에서 큰따옴표(")를 쓰지 마세요. 인용이 필요하면 홑따옴표(\'')나 낫표(「」)를 쓰세요. 큰따옴표를 쓰면 응답 전체가 깨집니다.`;
 
@@ -1594,7 +1603,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     const DIRECT_BASE = "https://api.anthropic.com";
     const _tC = Date.now();   // [v17.7] 모델 호출 구간 계측 시작
     const reqBody = JSON.stringify({
-      model: MODEL, max_tokens: evalMode ? 450 : 700,   // [v17.13/14] 출력 상한 — 평가 모드는 더 짧게
+      model: MODEL, max_tokens: evalMode ? 450 : 900,   // [v17.13/14] 출력 상한 — 평가 모드는 더 짧게 / [v17.22] 700→900(잘림 시 카드 소실 실측)
       // 프롬프트 캐싱: 시스템 프롬프트(페르소나·5정책·산식 설명, ~2,800토큰)는 매 호출 100% 동일하다.
       // 캐시 블록으로 표시하면 같은 프롬프트를 5분 내 재호출 시 이 부분 입력 단가가 0.1배로 떨어진다
       // (첫 기록만 1.25배). 상담은 멀티턴이라 2번째 턴부터 바로 절감. 캐시 최소 길이(Sonnet 1,024토큰) 충족.
@@ -1712,7 +1721,16 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         if (!m) return null;
         return m[1].replace(/\\n/g, "\n").replace(/\\t/g, "\t");
       };
-      const body = pickStr("body");
+      let body = pickStr("body");
+      // [v17.22] 상한에 body 도중 잘린 경우 — 닫히지 않은 문자열을 마지막 완결 문장까지 살린다.
+      if (!body) {
+        const mt = s.match(/"body"\s*:\s*"([\s\S]*)$/);
+        if (mt) {
+          const tail = mt[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+          const cut = tail.match(/^[\s\S]*[.!?]/);
+          body = cut ? cut[0].trim() : null;
+        }
+      }
       if (!body) return null;
       const pol = (s.match(/"policy"\s*:\s*"([VQMXW])"/) || [])[1] || "V";
       const p = fixedPayload(pol, body);
@@ -1721,6 +1739,14 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       p.question = pickStr("question");
       p.default_answer = pickStr("default_answer");
       p.verdict_tone = (s.match(/"verdict_tone"\s*:\s*"(positive|negative|conditional|none)"/) || [])[1] || (p.verdict ? "positive" : "none");
+      // [v17.22] alternatives 중 완결된 객체만 살린다(잘린 마지막 항목은 버림). 부족분은 정규화의 백필이 채운다.
+      const am = s.match(/"alternatives"\s*:\s*\[([\s\S]*?)(?:\]|$)/);
+      if (am) {
+        const objs = am[1].match(/\{[^{}]*\}/g) || [];
+        p.alternatives = objs.map(o => { try { return JSON.parse(o); } catch (_) { return null; } }).filter(Boolean);
+      }
+      const nm = s.match(/"alternatives_note"\s*:\s*"([^"]*)"/);
+      if (nm) p.alternatives_note = nm[1];
       p.contract_salvaged = true;
       return p;
     }
@@ -1734,10 +1760,9 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         ? "답변을 정리하다 문제가 있었어요. 한 번만 다시 물어봐 주세요."
         : (rt.slice(0, 1200) || "답변 생성에 문제가 있었어요. 다시 물어봐 주세요."));
       payload.contract_fallback = true;
-    } else if (payload.contract_salvaged) {
-      delete payload.contract_salvaged;
-      payload.contract_repaired = true;
     } else {
+      // [v17.22] 복구본도 아래 정규화를 그대로 통과한다(기존엔 건너뛰어 카드 백필·문장 절단이 빠졌다).
+      if (payload.contract_salvaged) { delete payload.contract_salvaged; payload.contract_repaired = true; }
       // 정규화 + 안전 검증
       payload.policy = ["V","Q","M","X"].includes(payload.policy) ? payload.policy : "V";
       payload.verdict_tone = ["positive","negative","conditional","none"].includes(payload.verdict_tone) ? payload.verdict_tone : "none";
@@ -1750,6 +1775,9 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       // alternatives는 제품 컨텍스트에 실재하는 ID만 통과 (환각 차단)
       const validIds = new Set(productContext.map(p => String(p.product_id)));
       payload.alternatives = payload.alternatives.filter(a => a && validIds.has(String(a.product_id))).slice(0, 3);
+      // [v17.22] 모델은 name을 쓰지 않는다 — 정본명을 코드가 붙인다(카테고리 설정 유무와 무관하게).
+      { const _nm = new Map(productContext.map(p => [String(p.product_id), p.name]));
+        payload.alternatives = payload.alternatives.map(a => Object.assign({}, a, { name: _nm.get(String(a.product_id)) || a.name || "" })); }
       // 부정 평결의 대안은 임상 용량 이상만 통과 — 프롬프트 규칙은 모델이 "인증이
       // 좋아서" 같은 명분으로 협상하므로, 자격 게이트는 코드로 강제한다 (오메가3 기준
       // EPA+DHA 1,000mg; 함량 데이터가 없는 항목은 판단 불가로 보존).
@@ -2034,6 +2062,9 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       askedBefore, rawLen: rawText.length, fallback: !!payload.contract_fallback, repaired: !!payload.contract_repaired,
       timing: { tables_ms: tTables, claude_ms: tClaude, total_ms: Date.now() - T0 },   // [v17.7] 10초 병목 확인용
       model: MODEL,   // [v17.13]
+      stop_reason: (data && data.stop_reason) || null,   // [v17.22] max_tokens면 상한에 잘린 것
+      scores: productContext.filter(p => p.score != null).sort((a, b) => (a.rank_quality || 9e9) - (b.rank_quality || 9e9)).slice(0, 8)
+        .map(p => ({ name: String(p.name).slice(0, 24), score: Math.round(p.score * 10) / 10, grade: p.grade, rq: p.rank_quality })),   // [v17.22] 실시간 점수 확인용(화자에는 미전달)
       usage: (data && data.usage) ? { in_tok: data.usage.input_tokens, out_tok: data.usage.output_tokens, cache_read: data.usage.cache_read_input_tokens || 0, cache_write: data.usage.cache_creation_input_tokens || 0 } : null,   // [v17.13] 클릭당 비용 실측
       idxCounts, diagErrors, cacheBound: !!env.CACHE   // [v17.8] 인덱스 실패 원인 판별용
     };
