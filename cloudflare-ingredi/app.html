@@ -1512,7 +1512,7 @@ function pickCompareHref(){
   const subKey = subs ? (activeSub[activeCat] || defaultSubKey(subs)) : null;
   return `/compare.html?category=${encodeURIComponent(activeCat)}&profile=${activeProfile}`
     + (subs ? `&sub=${encodeURIComponent(subKey)}` : "")
-    + `&picks=${encodeURIComponent(picks.map(p => p.id).join(","))}`;
+    + `&ids=${encodeURIComponent(picks.map(p => p.id).join(","))}`;   // [v9.1] compare.html v2.5의 파라미터명은 ids
 }
 document.addEventListener('click', function(e){
   const b = e.target.closest && e.target.closest('[data-pick]');
