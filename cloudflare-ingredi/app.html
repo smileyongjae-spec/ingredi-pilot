@@ -1339,6 +1339,9 @@ function renderCardV8(p, ctx){
     : `<span class="cv-buybtn disabled">${cartSvg}구매하러 가기</span>`;
   // [v8.8] 구매 버튼 옆 "AI 평가보기" + 카드 안 인라인 평결 패널(누르면 내려오고 다시 누르면 접힘)
   // [v9.1] 한 줄 3버튼 — 구매가 가장 크고(flex 1.5), AI 평가·제품 비교는 작게(각 flex 1).
+  //        _pid·_on은 아래 return의 카드 루트에서도 쓰므로 여기서 먼저 선언한다(TDZ 방지).
+  const _pid = String(p.id || '');
+  const _on = pickHas(_pid);
   const buyBtn = `<div class="cv-buyrow">${buyBtnCore}`
     + `<button class="cv-sbtn" type="button" data-aieval="${escapeHtml(p.name || '')}" data-aikey="${escapeHtml(_pid || p.name || '')}"><span class="sb-t">AI 평가</span></button>`
     + `<button class="cv-sbtn cv-cmpbtn${_on ? ' on' : ''}" type="button" data-pick="${escapeHtml(_pid)}" data-pname="${escapeHtml(p.name || '')}" data-pimg="${escapeHtml(p.image || '')}">`
@@ -1355,9 +1358,6 @@ function renderCardV8(p, ctx){
   const hasLead = cost>0 && leadVal>0;
   const headline = `하루 <b>${fmt(cost)}원</b>에<br>${leadNoun} <b>${fmt(leadVal)}${escapeHtml(m.primary.unit)}</b>.`;
 
-  // [v9.0] 비교 담기 — 구매 버튼 줄이 이미 2개라 순위 옆에 둔다.
-  const _pid = String(p.id || '');
-  const _on = pickHas(_pid);
   return `<div class="cv-card${_on ? ' picked' : ''}" id="prod-${escapeHtml(_pid)}" data-pcard="${escapeHtml(_pid)}">
     <div class="cv-top">
       <span class="cv-rank">${rankLabel}</span>
