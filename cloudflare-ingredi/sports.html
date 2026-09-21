@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v2.7  (2026-09-20) — [v2.7] 비교 담기: 카드·리스트에서 체크 → 하단 고정 바(2~4개) → compare.html 전달 (app v9.0과 동일 부품, 기존 전역 pick()과 충돌 없게 cmp* 접두) / [v2.6] 코드 평결 비교 맥락 -->
+<!-- sports.html  v2.8  (2026-09-20) — [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -194,6 +194,15 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
 .cv-buyrow .cv-buybtn { flex:1 1 auto; }
 .cv-aieval { flex:0 0 auto; margin-top:13px; padding:0 14px; background:var(--surface); color:var(--green-primary); border:1px solid var(--green-primary); border-radius:12px; font-size:13.5px; font-weight:700; font-family:inherit; cursor:pointer; white-space:nowrap; }
 .cv-aieval:active { transform:scale(0.98); }
+/* [v2.8] 구매 줄 3버튼 */
+.cv-buyrow .cv-buybtn { flex:1.5 1 0; font-size:14px; padding-left:0; padding-right:0; }
+.cv-sbtn { flex:1 1 0; margin-top:13px; background:var(--surface); color:var(--green-primary); border:1px solid var(--green-primary); border-radius:12px; padding:6px 2px; font-family:inherit; cursor:pointer; line-height:1.2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+.cv-sbtn .sb-t { font-size:12.5px; font-weight:700; white-space:nowrap; }
+.cv-sbtn .sb-s { font-size:9.5px; color:var(--ink-soft); white-space:nowrap; }
+.cv-sbtn:active { transform:scale(0.98); }
+.cv-cmpbtn.on { background:var(--green-tint); border-width:1.5px; color:var(--green-deep); }
+.cv-cmpbtn.on .sb-t { font-weight:800; }
+.cv-cmpbtn.on .sb-s { color:var(--green-deep); }
 .cv-aipanel { margin-top:10px; border:1px solid var(--line-soft); border-radius:12px; background:#FBFAF7; padding:12px 14px; font-size:13px; line-height:1.7; color:var(--ink); }
 .cv-aipanel .aiev-verdict { font-weight:800; color:var(--green-deep); font-size:14px; margin-bottom:6px; }
 .cv-aipanel .aiev-warn { margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); color:#8A6D3B; font-size:12.5px; }
@@ -719,7 +728,12 @@ function card(p,d){
     hold: holdReason(p, d), cautions: ((p.reviews && p.reviews.caution) || []).map(x => x.label).filter(Boolean).slice(0, 2),
     pareto: !!p.isPareto
   };
-  const buy = `<div class="cv-buyrow">${buyCore}<button class="cv-aieval" type="button" data-aieval="${esc(String(p.id))}">AI 평가보기</button></div><div class="cv-aipanel" data-aipanel hidden></div>`;
+  // [v2.8] 한 줄 3버튼 — 구매가 가장 크고(flex 1.5), AI 평가·제품 비교는 작게(각 flex 1).
+  const buy = `<div class="cv-buyrow">${buyCore}`
+    + `<button class="cv-sbtn" type="button" data-aieval="${esc(String(p.id))}"><span class="sb-t">AI 평가</span></button>`
+    + `<button class="cv-sbtn cv-cmpbtn${_on ? ' on' : ''}" type="button" data-pick="${esc(String(p.id))}" data-pname="${esc(p.name||'')}" data-pimg="${esc(p.image||'')}">`
+    + `<span class="sb-t">${_on ? '✓ 담음' : '제품 비교'}</span><span class="sb-s">${_on ? '빼기' : '(3개까지)'}</span></button>`
+    + `</div><div class="cv-aipanel" data-aipanel hidden></div>`;
   // 무채점 유형은 등급 배지 자리를 비운다. 회색 배지나 "미부여" 표기를 넣지 않는다.
   const badge = (d.tier==='none') ? ''
     : (g ? `<span class="cv-grade" style="background:${c[0]};color:${c[1]};border-color:${c[2]}">${g}</span>`
@@ -730,7 +744,6 @@ function card(p,d){
   const _on = cmpHas(p.id);
   return `<div class="cv-card${_on ? ' picked' : ''}" id="prod-${esc(p.id)}" data-pcard="${esc(String(p.id))}">
     <div class="cv-top"><span class="cv-rank">${p.rank}위${pareto}</span>
-      <button class="cv-pick${_on ? ' on' : ''}" type="button" data-pick="${esc(String(p.id))}" data-pname="${esc(p.name||'')}" data-pimg="${esc(p.image||'')}"><span class="cvp-box"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="cvp-txt">${_on ? '담음' : '비교 담기'}</span></button>
       ${badge}</div>
     <div class="cv-row">
       <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
@@ -770,7 +783,7 @@ function restCard(p,d,i){
   </div>`;
 }
 // ── [v2.7] 비교 담기 (app v9.0과 동일 동작. 전역 pick()이 이미 서브탭 선택용이라 cmp* 접두를 쓴다) ──
-const CMP_MAX = 4;
+const CMP_MAX = 3;   // [v2.8] 비교 화면 기준
 let cmpPicks = [];
 function cmpHas(id){ return cmpPicks.some(x => x.id === String(id)); }
 function cmpClear(){ if (cmpPicks.length){ cmpPicks = []; cmpRenderBar(); } }
@@ -788,7 +801,9 @@ function cmpSync(){
   document.querySelectorAll('[data-pick]').forEach(function(b){
     const on = cmpHas(b.getAttribute('data-pick'));
     b.classList.toggle('on', on);
-    const t = b.querySelector('.cvp-txt'); if (t) t.textContent = on ? '담음' : '비교 담기';
+    const t = b.querySelector('.sb-t'); if (t) t.textContent = on ? '✓ 담음' : '제품 비교';
+    const sb = b.querySelector('.sb-s'); if (sb) sb.textContent = on ? '빼기' : `(${CMP_MAX}개까지)`;
+    const legacy = b.querySelector('.cvp-txt'); if (legacy) legacy.textContent = on ? '담음' : '비교 담기';
   });
   document.querySelectorAll('[data-pcard]').forEach(function(c){ c.classList.toggle('picked', cmpHas(c.getAttribute('data-pcard'))); });
   cmpRenderBar();
