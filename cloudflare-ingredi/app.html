@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v9.1  (2026-09-20) — [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
+<!-- app.html  v9.2  (2026-09-21) — [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -449,13 +449,32 @@
     .cv-cmpbtn.on { background: var(--green-tint); border-width: 1.5px; color: var(--green-deep); }
     .cv-cmpbtn.on .sb-t { font-weight: 800; }
     .cv-cmpbtn.on .sb-s { color: var(--green-deep); }
-    .cv-aipanel { margin-top: 10px; border: 1px solid var(--line-soft); border-radius: 12px; background: #FBFAF7; padding: 12px 14px; font-size: 13px; line-height: 1.7; color: var(--ink); }
-    .cv-aipanel .aiev-verdict { font-weight: 800; color: var(--green-deep); font-size: 14px; margin-bottom: 6px; }
-    .cv-aipanel .aiev-warn { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); color: #8A6D3B; font-size: 12.5px; }
-    .cv-aipanel .aiev-note { margin-top: 8px; font-size: 11.5px; color: var(--ink-faint); }
-    .cv-aipanel .aiev-loading { color: var(--ink-soft); }
-    .cv-aipanel .aiev-loading::after { content: "…"; animation: aievDots 1.2s steps(4, end) infinite; }
-    @keyframes aievDots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+/* [AI 평가 패널 — app v9.2 / sports v2.9] 상품 정보와 구분되는 연초록 패널 + AI 배지 + 비교 범위. 판정 라벨·톤별 색은 두지 않는다(내용으로 전달). */
+.cv-aipanel { margin-top:10px; border:1px solid #CFE2D5; border-radius:14px; background:#F3F8F4; padding:14px 15px; font-size:13.5px; line-height:1.7; color:var(--ink); overflow:hidden; }
+.cv-aipanel .aiev-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.cv-aipanel .aiev-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; background:var(--green-primary); color:#fff; font-size:11.5px; font-weight:700; white-space:nowrap; }
+.cv-aipanel .aiev-badge svg { width:12px; height:12px; }
+.cv-aipanel .aiev-scope { font-size:11.5px; color:#4F6B58; text-align:right; }
+.cv-aipanel .aiev-verdict { font-weight:800; color:var(--ink); font-size:15.5px; line-height:1.5; margin-bottom:6px; }
+.cv-aipanel .aiev-body { color:#34403A; }
+.cv-aipanel .aiev-warn { margin-top:8px; padding-top:8px; border-top:1px dashed #CFE2D5; color:#7A5A22; font-size:12.5px; }
+.cv-aipanel .aiev-note { margin-top:10px; padding-top:8px; border-top:1px solid #CFE2D5; font-size:11px; color:#5F6962; }
+.cv-aipanel .aiev-bar { height:3px; margin:-14px -15px 12px; background:#DDEBE1; }
+.cv-aipanel .aiev-bar i { display:block; height:100%; width:8%; background:var(--green-primary); animation:aievBar 7s ease-out forwards; }
+.cv-aipanel .aiev-steps { display:flex; flex-direction:column; gap:8px; }
+.cv-aipanel .aiev-step { display:flex; align-items:center; gap:9px; color:#6E7A72; }
+.cv-aipanel .aiev-step.done { color:#4F6B58; }
+.cv-aipanel .aiev-step.now { color:var(--ink); font-weight:700; }
+.cv-aipanel .aiev-ico { width:16px; height:16px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
+.cv-aipanel .aiev-dot { width:12px; height:12px; border:1.5px solid #9AA79E; border-radius:50%; }
+.aiev-spin { display:inline-block; width:14px; height:14px; border:2px solid #CFE2D5; border-top-color:var(--green-primary); border-radius:50%; animation:aievSpin .8s linear infinite; flex-shrink:0; }
+.cv-aipanel .aiev-sk { height:11px; border-radius:6px; margin-top:8px; background:linear-gradient(90deg,#E1ECE4 0,#F5F9F6 50%,#E1ECE4 100%); background-size:400px 100%; animation:aievShimmer 1.4s linear infinite; }
+.cv-sbtn.aiev-loading { background:var(--green-tint); cursor:default; }
+.cv-sbtn.aiev-loading .sb-t { display:inline-flex; align-items:center; gap:5px; }
+@keyframes aievBar { 0% { width:8%; } 60% { width:72%; } 100% { width:90%; } }
+@keyframes aievSpin { to { transform:rotate(360deg); } }
+@keyframes aievShimmer { 0% { background-position:-200px 0; } 100% { background-position:200px 0; } }
+@media (prefers-reduced-motion: reduce) { .aiev-spin, .cv-aipanel .aiev-sk, .cv-aipanel .aiev-bar i { animation:none; } .cv-aipanel .aiev-bar i { width:60%; } }
 
     /* ── 고객 피드백 ── */
     @keyframes fbFade { from { opacity: 0; } to { opacity: 1; } }
@@ -1421,23 +1440,66 @@ const aiEvalCache = new Map();
 function aievFmt(t){
   return escapeHtml(String(t || "")).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
 }
+// [v9.2] AI 평가 패널 공통 — 머리(배지·비교 범위), 로딩 3단계, 버튼 상태
+const AIEV_SPARK = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2 5.5L19.5 10 14 12l-2 6-2-6-5.5-2L10 8.5z"/></svg>';
+function aievHead(scope){
+  return '<div class="aiev-head"><span class="aiev-badge">' + AIEV_SPARK + 'AI 평가</span>'
+    + (scope ? '<span class="aiev-scope">' + escapeHtml(scope) + '</span>' : '') + '</div>';
+}
+// 카드의 "밀크씨슬 66개 제품과 비교하면" 머리글에서 비교 범위를 읽는다(카드 하나를 넘어 올라가지 않음).
+function aievScopeOf(btn){
+  let el = btn.parentElement;
+  while (el && el !== document.body){
+    if (el.querySelectorAll('[data-aieval]').length > 1) return '';
+    const h = el.querySelector('.cl-head');
+    if (h) return h.textContent.replace(/\s*과\s*비교하면\s*$/, '').trim();
+    el = el.parentElement;
+  }
+  return '';
+}
+function aievBtn(btn, state){
+  btn.classList.toggle('aiev-loading', state === 'loading');
+  btn.disabled = state === 'loading';
+  btn.innerHTML = state === 'loading' ? '<span class="sb-t"><span class="aiev-spin"></span>평가 중</span>'
+    : '<span class="sb-t">' + (state === 'open' ? '평가 접기' : 'AI 평가') + '</span>';
+}
+function aievLoadingHtml(scope, step){
+  const labels = ['제품 데이터 확인', (scope ? scope + '과 비교 중' : '같은 카테고리 제품과 비교 중'), '평가 문장 정리'];
+  const chk = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--green-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const rows = labels.map(function(t, i){
+    const cls = i < step ? 'done' : (i === step ? 'now' : '');
+    const ico = i < step ? chk : (i === step ? '<span class="aiev-spin"></span>' : '<span class="aiev-dot"></span>');
+    return '<div class="aiev-step ' + cls + '"><span class="aiev-ico">' + ico + '</span>' + escapeHtml(t) + '</div>';
+  }).join('');
+  return '<div class="aiev-bar"><i></i></div>' + aievHead('') + '<div class="aiev-steps" role="status" aria-live="polite">' + rows + '</div>'
+    + '<div class="aiev-sk" style="width:82%"></div><div class="aiev-sk" style="width:100%"></div><div class="aiev-sk" style="width:62%"></div>';
+}
 async function runAiEval(btn){
   const row = btn.closest('.cv-buyrow');
   const panel = row && row.nextElementSibling && row.nextElementSibling.hasAttribute('data-aipanel') ? row.nextElementSibling : null;
-  if (!panel) return;
-  if (!panel.hidden){ panel.hidden = true; btn.textContent = 'AI 평가보기'; return; }
-  panel.hidden = false; btn.textContent = '평가 접기';
+  if (!panel || btn.disabled) return;
+  if (!panel.hidden){ panel.hidden = true; aievBtn(btn, 'closed'); return; }
+  panel.hidden = false;
   const name = btn.getAttribute('data-aieval') || '';
   const key = btn.getAttribute('data-aikey') || name;
-  if (aiEvalCache.has(key)){ panel.innerHTML = aiEvalCache.get(key); return; }
-  panel.innerHTML = '<div class="aiev-loading">제품 확인 중</div>';
-  const _lt = setTimeout(function(){ const l = panel.querySelector('.aiev-loading'); if (l) l.textContent = '평가 작성 중'; }, 1300);   // [v8.9] 대기 체감 완화
+  if (aiEvalCache.has(key)){ panel.innerHTML = aiEvalCache.get(key); aievBtn(btn, 'open'); return; }
+  const scope = aievScopeOf(btn);
+  aievBtn(btn, 'loading');
+  // 3단계는 서버 진행과 연동되지 않는 시간 기준 표시(실측 5~8초). 바는 CSS로 한 번만 차오른다.
+  panel.innerHTML = aievLoadingHtml(scope, 0);
+  const setStep = function(n){
+    const steps = panel.querySelector('.aiev-steps'); if (!steps) return;
+    const tmp = document.createElement('div'); tmp.innerHTML = aievLoadingHtml(scope, n);
+    steps.replaceWith(tmp.querySelector('.aiev-steps'));
+  };
+  const _t1 = setTimeout(function(){ setStep(1); }, 900);
+  const _t2 = setTimeout(function(){ setStep(2); }, 3400);
   try {
     const res = await fetch('/counsel2?mode=eval&q=' + encodeURIComponent(name + ' 평가해줘'));   // [v8.9] 경량 모드
     const data = await res.json();
     const pl = (data && data.payload) || {};
     if (!pl.verdict && !pl.body) throw new Error('empty');
-    let html = '';
+    let html = aievHead(scope ? scope + ' 기준' : '');
     if (pl.verdict) html += '<div class="aiev-verdict">' + aievFmt(pl.verdict) + '</div>';
     if (pl.body) html += '<div class="aiev-body">' + aievFmt(pl.body) + '</div>';
     if (pl.warning) html += '<div class="aiev-warn">' + aievFmt(pl.warning) + '</div>';
@@ -1445,8 +1507,8 @@ async function runAiEval(btn){
     aiEvalCache.set(key, html);
     panel.innerHTML = html;
   } catch (e) {
-    panel.innerHTML = '<div class="aiev-body">지금 평가를 불러오지 못했어요. <a href="/consult.html?q=' + encodeURIComponent(name + ' 평가해줘') + '">상담 화면에서 보기 →</a></div>';
-  } finally { clearTimeout(_lt); }
+    panel.innerHTML = aievHead('') + '<div class="aiev-body">지금 평가를 불러오지 못했어요. <a href="/consult.html?q=' + encodeURIComponent(name + ' 평가해줘') + '">상담 화면에서 보기 →</a></div>';
+  } finally { clearTimeout(_t1); clearTimeout(_t2); aievBtn(btn, 'open'); }
 }
 document.addEventListener('click', function(e){
   const b = e.target.closest && e.target.closest('[data-aieval]');
