@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v2.6  (2026-09-19) — [v2.6] 코드 평결에 비교 맥락 주입: 유형 내 백분위·순위·가격대와 C·D 약점 지목("당연한 말" 탈피) / [v2.5] AI 평가보기 인라인 패널 -->
+<!-- sports.html  v2.7  (2026-09-20) — [v2.7] 비교 담기: 카드·리스트에서 체크 → 하단 고정 바(2~4개) → compare.html 전달 (app v9.0과 동일 부품, 기존 전역 pick()과 충돌 없게 cmp* 접두) / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -164,6 +164,32 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
   font-size:15px; font-weight:700; text-decoration:none; box-shadow:0 3px 10px rgba(45,95,63,0.28); }
 .cv-buybtn.disabled { background:var(--line); color:var(--ink-faint); box-shadow:none; pointer-events:none; }
 /* [v2.5] AI 평가보기 — 구매 버튼 옆 보조 버튼 + 카드 안 인라인 평결 패널 (건기식 app v8.8과 동일 부품) */
+/* [v2.7] 비교 담기 — app v9.0과 동일 부품 */
+.cv-pick { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line); border-radius:999px; padding:4px 10px 4px 7px; background:var(--surface); cursor:pointer; font-family:inherit; }
+.cv-pick .cvp-box { width:14px; height:14px; border:1.5px solid #B4B4AE; border-radius:4px; background:var(--surface); display:flex; align-items:center; justify-content:center; }
+.cv-pick .cvp-box svg { display:none; }
+.cv-pick .cvp-txt { font-size:11.5px; color:var(--ink-soft); font-weight:500; }
+.cv-pick.on { background:var(--green-tint); border-color:var(--green-primary); }
+.cv-pick.on .cvp-box { background:var(--green-primary); border-color:var(--green-primary); }
+.cv-pick.on .cvp-box svg { display:block; }
+.cv-pick.on .cvp-txt { color:var(--green-deep); font-weight:700; }
+.cv-card.picked { border-color:var(--green-primary); box-shadow:0 0 0 3px rgba(45,95,63,0.08); }
+.cr-pick { width:20px; height:20px; border:1.5px solid #B4B4AE; border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--surface); cursor:pointer; padding:0; }
+.cr-pick svg { display:none; }
+.cr-pick.on { background:var(--green-primary); border-color:var(--green-primary); }
+.cr-pick.on svg { display:block; }
+.cr-card.picked .cr-row { background:#F7FAF7; }
+#pickBar { position:fixed; left:0; right:0; bottom:0; z-index:60; padding:8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); }
+#pickBar[hidden] { display:none; }
+.pb-inner { max-width:560px; margin:0 auto; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:11px 13px; display:flex; align-items:center; gap:10px; box-shadow:0 -2px 14px rgba(0,0,0,0.10); }
+.pb-inner.ready { border-color:var(--green-primary); box-shadow:0 -2px 14px rgba(45,95,63,0.16); }
+.pb-thumbs { display:flex; gap:6px; flex-shrink:0; }
+.pb-th { position:relative; width:34px; height:34px; }
+.pb-th img { width:34px; height:34px; border-radius:8px; border:1px solid var(--line); object-fit:cover; background:var(--green-tint); }
+.pb-x { position:absolute; top:-5px; right:-5px; width:16px; height:16px; border-radius:50%; background:var(--ink-soft); color:#fff; font-size:10px; line-height:16px; text-align:center; border:none; padding:0; cursor:pointer; font-family:inherit; }
+.pb-txt { flex-grow:1; min-width:0; font-size:12px; color:var(--ink-soft); line-height:1.4; }
+.pb-go { flex-shrink:0; border:none; border-radius:10px; padding:10px 14px; font-size:12.5px; font-weight:800; font-family:inherit; background:var(--line); color:var(--ink-faint); text-decoration:none; display:inline-block; pointer-events:none; }
+.pb-go.on { background:var(--green-primary); color:var(--surface); pointer-events:auto; }
 .cv-buyrow { display:flex; gap:8px; align-items:stretch; }
 .cv-buyrow .cv-buybtn { flex:1 1 auto; }
 .cv-aieval { flex:0 0 auto; margin-top:13px; padding:0 14px; background:var(--surface); color:var(--green-primary); border:1px solid var(--green-primary); border-radius:12px; font-size:13.5px; font-weight:700; font-family:inherit; cursor:pointer; white-space:nowrap; }
@@ -701,8 +727,11 @@ function card(p,d){
   // 가성비 경계 배지는 가성비 탭에서만. 성분 탭에서 띄우면 축이 섞여 보인다.
   // 정렬에는 쓰지 않고 "같은 값이면 이보다 나은 선택이 없다"는 정보로만 남긴다.
   const pareto = (profile==='value' && p.isPareto) ? `<span class="cv-pareto">가성비 경계</span>` : '';
-  return `<div class="cv-card" id="prod-${esc(p.id)}">
-    <div class="cv-top"><span class="cv-rank">${p.rank}위${pareto}</span>${badge}</div>
+  const _on = cmpHas(p.id);
+  return `<div class="cv-card${_on ? ' picked' : ''}" id="prod-${esc(p.id)}" data-pcard="${esc(String(p.id))}">
+    <div class="cv-top"><span class="cv-rank">${p.rank}위${pareto}</span>
+      <button class="cv-pick${_on ? ' on' : ''}" type="button" data-pick="${esc(String(p.id))}" data-pname="${esc(p.name||'')}" data-pimg="${esc(p.image||'')}"><span class="cvp-box"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="cvp-txt">${_on ? '담음' : '비교 담기'}</span></button>
+      ${badge}</div>
     <div class="cv-row">
       <img class="cv-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div style="flex:1;min-width:0"><div class="cv-name">${esc(p.name)}</div></div>
@@ -730,16 +759,67 @@ function restCard(p,d,i){
   const badge = (d.tier==='none') ? ''
     : (g?`<span class="cv-grade" style="background:${c[0]};color:${c[1]};border-color:${c[2]}">${g}</span>`
         :`<span class="cv-hold">보류</span>`);
-  return `<div class="cr-card" id="cr-${i}">
-    <div class="cr-row" onclick="tog(${i})">
+  return `<div class="cr-card${cmpHas(p.id) ? ' picked' : ''}" id="cr-${i}" data-pcard="${esc(String(p.id))}">
+    <div class="cr-row" onclick="if(!event.target.closest('[data-pick]'))tog(${i})">
       <span class="cr-rank">${p.rank}위</span>
       <img class="cr-thumb" src="${img}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
       <div class="cr-info"><div class="cr-name">${esc(p.name)}</div><div class="cr-sub">${sub}</div></div>
-      <div class="cr-right">${badge}<span class="cr-chev">자세히 ▼</span></div>
+      <div class="cr-right">${badge}<button class="cr-pick${cmpHas(p.id) ? ' on' : ''}" type="button" data-pick="${esc(String(p.id))}" data-pname="${esc(p.name||'')}" data-pimg="${esc(p.image||'')}"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button><span class="cr-chev">자세히 ▼</span></div>
     </div>
     <div class="cr-expanded"><div class="cr-collapse" onclick="tog(${i})">접기 ▲</div>${card(p,d)}</div>
   </div>`;
 }
+// ── [v2.7] 비교 담기 (app v9.0과 동일 동작. 전역 pick()이 이미 서브탭 선택용이라 cmp* 접두를 쓴다) ──
+const CMP_MAX = 4;
+let cmpPicks = [];
+function cmpHas(id){ return cmpPicks.some(x => x.id === String(id)); }
+function cmpClear(){ if (cmpPicks.length){ cmpPicks = []; cmpRenderBar(); } }
+function cmpToggle(btn){
+  const id = String(btn.getAttribute('data-pick') || ''); if (!id) return;
+  const i = cmpPicks.findIndex(x => x.id === id);
+  if (i >= 0) cmpPicks.splice(i, 1);
+  else {
+    if (cmpPicks.length >= CMP_MAX){ cmpFlash(`${CMP_MAX}개까지 비교할 수 있어요`); return; }
+    cmpPicks.push({ id, name: btn.getAttribute('data-pname') || '', img: btn.getAttribute('data-pimg') || '' });
+  }
+  cmpSync();
+}
+function cmpSync(){
+  document.querySelectorAll('[data-pick]').forEach(function(b){
+    const on = cmpHas(b.getAttribute('data-pick'));
+    b.classList.toggle('on', on);
+    const t = b.querySelector('.cvp-txt'); if (t) t.textContent = on ? '담음' : '비교 담기';
+  });
+  document.querySelectorAll('[data-pcard]').forEach(function(c){ c.classList.toggle('picked', cmpHas(c.getAttribute('data-pcard'))); });
+  cmpRenderBar();
+}
+let _cmpMsg = null;
+function cmpFlash(m){ _cmpMsg = m; cmpRenderBar(); setTimeout(function(){ _cmpMsg = null; cmpRenderBar(); }, 2000); }
+function cmpRenderBar(){
+  const bar = document.getElementById('pickBar'); if (!bar) return;
+  if (!cmpPicks.length){ bar.hidden = true; document.body.style.paddingBottom = ''; return; }
+  bar.hidden = false;
+  const ready = cmpPicks.length >= 2;
+  bar.querySelector('.pb-inner').classList.toggle('ready', ready);
+  document.getElementById('pbThumbs').innerHTML = cmpPicks.map(function(p){
+    return `<span class="pb-th"><img src="${p.img ? esc(p.img) : PLACEHOLDER}" alt="" onerror="this.onerror=null;this.src='${PLACEHOLDER}'"><button class="pb-x" type="button" data-punpick="${esc(p.id)}" aria-label="빼기">×</button></span>`;
+  }).join("");
+  document.getElementById('pbTxt').innerHTML = _cmpMsg ? esc(_cmpMsg)
+    : (ready ? `${cmpPicks.length}개 담음<br><span style="font-size:11px">최대 ${CMP_MAX}개</span>`
+             : `1개 담음 — <b style="color:var(--ink)">하나 더</b> 담으면 비교할 수 있어요`);
+  const go = document.getElementById('pbGo');
+  go.classList.toggle('on', ready);
+  go.textContent = ready ? '비교하기 →' : '비교하기';
+  go.href = ready ? `/compare.html?domain=sports&category=${encodeURIComponent(activeSub || activeCat)}&picks=${encodeURIComponent(cmpPicks.map(p => p.id).join(","))}` : '#';
+  document.body.style.paddingBottom = '78px';
+}
+document.addEventListener('click', function(e){
+  const b = e.target.closest && e.target.closest('[data-pick]');
+  if (b){ e.preventDefault(); e.stopPropagation(); cmpToggle(b); return; }
+  const x = e.target.closest && e.target.closest('[data-punpick]');
+  if (x){ e.preventDefault(); const i = cmpPicks.findIndex(p => p.id === x.getAttribute('data-punpick')); if (i >= 0){ cmpPicks.splice(i, 1); cmpSync(); } }
+});
+
 window.tog = function(i){ const c=document.getElementById('cr-'+i); if(c) c.classList.toggle('open'); };
 
 function renderProfileBar(d){
@@ -784,6 +864,7 @@ function render(d){
     ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">${d.tier === 'none' ? '함량 · 하루 비용 · 제형을 한눈에' : '등급 · 함량 · 하루 비용 · 인증을 한눈에'}</div></div></div><a href="/compare.html?domain=sports&category=${encodeURIComponent(subKey)}">제품 비교하기 →</a></div>`
     : '';
   el.innerHTML = howToRead(d) + top + cta + restHtml;
+  cmpSync();   // [v2.7] 재렌더 후 체크 상태·하단 바 복원
   if (showTierAfter) { showTier(d); showTierAfter = false; }
 }
 window.showTier = showTier;
@@ -806,12 +887,12 @@ async function load(){
     document.getElementById('catStatus').textContent='불러오기에 실패했습니다. ('+e.message+')';
   }
 }
-window.go = function(c){ activeCat=c; activeSub=null;
+window.go = function(c){ if(activeCat!==c) cmpClear(); activeCat=c; activeSub=null;
   document.getElementById('tierSheet').classList.remove('on');
   renderTabs(); load(); window.scrollTo(0,0); };
 // 서브필터를 누르면 목록 전환과 함께 근거등급 설명을 연다.
 // 별도 버튼을 두지 않고 탭 하나가 두 역할을 겸한다 — "눌러야 하는지 모르는" 문제를 없앤다.
-window.pick = function(s){ activeSub=s; showTierAfter=true; load(); };
+window.pick = function(s){ if(activeSub!==s) cmpClear(); activeSub=s; showTierAfter=true; load(); };   // [v2.7] 성분유형이 다르면 비교 불가
 
 (function(){
   const sp=new URLSearchParams(location.search);
@@ -822,5 +903,7 @@ window.pick = function(s){ activeSub=s; showTierAfter=true; load(); };
 })();
 </script>
 <footer class="site-foot">ingredi는 광고를 받지 않고 공개된 제품 데이터로 비교합니다. 쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있으며, 수수료는 순위에 영향을 주지 않습니다. · <a href="/about.html">소개 · 문의</a></footer>
+<!-- [v2.7] 비교 담기 — 하단 고정 바 -->
+<div id="pickBar" hidden><div class="pb-inner"><div class="pb-thumbs" id="pbThumbs"></div><div class="pb-txt" id="pbTxt"></div><a class="pb-go" id="pbGo" href="#">비교하기</a></div></div>
 </body>
 </html>
