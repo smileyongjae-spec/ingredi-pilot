@@ -1,3 +1,12 @@
+// functions/counsel2.js  v17.27  (2026-09-23)
+// [v17.27 — 스트리밍 (?stream=1): 평결·본문이 생기는 대로 화면에 먼저 보인다]
+//   - 구조: 기존 핸들러를 handle(context, sink)로 감싸고, ?stream=1이면 SSE(text/event-stream)로 응답.
+//     이벤트: delta {field: verdict|body, text: 지금까지 누적} → final {payload, meta}(기존 JSON 그대로).
+//     게이트 즉답·오류·폴백 경로는 handle이 돌려주는 Response를 final 한 건으로 바꿔 보낸다.
+//   - 모델 호출에 stream:true를 붙이고 Anthropic SSE를 소비해 기존 data 형태({content, usage, stop_reason})로
+//     합성 → 이후 파싱·정규화·인증 확정·카드 백필 코드는 한 줄도 바뀌지 않는다(final에서 적용).
+//   - 릴레이가 스트림을 버퍼링해 JSON/SSE 덤프로 돌려주면 delta 없이 final만 간다(기능 동일, 체감만 종전).
+//     debug meta.streamed로 실제 스트림 통과 여부를 본다.
 // functions/counsel2.js  v17.26  (2026-09-23)
 // [v17.26 — 설명 요청 답변을 더 길게, 항목마다 줄바꿈]
 //   - 설명 모드 body 상한 6→9문장, max_tokens 1200→1500. 첫째/둘째/셋째 등 항목이 바뀌면 줄을 바꾸고
@@ -210,7 +219,84 @@ import { getRecords } from "./_lib/airtable.js";
 import { TABLES } from "./_lib/tables.js";   // [v15.28] 테이블명 중앙 설정
 import { qualityOf, gradeOf } from "./_lib/axis-scores.js";   // [v16.0] core·축·등급 산식 전부 규칙 모듈에서
 
+// [v17.27] 스트리밍 래퍼 — ?stream=1이면 SSE로, 아니면 종전 JSON 그대로.
 export async function onRequest(context) {
+  const url0 = new URL(context.request.url);
+  if (url0.searchParams.get("stream") !== "1" || context.request.method === "OPTIONS") return handle(context, null);
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const enc = new TextEncoder();
+  const sink = {
+    send(ev, obj) { return writer.write(enc.encode(`event: ${ev}\ndata: ${JSON.stringify(obj)}\n\n`)).catch(() => {}); },
+    close() { return writer.close().catch(() => {}); }
+  };
+  const done = (async () => {
+    try {
+      const res = await handle(context, sink);
+      let obj; try { obj = JSON.parse(await res.text()); } catch (_) { obj = { error: "bad_json" }; }
+      if (res.status >= 400 && !obj.error) obj.error = "http_" + res.status;
+      await sink.send("final", obj);
+    } catch (e) {
+      await sink.send("final", { error: "internal_error", message: String((e && e.message) || e) });
+    }
+    await sink.close();
+  })();
+  if (context.waitUntil) context.waitUntil(done);
+  return new Response(readable, { headers: {
+    "Access-Control-Allow-Origin": "*", "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"
+  } });
+}
+
+// [v17.27] Anthropic SSE 소비 — delta를 sink로 흘리고, 끝나면 종전 resp.json()과 같은 형태로 합성한다.
+async function consumeAnthropicStream(resp, sink) {
+  const usage = {}; let stopReason = null; let raw = "";
+  const sent = { verdict: "", body: "" };
+  const partialStr = (key) => {   // 스트리밍 중인 JSON에서 "key":"…" 문자열 값을 이스케이프 풀어 읽는다(미종결 허용)
+    const i = raw.indexOf(`"${key}":"`); if (i < 0) return null;
+    let j = i + key.length + 4, out = "";
+    while (j < raw.length) {
+      const c = raw[j];
+      if (c === "\\") { const n = raw[j + 1]; if (n === undefined) break; out += n === "n" ? "\n" : n === "t" ? "\t" : n; j += 2; continue; }
+      if (c === '"') return out;
+      out += c; j++;
+    }
+    return out;
+  };
+  const flush = async () => {
+    for (const k of ["verdict", "body"]) {
+      const t = partialStr(k);
+      if (t != null && t.length > sent[k].length) { sent[k] = t; await sink.send("delta", { field: k, text: t }); }
+    }
+  };
+  const handleEvent = (block) => {
+    const line = block.split("\n").find(l => l.startsWith("data:")); if (!line) return;
+    let ev; try { ev = JSON.parse(line.slice(5).trim()); } catch (_) { return; }
+    if (ev.type === "message_start" && ev.message && ev.message.usage) Object.assign(usage, ev.message.usage);
+    else if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") raw += ev.delta.text || "";
+    else if (ev.type === "message_delta") { if (ev.delta && ev.delta.stop_reason) stopReason = ev.delta.stop_reason; if (ev.usage) Object.assign(usage, ev.usage); }
+  };
+  const ctype = resp.headers.get("content-type") || "";
+  let streamed = false;
+  if (/text\/event-stream/i.test(ctype) && resp.body && resp.body.getReader) {
+    streamed = true;
+    const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = "";
+    while (true) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let k; while ((k = buf.indexOf("\n\n")) >= 0) { handleEvent(buf.slice(0, k)); buf = buf.slice(k + 2); }
+      await flush();
+    }
+    if (buf.trim()) handleEvent(buf);
+  } else {
+    const txt = await resp.text();
+    try { const j = JSON.parse(txt); return Object.assign(j, { _streamed: false }); }   // 릴레이가 JSON으로 돌려준 경우(종전 형태)
+    catch (_) { txt.split("\n\n").forEach(handleEvent); }   // SSE 덤프를 통째로 받은 경우
+  }
+  return { content: [{ type: "text", text: raw }], usage, stop_reason: stopReason, _streamed: streamed };
+}
+
+async function handle(context, sink) {
   const { request, env } = context;
   const headers = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" };
   if (request.method === "OPTIONS") {
@@ -1643,7 +1729,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       // 캐시 블록으로 표시하면 같은 프롬프트를 5분 내 재호출 시 이 부분 입력 단가가 0.1배로 떨어진다
       // (첫 기록만 1.25배). 상담은 멀티턴이라 2번째 턴부터 바로 절감. 캐시 최소 길이(Sonnet 1,024토큰) 충족.
       system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
-      messages: claudeMessages
+      messages: claudeMessages,
+      stream: !!sink   // [v17.27]
     });
     const RETRY_STATUS = [429, 500, 502, 503, 504, 529];
     let resp = null;
@@ -1700,7 +1787,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     if (!resp || !resp.ok) {
       return respond(fixedPayload("X", "잠시 연결이 원활하지 않아요. 조금 뒤에 다시 물어봐 주세요."), { error: "upstream", status: resp ? resp.status : 0 });
     }
-    const data = await resp.json();
+    const data = sink ? await consumeAnthropicStream(resp, sink) : await resp.json();   // [v17.27]
     tClaude = Date.now() - _tC;   // [v17.7]
     const rawText = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
 
@@ -2121,7 +2208,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       scores: productContext.filter(p => p.score != null).sort((a, b) => (a.rank_quality || 9e9) - (b.rank_quality || 9e9)).slice(0, 8)
         .map(p => ({ name: String(p.name).slice(0, 24), score: Math.round(p.score * 10) / 10, grade: p.grade, rq: p.rank_quality })),   // [v17.22] 실시간 점수 확인용(화자에는 미전달)
       usage: (data && data.usage) ? { in_tok: data.usage.input_tokens, out_tok: data.usage.output_tokens, cache_read: data.usage.cache_read_input_tokens || 0, cache_write: data.usage.cache_creation_input_tokens || 0 } : null,   // [v17.13] 클릭당 비용 실측
-      idxCounts, diagErrors, cacheBound: !!env.CACHE   // [v17.8] 인덱스 실패 원인 판별용
+      idxCounts, diagErrors, cacheBound: !!env.CACHE,   // [v17.8] 인덱스 실패 원인 판별용
+      streamed: sink ? !!(data && data._streamed) : null   // [v17.27] 릴레이가 스트림을 통과시켰는지
     };
     return respond(payload, meta);
 
