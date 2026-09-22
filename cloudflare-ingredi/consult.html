@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- consult.html  v3.7  (2026-09-19) — [v3.7] 전체보기 버튼 틴트 그린 / [v3.6] 카드 버튼 2개 · more_link 렌더 -->
+<!-- consult.html  v3.8  (2026-09-23) — [v3.8] 스트리밍 수신(counsel2?stream=1): 평결·본문이 생기는 대로 먼저 표시, 완료 시 최종본으로 교체 / [v3.7] 전체보기 버튼 틴트 그린 / [v3.6] 카드 버튼 2개 · more_link 렌더 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -78,6 +78,10 @@
     .verdict { font-family: var(--font-voice); font-size: 21px; line-height: 1.5; font-weight: 500; margin-bottom: 12px; color: var(--ink); }
     .verdict.tone-positive { color: var(--green-primary); }
     .voice { font-family: var(--font-voice); font-size: 15px; line-height: 1.85; color: var(--ink-soft); white-space: pre-wrap; }
+    /* [v3.8] 스트리밍 중 커서 */
+    .turn.streaming .verdict:empty, .turn.streaming .voice:empty { display: none; }
+    .turn.streaming .streaming-cursor { display: inline-block; width: 2px; height: 1em; background: var(--green-primary, #2D5B3E); vertical-align: -0.15em; margin-left: 2px; animation: curBlink 0.9s steps(2, start) infinite; }
+    @keyframes curBlink { to { visibility: hidden; } }
     .voice .num { font-family: var(--font-ui); font-weight: 500; color: var(--green-deep); }
 
     /* 되묻기(Q) */
@@ -383,6 +387,55 @@ function addUserTurn(text) {
   scrollToBottom();
 }
 
+// [v3.8] 스트리밍 수신 — delta(verdict/body 누적 텍스트)를 임시 턴에 그리고, final을 resolve한다.
+function readCounselStream(res) {
+  return new Promise(function (resolve, reject) {
+    var reader = res.body.getReader(); var dec = new TextDecoder(); var buf = ''; var finalObj = null;
+    function handle(block) {
+      var ev = '', data = '';
+      block.split('\n').forEach(function (l) {
+        if (l.indexOf('event:') === 0) ev = l.slice(6).trim();
+        else if (l.indexOf('data:') === 0) data += l.slice(5).trim();
+      });
+      if (!data) return;
+      var obj; try { obj = JSON.parse(data); } catch (e) { return; }
+      if (ev === 'delta') updateStreamingTurn(obj.field, obj.text);
+      else if (ev === 'final') finalObj = obj;
+    }
+    function pump() {
+      reader.read().then(function (r) {
+        if (r.done) {
+          if (buf.trim()) handle(buf);
+          if (finalObj) resolve(finalObj); else reject({ stream: true });
+          return;
+        }
+        buf += dec.decode(r.value, { stream: true });
+        var k;
+        while ((k = buf.indexOf('\n\n')) >= 0) { handle(buf.slice(0, k)); buf = buf.slice(k + 2); }
+        pump();
+      }).catch(reject);
+    }
+    pump();
+  });
+}
+function updateStreamingTurn(field, text) {
+  if (field !== 'verdict' && field !== 'body') return;
+  var t = document.getElementById('streamingTurn');
+  if (!t) {
+    removeThinking();
+    t = el('div', 'turn turn-assistant streaming', '<p class="verdict"></p><p class="voice"></p><span class="streaming-cursor"></span>');
+    t.id = 'streamingTurn';
+    document.getElementById('thread').appendChild(t);
+  }
+  var target = t.querySelector(field === 'verdict' ? '.verdict' : '.voice');
+  if (target) target.innerHTML = field === 'verdict' ? esc(text) : voiceHtml(text);
+  scrollToBottom();
+}
+function removeStreamingTurn() {
+  var t = document.getElementById('streamingTurn');
+  if (t) t.remove();
+}
+
 function addThinking() {
   var thread = document.getElementById('thread');
   var t = el('div', 'turn turn-assistant', '<div class="thinking"><span class="dots"><span></span><span></span><span></span></span>확인하고 있어요</div>');
@@ -565,15 +618,20 @@ function send(text, forcedDomain) {
   addUserTurn(text);
   addThinking();
 
-  fetch(API, {
+  fetch(API + '?stream=1', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: messages })
   }).then(function (res) {
     if (res.status === 429) { throw { rateLimited: true }; }
-    return res.json();
+    // [v3.8] 서버가 SSE로 주면 생기는 대로 그리고, 아니면 종전대로 JSON 한 번에
+    var ct = res.headers.get('content-type') || '';
+    if (ct.indexOf('text/event-stream') === -1 || !res.body || !window.TextDecoder) return res.json();
+    return readCounselStream(res);
   }).then(function (out) {
     removeThinking();
+    removeStreamingTurn();
+    if (out && out.error && !out.payload) throw { server: out.error };
     var payload = out.payload || {};
     var meta = out.meta || {};
     if (meta.category) lastCategory = meta.category;
@@ -593,6 +651,7 @@ function send(text, forcedDomain) {
     addAssistantTurn(payload, meta);
   }).catch(function (e) {
     removeThinking();
+    removeStreamingTurn();
     if (e && e.rateLimited) {
       addErrorTurn('질문이 너무 빨라요. 잠깐 숨 고르고 다시 물어봐 주세요.');
     } else {
