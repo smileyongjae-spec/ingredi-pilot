@@ -1,3 +1,9 @@
+// functions/counsel2.js  v17.26  (2026-09-23)
+// [v17.26 — 설명 요청 답변을 더 길게, 항목마다 줄바꿈]
+//   - 설명 모드 body 상한 6→9문장, max_tokens 1200→1500. 첫째/둘째/셋째 등 항목이 바뀌면 줄을 바꾸고
+//     (body에 \n\n), 각 항목은 기준 숫자·이유·미표기 처리까지 2~3문장으로 쓰라고 지시.
+//   - 문장 상한 절단이 join(" ")으로 줄바꿈을 지우던 문제 수리 — 원문 위치 기준으로 자르고 줄바꿈 보존.
+//   - 표시는 consult.html이 body의 줄바꿈을 살려야 한다(별도 확인).
 // functions/counsel2.js  v17.25  (2026-09-23)
 // [v17.25 — 설명 요청에 제품 카드부터 내밀던 문제 수리 (실측: "오메가3 좋은 제품 기준이 뭐야?")]
 //   - 증상: ① 축 3개를 예고하고 1개만 설명 ② 설명 두 문장 뒤 바로 추천 카드 3장 → 판매 화면처럼 읽힘.
@@ -1366,7 +1372,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 - D: negative. "이 제품보다 나은 선택이 있어요." 다음 문장에 이유 한 문장, alternatives 필수.
 - 위 평결 문구는 제품을 평가할 때입니다. "아이가 먹어도 돼?"처럼 섭취 가능 여부를 묻는 질문에는 "드셔도 됩니다"로 답해도 됩니다.
 - 지목 평결의 alternatives는 D(부정)에만 담습니다. A~C에서는 alternatives를 비우세요 — 묻지 않은 다른 제품을 카드로 붙이면 광고처럼 읽힙니다. 다른 제품 제안은 칩("다른 ○○도 추천받기")으로만 합니다.
-- 길이 상한(엄수): body는 V 3문장·Q 2문장 이내([설명 요청] 플래그가 있으면 V 6문장까지), question 1문장, default_answer 2문장 이내, alternatives의 reason은 20자 내외. 이 상한을 넘기지 마세요 — 생성 길이가 곧 응답 대기 시간입니다. 짧아서 빠진 내용은 사용자가 되물으면 그때 답합니다.
+- 길이 상한(엄수): body는 V 3문장·Q 2문장 이내([설명 요청] 플래그가 있으면 V 9문장까지, 항목마다 줄바꿈), question 1문장, default_answer 2문장 이내, alternatives의 reason은 20자 내외. 이 상한을 넘기지 마세요 — 생성 길이가 곧 응답 대기 시간입니다. 짧아서 빠진 내용은 사용자가 되물으면 그때 답합니다.
 - 인증 서술 규칙(엄수): ① 제품에 인증 표기가 없으면 특정 인증 이름(GMP·HACCP·ISO·FSSC 등)을 아예 거론하지 마세요 — 허용되는 최대치는 "인증 표기는 확인되지 않았어요" 한 문장입니다. "GMP·HACCP 같은 인증이 없다"처럼 이름을 나열하며 부재를 설명하는 것 자체가 금지입니다. ② 인증 표기가 있으면 "인증은 ○○·△△가 확인됐어요"처럼 나열만 하세요 — GMP나 HACCP를 "제조 품질을 갖춘", "안전 인증을 갖춘" 같이 강점·품질 근거로 풀어 쓰지 마세요. GMP는 한국(식약처, 2020년 전면 시행)과 미국(FDA cGMP, 2010년 전면 시행) 모두 법적 의무라 해외직구 제품에서도 강점이 아니고, HACCP는 일반식품 인증이라 건강기능식품·미국 보충제 어느 쪽의 평가 기준도 아니기 때문입니다.
 
 ## 밀크씨슬 — 등급이 없는 카테고리
@@ -1603,7 +1609,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     else if (ambiguousCats) flagBlock += `\n\n[내부 플래그] 카테고리 모호(${ambiguousCats.join(" vs ")}) → Q 정책으로 칩 되묻기 권장. 칩은 해당 카테고리들 + "잘 모르겠어요".`;
     if (demographics.age || demographics.gender) flagBlock += `\n\n[사용자 정보] ${demographics.age ? demographics.age + "대" : ""} ${demographics.gender === "female" ? "여성" : demographics.gender === "male" ? "남성" : ""}`.trim();
     if (explainIntent) {
-      flagBlock += `\n\n[설명 요청] 사용자는 제품이 아니라 판단 기준을 물었습니다. alternatives는 빈 배열로 두세요 — 설명을 묻는데 카드를 붙이면 판매 화면처럼 읽힙니다. body는 6문장까지 쓸 수 있습니다. "세 가지 축" 같이 개수를 예고했으면 그 수만큼 빠짐없이, 각각 근거 숫자(기준 함량·등급 컷 등)와 함께 설명하세요. 추천은 칩("성분 우선으로 추천해줘", "가성비 좋은 걸로 추천해줘")으로만 제안합니다.`;
+      flagBlock += `\n\n[설명 요청] 사용자는 제품이 아니라 판단 기준을 물었습니다. alternatives는 빈 배열로 두세요 — 설명을 묻는데 카드를 붙이면 판매 화면처럼 읽힙니다. body는 9문장까지 쓸 수 있습니다. 첫 줄에 한 문장으로 요약하고, 그 뒤에 항목별로 씁니다. "세 가지 축" 같이 개수를 예고했으면 그 수만큼 빠짐없이, 항목마다 "첫째, …" "둘째, …"로 시작해 2~3문장(기준 숫자 → 왜 그 기준인지 → 표기가 없을 때 처리)으로 설명하세요. 항목이 바뀔 때마다 body 안에 줄바꿈 두 번(\\n\\n)을 넣어 문단을 나누세요 — 한 덩어리로 이어 쓰지 마세요. 추천은 칩("성분 우선으로 추천해줘", "가성비 좋은 걸로 추천해줘")으로만 제안합니다.`;
     }
     if (forcedAxis && matchedCategory && QUALITY_CFG[matchedCategory] && productContext.length) {
       flagBlock += `\n\n[축 강제] 사용자가 '${forcedAxis.label}' 기준을 명시했습니다. 직전 턴에서 어떤 기준을 썼든 계승하지 말고, 이번 추천은 반드시 ${forcedAxis.axis} 순으로 고르세요. 목록을 제시하면 alternatives_note에 "${forcedAxis.label}"임을 밝히세요.`;
@@ -1632,7 +1638,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     const DIRECT_BASE = "https://api.anthropic.com";
     const _tC = Date.now();   // [v17.7] 모델 호출 구간 계측 시작
     const reqBody = JSON.stringify({
-      model: MODEL, max_tokens: evalMode ? 450 : (explainIntent ? 1200 : 900),   // [v17.13/14] 출력 상한 — 평가 모드는 더 짧게 / [v17.22] 700→900(잘림 시 카드 소실 실측)
+      model: MODEL, max_tokens: evalMode ? 450 : (explainIntent ? 1500 : 900),   // [v17.13/14] 출력 상한 — 평가 모드는 더 짧게 / [v17.22] 700→900(잘림 시 카드 소실 실측)
       // 프롬프트 캐싱: 시스템 프롬프트(페르소나·5정책·산식 설명, ~2,800토큰)는 매 호출 100% 동일하다.
       // 캐시 블록으로 표시하면 같은 프롬프트를 5분 내 재호출 시 이 부분 입력 단가가 0.1배로 떨어진다
       // (첫 기록만 1.25배). 상담은 멀티턴이라 2번째 턴부터 바로 절감. 캐시 최소 길이(Sonnet 1,024토큰) 충족.
@@ -1972,9 +1978,11 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 
       // [v17.21] V 응답 body 3문장 상한을 전 모드에 코드로 적용 — 프롬프트 지시만으론 지켜지지 않음(실측).
       if (!evalMode && payload.policy === "V" && typeof payload.body === "string") {
-        const _cap = explainIntent ? 6 : 3;   // [v17.25] 설명 요청은 열거가 끊기면 안 된다
-        const _bs = payload.body.split(/(?<=[.!?])\s+/);
-        if (_bs.length > _cap) payload.body = _bs.slice(0, _cap).join(" ");
+        const _cap = explainIntent ? 9 : 3;   // [v17.25/26] 설명 요청은 열거가 끊기면 안 된다
+        // [v17.26] 줄바꿈을 보존하며 자른다 — join(" ")은 문단 구분을 지웠다.
+        const _re = /[.!?](?=\s|$)/g; let _n = 0, _m, _cut = -1;
+        while ((_m = _re.exec(payload.body))) { _n++; if (_n === _cap) { _cut = _m.index + 1; break; } }
+        if (_cut > 0 && _cut < payload.body.trim().length) payload.body = payload.body.slice(0, _cut).trim();
       }
       // [v17.25] 설명 요청에는 제품 카드를 붙이지 않는다 — 추천은 칩을 눌러 받는다.
       if (explainIntent && !evalMode) { payload.alternatives = []; payload.alternatives_note = null; }
