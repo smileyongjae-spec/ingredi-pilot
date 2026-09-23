@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v9.2  (2026-09-21) — [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
+<!-- app.html  v9.3  (2026-09-23) — [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -383,6 +383,11 @@
     .cv-bonus { font-size: 10.5px; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
     .cv-bonus.vitA { background: var(--green-light); color: var(--green-primary); }
     .cv-bonus.beta { background: var(--caution-bg); color: var(--caution); }
+    /* [v9.3] 유산균 근거 줄 — 점수에 들어가는 항목(개별인정·strain 표기)은 진하게, 정보 항목(균주 수·인체적용시험)은 보통 */
+    .cv-evid { display: flex; flex-wrap: wrap; gap: 5px; }
+    .cv-evid .ev { font-size: 11.5px; padding: 3px 9px; border-radius: 10px; border: 1px solid var(--line-soft); background: var(--surface); color: var(--ink-soft); }
+    .cv-evid .ev.on { background: var(--green-light); color: var(--green-primary); border-color: transparent; font-weight: 700; }
+    .cv-evid .ev.off { color: var(--ink-faint); }
     .cv-cold { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 100px; background: var(--info-bg); color: var(--info); border: 1px solid var(--info-line); }
     .cat-pf { flex: 1; border: none; background: none; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--ink-soft); padding: 9px 4px; border-radius: 9px; cursor: pointer; transition: 0.15s; display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.2; }
     .cat-pf small { font-size: 10px; font-weight: 500; color: var(--ink-faint); }
@@ -1352,6 +1357,16 @@ function renderCardV8(p, ctx){
   }
 
   const coldBadge = (cat==="마이크로바이옴" && truthyStr(p.extra && p.extra["냉장유통"])) ? `<span class="cv-cold">❄️ 냉장보관</span>` : "";
+  // [v9.3] 유산균 근거 줄: 개별인정(점수) · strain 표기(점수) · 균주 N종(정보) · 인체적용시험 표기(정보)
+  let evidRow = "";
+  if (cat==="마이크로바이옴" && p.probiotic) {
+    const pb = p.probiotic; const ev = [];
+    ev.push(pb.individual ? `<span class="ev on">개별인정 · ${escapeHtml(pb.individualLabel || "개별인정")}</span>` : `<span class="ev off">고시형</span>`);
+    ev.push(pb.strainCoded ? `<span class="ev on">균주 코드 표기</span>` : `<span class="ev off">균주 코드 미표기</span>`);
+    if (pb.strainCount) ev.push(`<span class="ev">균주 ${pb.strainCount}종</span>`);
+    if (pb.humanTrial) ev.push(`<span class="ev">인체적용시험 표기</span>`);
+    evidRow = `<div class="cv-form"><span class="lbl">근거</span><div class="cv-evid">${ev.join("")}</div></div>`;
+  }
   const cartSvg = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
   const buyBtnCore = p.link
     ? `<a class="cv-buybtn" href="${escapeHtml(p.link)}" target="_blank" rel="noopener">${cartSvg}구매하러 가기</a>`
@@ -1401,6 +1416,7 @@ function renderCardV8(p, ctx){
     ${p.overLimit ? `<div class="cv-form"><span class="lbl">주의</span><span class="fval">식약처·복지부 상한 초과 — 의사 상담 권고</span></div>` : ""}
     ${(p.claimed && p.claimed.length > 1) ? `<div class="cv-form"><span class="lbl">표방 성분</span><span class="fval">${escapeHtml(p.claimed.join(' · '))}</span></div>` : ""}
     ${(unscored && p.supplier && String(p.supplier).trim() !== "-") ? `<div class="cv-form"><span class="lbl">원료사</span><span class="fval">${escapeHtml(String(p.supplier))}</span></div>` : ""}
+    ${evidRow}
     ${tagsHtml ? `<div class="cv-certrow"><span class="lbl">인증</span><div class="cv-tagrow">${tagsHtml}</div></div>` : ""}
     ${(p.form || coldBadge) ? `<div class="cv-form"><span class="lbl">${p.form ? "제형" : "보관"}</span>${p.form ? `<span class="fval">${escapeHtml(String(p.form))}</span>` : ""}${coldBadge}</div>` : ""}
     ${buyBtn}
