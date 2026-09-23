@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- compare.html  v2.5  (2026-09-18) -->
+<!-- compare.html  v2.6  (2026-09-23) — [v2.6] 유산균 비교 행 추가: 개별인정 · 균주 코드 표기(점수 항목) / 균주 종류 수 · 인체적용시험 표기(참고 정보) -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -513,6 +513,16 @@ function goCompare(){
   if (isSports && anyHas(p=>p.flavor)) rows += row("맛", p=> cell(esc(p.flavor||"—"),"",false));
   rows += row("인증", p=> { const c = String(p.certs||"").split(/[,\/·]/).map(x=>x.trim()).filter(Boolean).slice(0,4);
     return cell(c.length ? esc(c.join(" · ")) : "—","",false); });
+  // [v2.6] 유산균 근거 행 — 앞 둘은 점수 항목(개별인정 0.1·strain 표기 0.2), 뒤 둘은 참고 정보
+  if (activeCat === "마이크로바이옴" && anyHas(p=>p.probiotic)) {
+    const pb = p => p.probiotic || {};
+    const anyInd = prods.some(p=>pb(p).individual);
+    rows += row("개별인정" + sub("점수 반영"), p=> pb(p).individual ? cell(esc(pb(p).individualLabel || "개별인정"),"", anyInd) : cell("고시형","",false));
+    const anyCoded = prods.some(p=>pb(p).strainCoded);
+    rows += row("균주 코드<br>표기" + sub("점수 반영"), p=> pb(p).strainCoded ? cell("표기","", anyCoded) : cell("미표기","",false));
+    rows += row("균주 종류" + sub("참고 정보"), p=> pb(p).strainCount ? cell(fmt(pb(p).strainCount),"종",false) : cell("—","",false));
+    rows += row("인체적용시험<br>표기" + sub("참고 정보"), p=> cell(pb(p).humanTrial ? "있음" : "—","",false));
+  }
   if (activeCat === "밀크씨슬") rows += row("원료사" + sub("참고 정보"), p=> cell(esc((p.supplier && String(p.supplier).trim() !== "-") ? p.supplier : "—"),"",false));
   // 스포츠 보충제는 일반식품이 원칙 — 식약처 기능성 행은 선택 제품 중 하나라도 별도 인정을 받았을 때만 표시
   if (isSports) { if (anyHas(p=>p.function)) rows += row("식약처<br>기능성" + sub("별도 인정"), p=> cell(esc(String(p.function||"—").slice(0,40)),"",false)); }
