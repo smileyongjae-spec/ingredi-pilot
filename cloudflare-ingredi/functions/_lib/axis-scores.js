@@ -1,4 +1,12 @@
-// functions/_lib/axis-scores.js — 건강기능식품 core·축 점수 규칙 (v2.3, 2026-09-19)
+// functions/_lib/axis-scores.js — 건강기능식품 core·축 점수 규칙 (v2.4, 2026-09-23)
+// [v2.4] 유산균 PROBIOTICS_V2 확정 — [Core 0.6] + [개별인정 0.1] + [균주 strain 표기 0.2] + [인증 0.1].
+//        2026-09-22 마이크로바이옴 DB(균주명·인체적용시험·개별인정 컬럼)로 185개 시뮬레이션 후 결정.
+//        · 개별인정(on/off): 식약처 개별인정형 원료면 100, 아니면 0 — 기능성 종류 구분 없이 전부 on.
+//        · strain 표기(on/off): 균주명에 균주 코드(LGG·CBT-BG7·LA-11 등)가 있으면 100, 속·종만이면 0.
+//        · 균주 종류 수·인체적용시험 표기는 점수 아님 — 카드 정보(probioticInfo)로만 낸다.
+//          (균주 수는 가격·균수와 무상관(-0.16/-0.07), 인체적용시험 컬럼은 "상세설명에 결과가 있는 경우"라 광고 성실도 지표)
+//        · 결과 분포(185개): A 12(전부 개별인정) / B 36(100억+strain) / C 16 / D 15 / E 105. 현행 A 9개는 B로.
+//        · 알려진 한계: 균수 50억 이하 개별인정(질 유산균 등)은 C, 갱년기 유산균(1억)은 E — 100억 앵커의 문제, 별도 아젠다.
 // [v2.3] 인증 가산 교정(팩트체크 반영): GMP 20→10 — 국내 건기식은 2020년부터 GMP 전면 의무라
 //        변별 요소가 아니며 표기 성실성 수준의 가점만 남긴다. HACCP 5→0(삭제) — 일반식품 인증으로
 //        건기식 제도와 무관. BPOM 5→0(삭제) — 국내 소비자 변별력 없음. 자발적 3rd party
@@ -15,6 +23,7 @@
 //
 // 내보내는 것
 //   coreOf(cat, f)     → { core, label, value, unit, claimed:[...], overLimit } | null(함량 미표기 → 보류)
+//   probioticInfo(f)   → { strainCount, strainCoded, individual, individualLabel, humanTrial }  (유산균 카드 정보)
 //   axisScores(cat, f) → { form, supplier, cert }  (해당 축이 없는 카테고리는 null 값)
 //   qualityOf(cat, f, external) → { core, form, supplier, cert, quality, grade, holdReason, label, value, unit, claimed, overLimit }
 //
@@ -129,24 +138,49 @@ export function axisScores(cat, f) {
 // ───────────────────────── 등급 산식 ─────────────────────────
 // 유산균은 균주 근거 축(인정유형·균주명 컬럼) 도입 전까지 임시 산식 [Core × 0.8] + [인증 × 0.2].
 // [2026-09-16] 옛 제형점수 병합(v1)은 폐기 — "제형·안정성은 점수가 아니라 정보"라는 결정과 모순이었다. 병합 불필요.
-export const PROBIOTICS_V2 = false;
+export const PROBIOTICS_V2 = true;   // [v2.4] 확정
 export const QUALITY = {
   "오메가3":       { core: 0.5,  form: 0.3, supplier: 0,   cert: 0.2 },
   "눈":           { core: 0.7,  form: 0,   supplier: 0.3, cert: 0 },
   "비타민C":       { core: 0.6,  form: 0,   supplier: 0.3, cert: 0.1 },
-  "마이크로바이옴": PROBIOTICS_V2 ? { core: 0.45, form: 0, supplier: 0, cert: 0.2, strain: 0.35 } : { core: 0.8, form: 0, supplier: 0, cert: 0.2 }
+  "마이크로바이옴": PROBIOTICS_V2 ? { core: 0.6, form: 0, supplier: 0, cert: 0.1, individual: 0.1, strain: 0.2 } : { core: 0.8, form: 0, supplier: 0, cert: 0.2 }
 };
 export const GRADE_CUTS = [["A", 85], ["B", 70], ["C", 55], ["D", 40]];
 export function gradeOf(q) { if (q == null) return null; for (const [g, c] of GRADE_CUTS) if (q >= c) return g; return "E"; }
 
-const STRAIN = { individual: 100, coded: 70, species: 40, none: half(40) };
-function strainScore(f) {
-  const t = S(f.인정유형); const name = S(f.균주명);
-  if (/개별/.test(t)) return STRAIN.individual;
-  if (has(name) && /[A-Z]{1,4}[-\s]?\d{2,}|LGG|BB-?12/i.test(name)) return STRAIN.coded;
-  if (has(name)) return STRAIN.species;
-  return STRAIN.none;
+// ───────────────────────── 유산균 근거 축·카드 정보 ─────────────────────────
+// Airtable 컬럼명이 길고 괄호 설명이 붙어 있어(예: "개별인정 원료(상세설명에 …)") 접두어로 찾는다.
+function fieldByPrefix(f, ...prefixes) {
+  for (const p of prefixes) {
+    if (f[p] !== undefined) return f[p];
+    const k = Object.keys(f).find(key => key.replace(/\s+/g, "").startsWith(p.replace(/\s+/g, "")));
+    if (k) return f[k];
+  }
+  return undefined;
 }
+const YES = v => { const t = S(v).toUpperCase(); return t === "Y" || t === "O" || t === "YES" || t === "TRUE" || t === "CHECKED" || v === true; };
+// 균주 코드 표기: 라틴 약어+숫자(LA-11, CBT-BG7, HY7601), 또는 관용 코드(LGG, BB-12, DDS-1).
+const STRAIN_CODE_RE = /[A-Za-z]{1,6}[-\s]?\d{2,}|\bLGG\b|\bBB-?12\b|DDS-?1|CBT-|\bGG\b/;
+export function probioticInfo(f) {
+  const name = S(f.균주명);
+  const parts = name.replace(/\n/g, ",").split(",").map(t => t.trim()).filter(t => t && t !== "-" && t !== "무");
+  const individual = YES(fieldByPrefix(f, "개별인정 원료", "개별인정")) || /개별/.test(S(f.인정유형));
+  const func = S(f.주된기능성);
+  // 개별인정 기능성 이름 — 주된기능성 문구에서 대표 키워드로 표시(없으면 "개별인정")
+  const FUNC_LABELS = [[/체지방/, "체지방 감소"], [/갱년기/, "갱년기 여성 건강"], [/질내|질\s*건강/, "질 건강"], [/코\s*상태|면역과민/, "코 상태 개선"],
+    [/운동수행/, "운동수행능력"], [/요로/, "요로 건강"], [/헬리코박터|위\s*건강/, "위 건강"], [/간\s*건강/, "간 건강"], [/장\s*면역|장\s*건강|배변|유익균/, "장 건강"]];
+  let individualLabel = null;
+  if (individual) { const hit = FUNC_LABELS.find(([re]) => re.test(func)); individualLabel = hit ? hit[1] : "개별인정"; }
+  return {
+    strainCount: parts.length || null,
+    strainCoded: has(name) && STRAIN_CODE_RE.test(name),
+    individual,
+    individualLabel,
+    humanTrial: YES(fieldByPrefix(f, "인체적용시험 결과 여부", "인체적용시험"))
+  };
+}
+function strainScore(f) { return probioticInfo(f).strainCoded ? 100 : 0; }     // [v2.4] on/off
+function individualScore(f) { return probioticInfo(f).individual ? 100 : 0; }   // [v2.4] on/off
 
 export function qualityOf(cat, f, external) {
   const w = QUALITY[cat]; if (!w) return null;
@@ -162,6 +196,7 @@ export function qualityOf(cat, f, external) {
   }
   if (w.supplier) { const v = ax.supplier != null ? ax.supplier : (ext.supplier != null ? ext.supplier : SUPPLIER.none); parts.supplier = v; q += w.supplier * v; }
   if (w.cert) { const v = ax.cert != null ? ax.cert : (ext.cert != null ? ext.cert : 0); parts.cert = v; q += w.cert * v; }
+  if (w.individual) { const v = individualScore(f); parts.individual = v; q += w.individual * v; }   // [v2.4]
   if (w.strain) { const v = strainScore(f); parts.strain = v; q += w.strain * v; }
   const quality = Math.round(q * 10) / 10;
   return { ...parts, quality, grade: gradeOf(quality), holdReason: null, label: c.label, value: c.value, unit: c.unit, claimed: c.claimed, overLimit: c.overLimit };
