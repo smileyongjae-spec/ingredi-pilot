@@ -1,3 +1,9 @@
+// functions/counsel2.js  v17.29  (2026-09-23)
+// [v17.29 — 유산균 PROBIOTICS_V2 연결 (axis-scores v2.4: Core 0.6 + 개별인정 0.1 + strain 표기 0.2 + 인증 0.1)]
+//   - productContext에 probiotic{individual, individualLabel, strainCoded, strainCount, humanTrial} 동봉,
+//     화자에게는 "근거" 필드(개별인정·균주 코드 표기·균주 N종·인체적용시험 표기)로 투영.
+//   - 카드 reason·지목 평결에 개별인정/균주 코드 표기를 근거로 쓸 수 있게 화법 규칙 추가
+//     (개별인정은 식약처가 인정한 기능성 이름으로, 균주 수·인체적용시험은 점수 근거가 아닌 참고 정보로만).
 // functions/counsel2.js  v17.28  (2026-09-23)
 // [v17.28 — 설명 답변 실측 수리: 셋째 항목이 잘리고 줄바꿈이 안 들어가던 문제]
 //   - 9문장 상한이 "둘째" 끝에서 정확히 끊었다(항목당 4~5문장). 설명 모드는 문장 수로 자르지 않는다 —
@@ -223,7 +229,7 @@
 
 import { getRecords } from "./_lib/airtable.js";
 import { TABLES } from "./_lib/tables.js";   // [v15.28] 테이블명 중앙 설정
-import { qualityOf, gradeOf } from "./_lib/axis-scores.js";   // [v16.0] core·축·등급 산식 전부 규칙 모듈에서
+import { qualityOf, gradeOf, probioticInfo } from "./_lib/axis-scores.js";   // [v16.0] core·축·등급 산식 전부 규칙 모듈에서 / [v17.29] probioticInfo
 
 // [v17.27] 스트리밍 래퍼 — ?stream=1이면 SSE로, 아니면 종전 JSON 그대로.
 export async function onRequest(context) {
@@ -1331,7 +1337,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
           // [v15.23] 밀크씨슬(무채점)용 — 원료사는 명기만(점수 축 아님), raw_mg는 실리마린 미표기지만
           // 추출물 함량은 표기한 제품 식별용. 다른 카테고리에선 빈 값이라 영향 없다.
           supplier: asText(getField(f, "원료사")).trim() || null,
-          raw_mg: numOrNull(getField(f, "밀크씨슬_mg"))
+          raw_mg: numOrNull(getField(f, "밀크씨슬_mg")),
+          probiotic: matchedCategory === "probiotics" ? probioticInfo(f) : null   // [v17.29]
         };
       }).filter(p => p.name && p.pass !== "Fail" && (!targetSegment || p.segment === targetSegment));
 
@@ -1465,6 +1472,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
 - 위 평결 문구는 제품을 평가할 때입니다. "아이가 먹어도 돼?"처럼 섭취 가능 여부를 묻는 질문에는 "드셔도 됩니다"로 답해도 됩니다.
 - 지목 평결의 alternatives는 D(부정)에만 담습니다. A~C에서는 alternatives를 비우세요 — 묻지 않은 다른 제품을 카드로 붙이면 광고처럼 읽힙니다. 다른 제품 제안은 칩("다른 ○○도 추천받기")으로만 합니다.
 - 길이 상한(엄수): body는 V 3문장·Q 2문장 이내([설명 요청] 플래그가 있으면 항목당 3문장 + 요약·마무리 각 1문장), question 1문장, default_answer 2문장 이내, alternatives의 reason은 20자 내외. 이 상한을 넘기지 마세요 — 생성 길이가 곧 응답 대기 시간입니다. 짧아서 빠진 내용은 사용자가 되물으면 그때 답합니다.
+- 유산균 근거 화법: [제품 데이터]의 "근거"에 개별인정이 있으면 "식약처 개별인정(○○) 원료예요"처럼 기능성 이름과 함께 말할 수 있어요 — 등급을 가르는 항목입니다. "균주 코드 표기"도 근거로 말할 수 있어요(어떤 균주인지 특정된다는 뜻). 단 "균주 N종"과 "인체적용시험 표기"는 참고 정보라 점수·등급의 근거로 쓰지 마세요 — 균주가 많다고 좋은 게 아니고, 인체적용시험 표기는 판매 페이지 서술 여부일 뿐이에요. 물어보면 그 한계까지 알려주세요.
 - 인증 서술 규칙(엄수): ① 제품에 인증 표기가 없으면 특정 인증 이름(GMP·HACCP·ISO·FSSC 등)을 아예 거론하지 마세요 — 허용되는 최대치는 "인증 표기는 확인되지 않았어요" 한 문장입니다. "GMP·HACCP 같은 인증이 없다"처럼 이름을 나열하며 부재를 설명하는 것 자체가 금지입니다. ② 인증 표기가 있으면 "인증은 ○○·△△가 확인됐어요"처럼 나열만 하세요 — GMP나 HACCP를 "제조 품질을 갖춘", "안전 인증을 갖춘" 같이 강점·품질 근거로 풀어 쓰지 마세요. GMP는 한국(식약처, 2020년 전면 시행)과 미국(FDA cGMP, 2010년 전면 시행) 모두 법적 의무라 해외직구 제품에서도 강점이 아니고, HACCP는 일반식품 인증이라 건강기능식품·미국 보충제 어느 쪽의 평가 기준도 아니기 때문입니다.
 
 ## 밀크씨슬 — 등급이 없는 카테고리
@@ -1569,6 +1577,13 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         인증: classifyCerts(p.certs) || null,
         일일비용: p.daily_cost != null ? p.daily_cost + "원" : null,
         특성: p.descriptor || null,
+        // [v17.29] 유산균 근거 — 개별인정·균주 코드 표기는 점수 항목, 균주 수·인체적용시험 표기는 참고 정보
+        ...(p.probiotic ? { 근거: [
+          p.probiotic.individual ? `개별인정(${p.probiotic.individualLabel || "개별인정"})` : "고시형",
+          p.probiotic.strainCoded ? "균주 코드 표기" : "균주 코드 미표기",
+          p.probiotic.strainCount ? `균주 ${p.probiotic.strainCount}종(참고)` : null,
+          p.probiotic.humanTrial ? "인체적용시험 표기(참고)" : null
+        ].filter(Boolean).join(" · ") } : {}),
         // [v15.23] 무채점 카테고리(밀크씨슬)에만 붙는 필드 — 원료사는 참고 정보, 함량표기는 정직 발화용.
         ...(isUnscoredCat ? {
           원료사: p.supplier || null,
@@ -1917,6 +1932,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
         const bits = [];
         if (cfg2 && p.primary_mg != null) bits.push(`${cfg2.primaryLabel} ${p.primary_mg.toLocaleString()}${cfg2.unit}`);
         if (p.daily_cost) bits.push(`하루 ${p.daily_cost.toLocaleString()}원`);
+        if (p.probiotic && p.probiotic.individual) bits.push(`개별인정 ${p.probiotic.individualLabel || ""}`.trim());   // [v17.29]
         const certTxt = classifyCerts(p.certs);
         if (certTxt) bits.push(certTxt.split(",")[0].trim());
         return bits.join(" · ");
