@@ -1,6 +1,7 @@
 // functions/recommend2.js  v8.5  (2026-09-23)
 // [v8.5] 유산균 카드 정보 probiotic{strainCount, strainCoded, individual, individualLabel, humanTrial}를 응답에 동봉
 //        (axis-scores v2.4 probioticInfo). axisParts에 individual 추가. 산식 자체는 규칙 모듈이 담당.
+//        extra 컬럼(포스트바이오틱스 등)은 괄호 설명이 붙은 컬럼명도 접두어로 흡수.
 // functions/recommend2.js  v8.4  (2026-09-18)
 // Cloudflare Pages Function: Unified category recommendation (v7.3)
 // [v6] 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다. 없으면 null.
@@ -233,7 +234,12 @@ export async function onRequest(context) {
   const items = records.map(r => {
     const f = r.fields || {};
     const extra = {};
-    for (const k of cfg.extra) extra[k] = f[k] !== undefined ? f[k] : null;
+    // [v8.5] 컬럼명에 괄호 설명이 붙은 경우("포스트바이오틱스 (내용 표기 한정, …)") 접두어로도 찾는다.
+    for (const k of cfg.extra) {
+      if (f[k] !== undefined) { extra[k] = f[k]; continue; }
+      const fk = Object.keys(f).find(key => key.replace(/\s+/g, "").startsWith(k));
+      extra[k] = fk ? f[fk] : null;
+    }
     // [v8.0] 채점은 _lib/axis-scores.js(기준표 v2.1)가 전담. Airtable 점수 컬럼은 규칙이 아직 없는 축(유산균 v1 제형점수)에만 external로 전달.
     const qx = cfg.unscored ? null : qualityOf(catKey, f);   // [v8.1] Airtable 점수 컬럼은 더 이상 읽지 않는다
 
