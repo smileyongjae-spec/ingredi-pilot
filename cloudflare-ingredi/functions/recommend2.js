@@ -1,3 +1,6 @@
+// functions/recommend2.js  v8.5  (2026-09-23)
+// [v8.5] 유산균 카드 정보 probiotic{strainCount, strainCoded, individual, individualLabel, humanTrial}를 응답에 동봉
+//        (axis-scores v2.4 probioticInfo). axisParts에 individual 추가. 산식 자체는 규칙 모듈이 담당.
 // functions/recommend2.js  v8.4  (2026-09-18)
 // Cloudflare Pages Function: Unified category recommendation (v7.3)
 // [v6] 엑셀 5축 점수(제형/원료사/인증/최종)를 함께 내려준다. 없으면 null.
@@ -46,7 +49,7 @@
 
 import { getRecords } from "./_lib/airtable.js";
 import { TABLES } from "./_lib/tables.js";   // [v7.6] 테이블명 중앙 설정
-import { qualityOf, gradeOf } from "./_lib/axis-scores.js";   // [v8.0] core·축·등급 산식 전부 규칙 모듈에서
+import { qualityOf, gradeOf, probioticInfo } from "./_lib/axis-scores.js";   // [v8.5] probioticInfo   // [v8.0] core·축·등급 산식 전부 규칙 모듈에서
 
 const CATEGORIES = {
   "오메가3":        { table: TABLES["오메가3"],        primary: { field: "EPA_DHA_mg",     label: "EPA+DHA",  unit: "mg" }, extra: ["EPA_mg", "DHA_mg", "캡슐당순도"] },
@@ -275,7 +278,8 @@ export async function onRequest(context) {
       claimed: qx ? (qx.claimed || null) : null,
       overLimit: !!(qx && qx.overLimit),
       holdReason: qx ? (qx.holdReason || null) : null,
-      axisParts: qx ? { core: qx.core, form: qx.form, supplier: qx.supplier, cert: qx.cert, strain: qx.strain } : null,
+      axisParts: qx ? { core: qx.core, form: qx.form, supplier: qx.supplier, cert: qx.cert, individual: qx.individual, strain: qx.strain } : null,
+      probiotic: catKey === "마이크로바이옴" ? probioticInfo(f) : null,   // [v8.5] 카드 정보(점수 아님)
       _qx: qx,
       scores: {
         core: num(f.핵심성분점수),
