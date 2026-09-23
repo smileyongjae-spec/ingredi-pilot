@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v9.3  (2026-09-23) — [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
+<!-- app.html  v9.4  (2026-09-23) — [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1027,7 +1027,10 @@ function renderSubBar(cat){
   const subs = SUBFILTERS[cat];
   if (!subs){ bar.innerHTML = ""; return; }
   const cur = activeSub[cat] || defaultSubKey(subs);   // [v8.7]
-  bar.innerHTML = subs.map(s=>`<button class="cat-sub${s.key===cur?' active':''}" onclick="setSub('${s.key}')">${escapeHtml(s.label)}</button>`).join("");
+  // [v9.4] "모든 대상"은 평소 탭 줄에서 숨긴다(일반 탭과 거의 같아 보여 혼란). 상담 전체보기 딥링크로
+  //        들어와 __all이 활성인 동안만 보이고, 다른 탭을 누르면 사라진다.
+  bar.innerHTML = subs.filter(s => s.key !== "__all" || cur === "__all")
+    .map(s=>`<button class="cat-sub${s.key===cur?' active':''}" onclick="setSub('${s.key}')">${escapeHtml(s.label)}</button>`).join("");
 }
 window.setSub = function(key){
   if (!activeCat) return;
