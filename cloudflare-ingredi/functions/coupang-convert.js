@@ -1,39 +1,44 @@
-// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환 (Method B, v3.5 — 속도 제한 방어·실패 URL 기억 / v3.4 중앙 설정)
-// [v3.3] 대상 테이블 2개 추가 — 헬스제품_단백질_부스터_2026.09.04(스포츠 뉴트리션),
-//        밀크씨슬_2026.09.04. 이미 딥링크가 있는 레코드는 건너뛰므로(멱등) 기존 4개 테이블엔 영향 없음.
-//        초기 대량 변환은 ?table=<테이블명> 로 하나씩 호출 권장 (하위요청 예산 여유 확보).
-// File path: functions/coupang-convert.js
-// URL: /coupang-convert?secret=<CACHE_REFRESH_SECRET>[&dryRun=1][&limit=200][&table=비타민C_쿠팡업데이트]
+// functions/coupang-convert.js  v4.0  (2026-10-01)
+// Cloudflare Pages Function: Coupang Partners Deeplink 자동 전환
 //
-// 동작:
-//   1) 대상 테이블에서 "쿠팡 URL"(raw 쿠팡 링크)이 있고 coupang_deeplink 가 비어있는 레코드 수집
-//   2) URL을 청크(기본 20개)로 묶어 쿠팡 파트너스 Deeplink API 호출 (HMAC-SHA256 서명)
-//   3) [v3] 청크가 통째로 거부되거나(rCode 400 — 묶음에 불량 URL이 하나라도 있으면 전체 거부)
-//      성공 응답에서 일부 URL이 누락되면, 실패분을 1개씩 개별 재시도해 불량 URL만 격리한다.
-//      끝까지 실패한 URL은 failedUrls 로 사유와 함께 반환 → 상품 URL 교체 판단용.
-//   4) [v3.1] Cloudflare 하위요청 한도(호출당 50) 대응 — 모든 외부 요청을 실측 카운트하고
-//      예산(45) 안에서만 진행. 예산이 차면 그 시점까지 확보한 딥링크를 Airtable에 기록하고
-//      remaining 으로 반환 → 같은 URL을 다시 호출하면 이어서 처리된다(멱등).
-//   5) 반환된 딥링크(shortenUrl)를 coupang_deeplink 컬럼에 기록 (원본 "쿠팡 URL"·제품링크는 보존)
-//   ※ 쿠팡 URL 이 비어 있는 제품은 건너뜀 → recommend2 에서 자동으로 네이버(제품링크)로 폴백
+// [v4.0] 2026-10-01 — URL 변경분만 선별 변환 + 쿠팡 API 호출 최소화
+//   1) 선별 변환: 딥링크를 만든 URL을 deeplink_source 에 기록하고, 현재 "쿠팡 URL"과 비교해
+//      바뀐 행(상품번호·itemId·vendorItemId 기준)만 다시 변환한다. 검색어 등 트래킹 파라미터는 비교에서 무시.
+//   2) 실패 영구 기록: 400(링크 생성 제한·판매중단 등)은 deeplink_status 에 "FAIL 400 날짜"로 남기고,
+//      URL이 바뀌기 전까지 다시 시도하지 않는다(v3.5의 KV 7일 기억 폐지). ?retryFailed=1 로만 강제 재시도.
+//   3) URL이 바뀌었는데 새 URL이 실패하면 옛 딥링크를 지운다(옛 옵션으로 가는 것보다 원본 URL 연결이 낫다).
+//   4) 쿠팡 URL이 지워진 행의 딥링크도 지운다(API 호출 없음).
+//   5) 묶음 거부(400) 시 1개씩 전부 재시도하던 방식 → 반씩 나눠 재시도(불량 URL 격리 호출 수 절감).
+//   6) 응답-URL 매칭 수정: v3는 API가 일부 URL을 빼고 돌려줘도 순서(idx)로 짝지어, 옆 제품의 딥링크가
+//      붙을 수 있었다. v4는 originalUrl 의 상품 키로만 짝짓고, 개수가 같을 때만 순서를 쓴다.
+//   7) 상한 도달·속도 제한으로 못 돈 URL은 실패로 기록하지 않는다(다음 호출에서 이어서 처리).
+//   8) ?backfill=1 — 이미 딥링크가 있고 deeplink_source 가 빈 행에 현재 URL을 기록만 한다(쿠팡 호출 0회).
+//      딥링크가 없는 행은 이번 재변환 실패분으로 보고 "FAIL backfill"로 기록(다음 호출에서 재시도 안 함).
+//      2026-10-01 전체 재변환 직후 1회 실행용 — 각 테이블 마지막 변환이 "전환 대상 없음"인 상태에서 실행.
 //
-// 기본 대상 테이블: 4개 _쿠팡업데이트 테이블. ?table= 로 단일/복수(쉼표) 지정 가능.
-// 대량 처리 팁: ?table=오메가3_쿠팡업데이트 처럼 테이블 하나씩 부르면 예산 여유가 커져 한 번에 더 많이 처리.
+// URL: /coupang-convert?secret=<CACHE_REFRESH_SECRET>&table=<전체 테이블명>
+//      [&dryRun=1] 대상만 집계(쿠팡 호출·기록 없음)
+//      [&backfill=1] deeplink_source 채우기(쿠팡 호출 없음)
+//      [&retryFailed=1] FAIL 기록 행도 다시 시도(호출 많이 씀 — 꼭 필요할 때만)
+//      [&limit=100] 호출 1회당 변환 대상 행 상한(기본 100, 최대 200)
 //
-// 필요 환경변수 (Cloudflare):
-//   COUPANG_ACCESS_KEY, COUPANG_SECRET_KEY, CACHE_REFRESH_SECRET, AIRTABLE_TOKEN, AIRTABLE_BASE_ID
-//   + 각 대상 테이블에 coupang_deeplink (Long text) 컬럼 추가 필요
+// 필요 환경변수: COUPANG_ACCESS_KEY, COUPANG_SECRET_KEY, CACHE_REFRESH_SECRET, AIRTABLE_TOKEN, AIRTABLE_BASE_ID
+// 필요 Airtable 열(각 제품 테이블): coupang_deeplink, deeplink_source, deeplink_status (모두 텍스트)
 
 import { PRODUCT_TABLES } from "./_lib/tables.js";
 
 const COUPANG_DOMAIN = "https://api-gateway.coupang.com";
 const DEEPLINK_PATH = "/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink";
-const DEFAULT_TABLES = PRODUCT_TABLES;   // [v3.4] _lib/tables.js 중앙 설정 — 데이터 갱신 시 그 파일만 고친다
-const RAW_FIELDS = ["쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크"]; // raw 쿠팡 링크 컬럼 후보(공백 표기 차이 흡수)
+const DEFAULT_TABLES = PRODUCT_TABLES;
+const RAW_FIELDS = ["쿠팡 URL", "쿠팡URL", "쿠팡_URL", "쿠팡링크"];
 const F_DEEP = "coupang_deeplink";
-const CHUNK = 20;           // Deeplink API 1회 요청당 URL 수 (API 상한: 20)
+const F_SRC = "deeplink_source";
+const F_STAT = "deeplink_status";
+const CHUNK = 20;            // Deeplink API 1회 요청당 URL 수 (API 상한 20)
 const AIRTABLE_BATCH = 10;   // Airtable PATCH 1회당 레코드 수(최대 10)
-const SUBREQ_BUDGET = 45;    // Cloudflare 하위요청 한도(50)에서 여유 5를 뺀 실행 예산
+const SUBREQ_BUDGET = 45;    // Cloudflare 하위요청 한도(50) - 여유 5
+const MAX_API_CALLS = 30;    // 호출 1회당 쿠팡 API 요청 상한 (분당 100회 제한 방어)
+const API_INTERVAL_MS = 1200;
 
 export async function onRequest(context) {
   const headers = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" };
@@ -49,46 +54,64 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const secret = url.searchParams.get("secret") || "";
   const dryRun = url.searchParams.get("dryRun") === "1";
-  const limit = Math.max(1, Math.min(2000, parseInt(url.searchParams.get("limit") || "500", 10) || 500));
+  const backfill = url.searchParams.get("backfill") === "1";
+  const retryFailed = url.searchParams.get("retryFailed") === "1";
+  const limit = Math.max(1, Math.min(200, parseInt(url.searchParams.get("limit") || "100", 10) || 100));
   const tableParam = (url.searchParams.get("table") || "").trim();
   const tables = tableParam ? tableParam.split(",").map(s => s.trim()).filter(Boolean) : DEFAULT_TABLES;
+  const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers });
 
-  // [v3.1] 하위요청 실측 카운터 — 모든 외부 fetch 는 cfetch 로만 호출한다.
   let subreq = 0;
   async function cfetch(u, opts) { subreq++; return fetch(u, opts); }
   const budgetLeft = () => SUBREQ_BUDGET - subreq;
 
   if (!GUARD || secret !== GUARD) {
-    // 안전 진단: ?debug=1 이면 값은 숨기고 길이/일치 여부만 반환 (원인 추적용)
     if (url.searchParams.get("debug") === "1") {
-      return new Response(JSON.stringify({
-        debug: true,
-        guardConfigured: !!GUARD,
-        guardLength: GUARD ? GUARD.length : 0,
-        providedLength: secret.length,
-        match: secret === GUARD,
-        coupangKeysConfigured: !!ACCESS && !!SECRET,
-        airtableConfigured: !!TOKEN && !!BASE_ID
-      }), { status: 200, headers });
+      return json({
+        debug: true, guardConfigured: !!GUARD, guardLength: GUARD ? GUARD.length : 0,
+        providedLength: secret.length, match: secret === GUARD,
+        coupangKeysConfigured: !!ACCESS && !!SECRET, airtableConfigured: !!TOKEN && !!BASE_ID
+      });
     }
-    return new Response(JSON.stringify({ error: "unauthorized", message: "secret 파라미터가 필요합니다." }), { status: 401, headers });
+    return json({ error: "unauthorized", message: "secret 파라미터가 필요합니다." }, 401);
   }
-  if (!ACCESS || !SECRET) {
-    return new Response(JSON.stringify({ error: "config_missing", message: "COUPANG_ACCESS_KEY / COUPANG_SECRET_KEY 미설정" }), { status: 500, headers });
-  }
-  if (!TOKEN || !BASE_ID) {
-    return new Response(JSON.stringify({ error: "config_missing", message: "AIRTABLE_TOKEN / AIRTABLE_BASE_ID 미설정" }), { status: 500, headers });
-  }
+  if (!ACCESS || !SECRET) return json({ error: "config_missing", message: "COUPANG_ACCESS_KEY / COUPANG_SECRET_KEY 미설정" }, 500);
+  if (!TOKEN || !BASE_ID) return json({ error: "config_missing", message: "AIRTABLE_TOKEN / AIRTABLE_BASE_ID 미설정" }, 500);
 
   // ── 헬퍼 ──
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const str = v => (Array.isArray(v) ? v[0] : v || "").toString().trim();
   function readRaw(f) {
-    for (const k of RAW_FIELDS) {
-      let v = f[k];
-      if (Array.isArray(v)) v = v[0];
-      v = (v || "").toString().trim();
-      if (v) return v;
-    }
+    for (const k of RAW_FIELDS) { const v = str(f[k]); if (v) return v; }
     return "";
+  }
+  function today() {   // KST 날짜
+    const d = new Date(Date.now() + 9 * 3600 * 1000);
+    return d.toISOString().slice(0, 10);
+  }
+  // 상품 식별에 필요한 productId(경로)·itemId·vendorItemId 만 남긴 URL (트래킹 파라미터 제거)
+  function cleanUrl(raw) {
+    try {
+      const u = new URL(raw);
+      if (!(u.hostname === "coupang.com" || u.hostname.endsWith(".coupang.com"))) return raw;
+      const keep = new URLSearchParams();
+      const itemId = u.searchParams.get("itemId");
+      const vendorItemId = u.searchParams.get("vendorItemId");
+      if (itemId) keep.set("itemId", itemId);
+      if (vendorItemId) keep.set("vendorItemId", vendorItemId);
+      const qs = keep.toString();
+      return "https://www.coupang.com" + u.pathname + (qs ? "?" + qs : "");
+    } catch (_) { return raw; }
+  }
+  // 비교용 상품 키: 상품번호|itemId|vendorItemId (도메인·검색어 차이 무시)
+  function keyOf(raw) {
+    if (!raw) return "";
+    try {
+      const u = new URL(raw);
+      const m = u.pathname.match(/\/products\/(\d+)/);
+      if (!m) return raw.trim();
+      return [m[1], u.searchParams.get("itemId") || "", u.searchParams.get("vendorItemId") || ""].join("|");
+    } catch (_) { return raw.trim(); }
   }
   function signedDate() {
     const d = new Date();
@@ -101,63 +124,6 @@ export async function onRequest(context) {
     const key = await crypto.subtle.importKey("raw", enc.encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
     const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
     return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, "0")).join("");
-  }
-  // [v3.5] 속도 제한 방어 — 쿠팡 딥링크 API는 분당 100회, 3회 초과 시 파트너스 이용 제한(2026-09-18 "1회 초과" 경고 발생).
-  //   호출 1회당 API 요청 상한 MAX_API_CALLS, 요청 간격 API_INTERVAL_MS(분당 50회 이하), 403(속도 제한) 감지 시 즉시 중단.
-  //   400(url convert failed)로 실패한 URL은 KV에 7일 기억해 다음 호출에서 건너뛴다(죽은 URL을 매번 다시 두드리지 않게).
-  const MAX_API_CALLS = 30, API_INTERVAL_MS = 1200;
-  let apiCalls = 0, rateLimited = false;
-  const failKey = t => `cc:failed:${t}`;
-  async function loadFailed(table) { if (!env.CACHE) return new Set(); try { const j = await env.CACHE.get(failKey(table), "json"); return new Set(Array.isArray(j) ? j : []); } catch (_) { return new Set(); } }
-  async function saveFailed(table, set) { if (!env.CACHE) return; try { await env.CACHE.put(failKey(table), JSON.stringify([...set]), { expirationTtl: 60 * 60 * 24 * 7 }); } catch (_) {} }
-  async function callDeeplink(urls) {
-    if (rateLimited || apiCalls >= MAX_API_CALLS) return { status: 429, json: { rCode: "LOCAL_LIMIT", rMessage: rateLimited ? "쿠팡 속도 제한 감지 — 이번 호출 중단" : "호출당 API 요청 상한 도달 — 재호출로 이어서" }, text: "" };
-    apiCalls++;
-    const datetime = signedDate();
-    const message = datetime + "POST" + DEEPLINK_PATH; // query 없음
-    const signature = await hmacHex(message);
-    const auth = `CEA algorithm=HmacSHA256, access-key=${ACCESS}, signed-date=${datetime}, signature=${signature}`;
-    const res = await cfetch(COUPANG_DOMAIN + DEEPLINK_PATH, {
-      method: "POST",
-      headers: { "Content-Type": "application/json;charset=UTF-8", "Authorization": auth },
-      body: JSON.stringify({ coupangUrls: urls })
-    });
-    const text = await res.text();
-    let json = null; try { json = JSON.parse(text); } catch (_) {}
-    if (res.status === 403 || (json && String(json.rCode) === "403") || /시간당 사용 횟수|초과했습니다/.test(text)) rateLimited = true;
-    await sleep(API_INTERVAL_MS);
-    return { status: res.status, json, text };
-  }
-  // [v3.2] 쿠팡 URL 정규화 — 사이트에서 복사한 URL엔 검색·광고 트래킹 파라미터(spec/ctag/lptag 등,
-  // lptag는 raw 파이프 포함)가 붙어 있고, Deeplink API가 이런 URL을 "url convert failed"로 거부한다.
-  // 상품 식별에 필요한 productId(경로)·itemId·vendorItemId 만 남긴다. Airtable 원본은 건드리지 않는다.
-  function cleanUrl(raw) {
-    try {
-      const u = new URL(raw);
-      if (!(u.hostname === "coupang.com" || u.hostname.endsWith(".coupang.com"))) return raw;
-      const keep = new URLSearchParams();
-      const itemId = u.searchParams.get("itemId");
-      const vendorItemId = u.searchParams.get("vendorItemId");
-      if (itemId) keep.set("itemId", itemId);
-      if (vendorItemId) keep.set("vendorItemId", vendorItemId);
-      const qs = keep.toString();
-      return u.origin + u.pathname + (qs ? "?" + qs : "");
-    } catch (_) { return raw; }
-  }
-  // 응답 data 를 urlToDeep 에 흡수. toOrig(클린→원본 맵)가 있으면 원본 URL 키로 저장.
-  function absorb(urlToDeep, sentUrls, json, toOrig) {
-    const data = (json && json.data) || [];
-    let n = 0;
-    const orig = s => (toOrig && toOrig[s]) || s;
-    data.forEach((item, idx) => {
-      const deep = item.shortenUrl || item.landingUrl || "";
-      if (!deep) return;
-      const a = orig(item.originalUrl || sentUrls[idx]);
-      if (a && !urlToDeep[a]) { urlToDeep[a] = deep; n++; }
-      const b = orig(sentUrls[idx]);
-      if (b && !urlToDeep[b]) { urlToDeep[b] = deep; n++; }
-    });
-    return n;
   }
   async function airtableGetAll(table) {
     let records = [], offset = null, guard = 0;
@@ -179,148 +145,225 @@ export async function onRequest(context) {
       headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" },
       body: JSON.stringify({ records: recs })
     });
-    if (!r.ok) throw new Error("patch " + r.status + ": " + (await r.text()).slice(0, 200));
+    if (!r.ok) {
+      const t = (await r.text()).slice(0, 300);
+      if (/UNKNOWN_FIELD_NAME/.test(t)) throw new Error(`Airtable 열 없음 — '${table}' 테이블에 ${F_SRC}·${F_STAT} 열(텍스트)을 추가하세요. (${t.slice(0, 120)})`);
+      throw new Error("patch " + r.status + ": " + t);
+    }
     return r.json();
   }
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-  try {
-    // ── [1] 대상 수집 (테이블별) ──
-    const perTable = {};   // table → [{recId, url}]
-    let scanned = 0, pendingTotal = 0;
-    const readErrors = [];
-    for (const table of tables) {
-      let recs;
-      try { recs = await airtableGetAll(table); }
-      catch (e) { readErrors.push({ table, error: e.message }); continue; }
-      scanned += recs.length;
-      const pend = [];
-      for (const rec of recs) {
-        const f = rec.fields || {};
-        const raw = readRaw(f);
-        const deep = (f[F_DEEP] || "").toString().trim();
-        if (raw && !deep) pend.push({ recId: rec.id, url: raw });
-      }
-      perTable[table] = pend;
-      pendingTotal += pend.length;
-    }
-
-    // [v3.5] 이전 호출에서 400으로 실패한 URL은 건너뛴다(?retryFailed=1 이면 다시 시도)
-    const retryFailed = url.searchParams.get("retryFailed") === "1";
-    const failedSets = {}; let skippedFailed = 0;
-    for (const table of tables) failedSets[table] = retryFailed ? new Set() : await loadFailed(table);
-    // limit 적용(테이블 순서대로)
-    let remaining = limit;
-    const targets = []; // {table, recId, url}
-    for (const table of tables) {
-      for (const t of (perTable[table] || [])) {
-        if (remaining <= 0) break;
-        if (failedSets[table].has(t.url)) { skippedFailed++; continue; }
-        targets.push({ table, recId: t.recId, url: t.url });
-        remaining--;
-      }
-      if (remaining <= 0) break;
-    }
-
-    if (dryRun) {
-      return new Response(JSON.stringify({
-        ok: true, dryRun: true, tables, scanned, pending: pendingTotal,
-        pendingByTable: Object.fromEntries(tables.map(t => [t, (perTable[t] || []).length])),
-        willConvert: targets.length, sample: targets.slice(0, 5), readErrors
-      }), { status: 200, headers });
-    }
-    if (targets.length === 0) {
-      return new Response(JSON.stringify({ ok: true, tables, scanned, pending: 0, converted: 0, message: "전환 대상 없음", readErrors }), { status: 200, headers });
-    }
-
-    // ── [2] Deeplink 변환: 1차 청크 호출 ──
-    const uniqUrls = [...new Set(targets.map(t => t.url))];
-    // [v3.2] API 호출은 클린 URL로, 저장 키는 원본 URL로.
-    const cleanToOrig = {};
-    for (const u of uniqUrls) { const c = cleanUrl(u); if (!cleanToOrig[c]) cleanToOrig[c] = u; }
-    const cleanUrls = Object.keys(cleanToOrig);
-    const urlToDeep = {};
-    const apiErrors = [];
-    // 기록(PATCH) 몫을 남겨둔다: 확보할 딥링크를 쓰려면 최소 ceil(대상/10)회 필요. 보수적으로 8 예약.
-    const RESERVE_FOR_WRITE = 8;
-    for (let i = 0; i < cleanUrls.length; i += CHUNK) {
-      if (budgetLeft() <= RESERVE_FOR_WRITE) break;
-      const urls = cleanUrls.slice(i, i + CHUNK);
-      const { status, json, text } = await callDeeplink(urls);
-      if (status !== 200 || !json || (json.rCode && json.rCode !== "0")) {
-        // 청크 통째 거부 — 이 청크의 URL들은 [2.5] 개별 재시도로 넘어간다.
-        apiErrors.push({ chunk: i / CHUNK, status, rCode: json && json.rCode, rMessage: (json && json.rMessage) || text.slice(0, 200) });
-        continue;
-      }
-      absorb(urlToDeep, urls, json, cleanToOrig);
-      if (rateLimited) break;   // [v3.5]
-    }
-
-    // ── [2.5] 개별 재시도 (v3) ──
-    // 청크 거부분 + 성공 응답에서 누락된 URL을 1개씩 호출해 불량 URL만 격리한다.
-    // [v3.1] 하위요청 예산 안에서만 진행 — 남으면 remaining 으로 반환, 재호출 시 이어서 처리(멱등).
-    const missedClean = cleanUrls.filter(c => !urlToDeep[cleanToOrig[c]]);
-    const failedUrls = [];   // {url, sentAs, rCode, rMessage}
-    let retried = 0, retryConverted = 0;
-    for (const c of missedClean) {
-      if (budgetLeft() <= RESERVE_FOR_WRITE) break;
-      retried++;
-      const { status, json, text } = await callDeeplink([c]);
-      if (status === 200 && json && (!json.rCode || json.rCode === "0")) {
-        const n = absorb(urlToDeep, [c], json, cleanToOrig);
-        if (n > 0) { retryConverted++; }
-        else failedUrls.push({ url: cleanToOrig[c], sentAs: c, rCode: json.rCode || "0", rMessage: "응답에 딥링크 없음(shortenUrl 누락)" });
-      } else {
-        failedUrls.push({ url: cleanToOrig[c], sentAs: c, rCode: json && json.rCode, rMessage: ((json && json.rMessage) || text || "").slice(0, 160) });
-        if (json && String(json.rCode) === "400") { const tt = (targets.find(x => x.url === cleanToOrig[c]) || {}).table; if (tt) failedSets[tt].add(cleanToOrig[c]); }   // [v3.5] 죽은 URL 기억
-      }
-      if (rateLimited) break;   // [v3.5] 속도 제한 감지 시 즉시 중단
-    }
-    for (const table of tables) if (failedSets[table].size) await saveFailed(table, failedSets[table]);
-    const retrySkipped = Math.max(0, missedClean.length - retried); // 예산 소진으로 이번에 못 돈 수 — 재호출 시 이어서 처리
-
-    // ── [3] Airtable 기록 (테이블별 batch) ──
-    let written = 0, noMatch = 0, writeSkipped = 0;
-    for (const table of tables) {
-      const writes = [];
-      for (const t of targets.filter(x => x.table === table)) {
-        const deep = urlToDeep[t.url];
-        if (deep) writes.push({ id: t.recId, fields: { [F_DEEP]: deep } });
-        else noMatch++;
-      }
-      for (let i = 0; i < writes.length; i += AIRTABLE_BATCH) {
-        if (budgetLeft() <= 1) { writeSkipped += writes.length - i; break; }
-        const batch = writes.slice(i, i + AIRTABLE_BATCH);
+  // 테이블별 쓰기 목록을 10개씩 PATCH. 예산이 부족하면 남은 수를 반환.
+  async function flushWrites(writesByTable) {
+    let written = 0, skipped = 0;
+    for (const table of Object.keys(writesByTable)) {
+      const w = writesByTable[table];
+      for (let i = 0; i < w.length; i += AIRTABLE_BATCH) {
+        if (budgetLeft() <= 0) { skipped += w.length - i; break; }
+        const batch = w.slice(i, i + AIRTABLE_BATCH);
         await airtablePatch(table, batch);
         written += batch.length;
         await sleep(250);
       }
     }
+    return { written, skipped };
+  }
 
-    return new Response(JSON.stringify({
-      ok: true,
-      tables,
-      scanned,
-      pending: pendingTotal,
-      attempted: targets.length,
-      uniqueUrls: uniqUrls.length,
-      converted: Object.keys(urlToDeep).length,
-      apiCalls, rateLimited, skippedFailed,   // [v3.5] 속도 제한·실패 기억 상태
+  // ── 쿠팡 API ──
+  let apiCalls = 0, rateLimited = false;
+  async function callDeeplink(urls) {
+    apiCalls++;
+    const datetime = signedDate();
+    const signature = await hmacHex(datetime + "POST" + DEEPLINK_PATH);
+    const auth = `CEA algorithm=HmacSHA256, access-key=${ACCESS}, signed-date=${datetime}, signature=${signature}`;
+    const res = await cfetch(COUPANG_DOMAIN + DEEPLINK_PATH, {
+      method: "POST",
+      headers: { "Content-Type": "application/json;charset=UTF-8", "Authorization": auth },
+      body: JSON.stringify({ coupangUrls: urls })
+    });
+    const text = await res.text();
+    let j = null; try { j = JSON.parse(text); } catch (_) {}
+    if (res.status === 403 || (j && String(j.rCode) === "403") || /시간당 사용 횟수|초과했습니다/.test(text)) rateLimited = true;
+    await sleep(API_INTERVAL_MS);
+    return { status: res.status, json: j, text };
+  }
+
+  try {
+    // ── [1] 테이블 읽기·분류 ──
+    const DATE = today();
+    const rows = [];   // {table, recId, name, raw, clean, key, deep, src, stat, kind}
+    const counts = { scanned: 0, upToDate: 0, skippedFailed: 0, legacyNoSource: 0, noUrl: 0 };
+    const readErrors = [];
+    for (const table of tables) {
+      let recs;
+      try { recs = await airtableGetAll(table); }
+      catch (e) { readErrors.push({ table, error: e.message }); continue; }
+      counts.scanned += recs.length;
+      for (const rec of recs) {
+        const f = rec.fields || {};
+        const raw = readRaw(f);
+        const deep = str(f[F_DEEP]);
+        const src = str(f[F_SRC]);
+        const stat = str(f[F_STAT]);
+        const name = str(f["제품명"]).slice(0, 60);
+        const base = { table, recId: rec.id, name, raw, deep, src, stat };
+        if (!raw) {
+          if (deep || src || stat) rows.push({ ...base, kind: "clearNoUrl" });
+          else counts.noUrl++;
+          continue;
+        }
+        const clean = cleanUrl(raw), key = keyOf(clean);
+        const r = { ...base, clean, key };
+        if (src && keyOf(src) === key) {
+          if (stat.startsWith("FAIL")) { if (retryFailed) rows.push({ ...r, kind: "retry" }); else counts.skippedFailed++; }
+          else if (deep) counts.upToDate++;
+          else rows.push({ ...r, kind: "empty" });           // 딥링크만 누가 지운 경우
+        } else if (!src) {
+          if (deep) { if (backfill) rows.push({ ...r, kind: "backfill" }); else counts.legacyNoSource++; }
+          else rows.push({ ...r, kind: backfill ? "backfillFail" : "new" });   // backfill: 전체 재변환 뒤에도 딥링크가 없는 행 = 이번 재변환 실패분
+        } else {
+          rows.push({ ...r, kind: "changed" });              // URL이 바뀐 행
+        }
+      }
+    }
+    const byKind = k => rows.filter(r => r.kind === k);
+    const clearRows = byKind("clearNoUrl");
+    const backfillRows = byKind("backfill");
+    const backfillFailRows = byKind("backfillFail");
+    const order = { changed: 0, retry: 1, new: 2, empty: 3 };
+    const allTargets = rows.filter(r => r.kind in order).sort((a, b) => order[a.kind] - order[b.kind]);
+    const targets = allTargets.slice(0, limit);
+    const summary = {
+      ...counts,
+      targetsChanged: byKind("changed").length, targetsNew: byKind("new").length,
+      targetsEmpty: byKind("empty").length, targetsRetry: byKind("retry").length,
+      clearNoUrl: clearRows.length, backfill: backfillRows.length, backfillMarkedFail: backfillFailRows.length
+    };
+
+    if (dryRun) {
+      return json({
+        ok: true, dryRun: true, tables, ...summary,
+        willConvert: targets.length, overLimit: Math.max(0, allTargets.length - targets.length),
+        sample: targets.slice(0, 5).map(t => ({ table: t.table, kind: t.kind, name: t.name, url: t.clean, before: t.src || null })),
+        note: summary.legacyNoSource ? `deeplink_source 가 빈 기존 딥링크 ${summary.legacyNoSource}건 — &backfill=1 을 먼저 1회 실행하세요` : null,
+        readErrors
+      });
+    }
+
+    // ── [2] backfill 모드: 기록만, 쿠팡 호출 없음 ──
+    if (backfill) {
+      const wb = {};
+      for (const r of backfillRows) (wb[r.table] = wb[r.table] || []).push({ id: r.recId, fields: { [F_SRC]: r.clean, [F_STAT]: `OK ${DATE} backfill` } });
+      // 딥링크 없는 행은 이번 전체 재변환의 실패분으로 보고 FAIL 기록 → URL이 바뀌기 전까지 재시도 안 함
+      for (const r of backfillFailRows) (wb[r.table] = wb[r.table] || []).push({ id: r.recId, fields: { [F_SRC]: r.clean, [F_STAT]: `FAIL backfill ${DATE}` } });
+      const { written, skipped } = await flushWrites(wb);
+      return json({
+        ok: true, mode: "backfill", tables, ...summary, written, writeSkipped: skipped, apiCalls: 0,
+        message: skipped ? "기록 예산 소진 — 같은 주소를 다시 호출하면 이어서 기록" : "완료", readErrors
+      });
+    }
+
+    const writesByTable = {};
+    const pushWrite = (table, recId, fields) => (writesByTable[table] = writesByTable[table] || []).push({ id: recId, fields });
+    for (const r of clearRows) pushWrite(r.table, r.recId, { [F_DEEP]: "", [F_SRC]: "", [F_STAT]: "" });
+
+    if (targets.length === 0) {
+      const { written, skipped } = await flushWrites(writesByTable);
+      return json({ ok: true, tables, ...summary, attempted: 0, apiCalls: 0, written, writeSkipped: skipped, message: "변환 대상 없음", readErrors });
+    }
+
+    // ── [3] 쿠팡 변환 (반씩 나눠 불량 URL 격리) ──
+    // 기록 예산: 테이블별 ceil(행/10) + 여유 1
+    const perTableCount = {};
+    for (const t of targets) perTableCount[t.table] = (perTableCount[t.table] || 0) + 1;
+    for (const r of clearRows) perTableCount[r.table] = (perTableCount[r.table] || 0) + 1;
+    const reserve = Object.values(perTableCount).reduce((s, n) => s + Math.ceil(n / AIRTABLE_BATCH), 0) + 1;
+
+    const cleans = [...new Set(targets.map(t => t.clean))];
+    const cleanByKey = {}; for (const c of cleans) cleanByKey[keyOf(c)] = c;
+    const cleanToDeep = {};          // clean → deeplink
+    const failed = {};               // clean → {rCode, rMessage}  (400만 — 영구 기록)
+    const deferred = new Set();      // 상한·속도 제한·일시 오류로 못 돈 것 — 기록 안 함, 다음 호출에서 이어서
+    const apiErrors = [];
+
+    function absorb(group, j) {
+      const data = (j && j.data) || [];
+      const inGroup = new Set(group);
+      data.forEach((item, idx) => {
+        const deep = item.shortenUrl || item.landingUrl || "";
+        if (!deep) return;
+        let c = null;
+        if (item.originalUrl) {
+          if (inGroup.has(item.originalUrl)) c = item.originalUrl;
+          else { const k = cleanByKey[keyOf(item.originalUrl)]; if (k && inGroup.has(k)) c = k; }
+        }
+        if (!c && data.length === group.length) c = group[idx];   // 개수가 같을 때만 순서로 짝짓기
+        if (c && !cleanToDeep[c]) cleanToDeep[c] = deep;
+      });
+    }
+    const canCall = () => !rateLimited && apiCalls < MAX_API_CALLS && budgetLeft() > reserve;
+    async function resolve(group) {
+      if (!group.length) return;
+      if (!canCall()) { group.forEach(c => deferred.add(c)); return; }
+      const { status, json: j, text } = await callDeeplink(group);
+      const ok = status === 200 && j && (!j.rCode || String(j.rCode) === "0");
+      if (ok) {
+        absorb(group, j);
+        const missing = group.filter(c => !cleanToDeep[c]);
+        if (!missing.length) return;
+        if (group.length === 1) { failed[group[0]] = { rCode: "0", rMessage: "응답에 딥링크 없음" }; return; }
+        return split(missing);
+      }
+      const rc = j && j.rCode != null ? String(j.rCode) : String(status);
+      if (rateLimited || rc !== "400") {   // 400이 아니면 일시 오류로 보고 기록하지 않음
+        apiErrors.push({ size: group.length, status, rCode: rc, rMessage: ((j && j.rMessage) || text || "").slice(0, 120) });
+        group.forEach(c => deferred.add(c));
+        return;
+      }
+      if (group.length === 1) { failed[group[0]] = { rCode: "400", rMessage: ((j && j.rMessage) || "").slice(0, 80) }; return; }
+      return split(group);
+    }
+    async function split(g) {
+      if (g.length === 1) return resolve(g);
+      const mid = Math.ceil(g.length / 2);
+      await resolve(g.slice(0, mid));
+      await resolve(g.slice(mid));
+    }
+    for (let i = 0; i < cleans.length; i += CHUNK) await resolve(cleans.slice(i, i + CHUNK));
+
+    // ── [4] 기록 ──
+    let converted = 0, failedRows = 0, clearedOld = 0;
+    const failedList = [];
+    for (const t of targets) {
+      const deep = cleanToDeep[t.clean];
+      if (deep) {
+        pushWrite(t.table, t.recId, { [F_DEEP]: deep, [F_SRC]: t.clean, [F_STAT]: `OK ${DATE}` });
+        converted++;
+      } else if (failed[t.clean]) {
+        const f = failed[t.clean];
+        // 실패: 옛 딥링크는 지운다(옛 URL·옛 옵션으로 가므로) — 2026-10-01 결정
+        pushWrite(t.table, t.recId, { [F_DEEP]: "", [F_SRC]: t.clean, [F_STAT]: `FAIL ${f.rCode} ${DATE}` });
+        failedRows++;
+        if (t.deep) clearedOld++;
+        if (failedList.length < 30) failedList.push({ table: t.table, kind: t.kind, name: t.name, url: t.clean, rCode: f.rCode, rMessage: f.rMessage });
+      }
+      // deferred: 기록하지 않음 → 다음 호출에서 그대로 대상
+    }
+    const { written, skipped } = await flushWrites(writesByTable);
+    const deferredRows = targets.filter(t => deferred.has(t.clean)).length;
+    const left = Math.max(0, allTargets.length - targets.length) + deferredRows;
+
+    return json({
+      ok: true, tables, ...summary,
+      attempted: targets.length, uniqueUrls: cleans.length,
+      converted, failed: failedRows, clearedOldDeeplink: clearedOld, deferred: deferredRows,
+      apiCalls, rateLimited,
       warning: rateLimited ? "쿠팡 속도 제한(403) 감지 — 최소 1시간 뒤 재호출. 3회 초과 시 파트너스 이용 제한" : null,
-      retried,
-      retryConverted,
-      retrySkipped,           // 하위요청 예산 소진으로 이번 호출에서 재시도 못 한 수 — 다시 호출하면 이어서 처리
-      written,
-      writeSkipped,           // 예산 소진으로 기록 못 한 수(변환은 됐으나 미기록 — 재호출 시 재변환·기록됨)
-      failedToConvert: noMatch,
-      failedUrls: failedUrls.slice(0, 30),   // 개별 재시도까지 실패한 URL과 사유 — 상품 URL 교체 판단용
-      subrequestsUsed: subreq, // 이번 호출이 쓴 하위요청 수 (예산 45)
-      apiErrors,
-      readErrors,
-      sampleDeeplinks: Object.entries(urlToDeep).slice(0, 3).map(([u, d]) => ({ from: u, to: d }))
-    }), { status: 200, headers });
-
+      written, writeSkipped: skipped,
+      next: left > 0 && !rateLimited ? `남은 대상 ${left}건 — 1분 뒤 같은 주소를 다시 호출` : (rateLimited ? "1시간 뒤 재호출" : "완료"),
+      failedList, apiErrors, readErrors, subrequestsUsed: subreq,
+      sampleDeeplinks: targets.filter(t => cleanToDeep[t.clean]).slice(0, 3).map(t => ({ name: t.name, from: t.clean, to: cleanToDeep[t.clean] }))
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: "internal_error", message: error.message }), { status: 500, headers });
+    return json({ error: "internal_error", message: error.message }, 500);
   }
 }
