@@ -1,8 +1,18 @@
 <!DOCTYPE html>
-<!-- sports.html  v2.9  (2026-09-21) — [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
+<!-- sports.html  v3.0  (2026-10-04) — [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<!-- Microsoft Clarity [v3.0] — app.html과 같은 프로젝트(xilfyj7s52) -->
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "xilfyj7s52");
+    // [광고 측정] 유입 꼬리표 ?src= 를 Clarity 세션 태그로 (예: naver_ad_probiotic)
+    try { var _src = new URLSearchParams(location.search).get("src"); if (_src) window.clarity("set", "src", _src.slice(0, 40)); } catch (e) {}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1B3A2E">
 <meta name="description" content="국제스포츠영양학회(ISSN) 근거 기준으로 비교하는 운동 보충제. 광고 없는 정직한 비교, ingredi.">
@@ -948,5 +958,20 @@ window.pick = function(s){ if(activeSub!==s) cmpClear(); activeSub=s; showTierAf
 <footer class="site-foot">ingredi는 광고를 받지 않고 공개된 제품 데이터로 비교합니다. 쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있으며, 수수료는 순위에 영향을 주지 않습니다. · <a href="/about.html">소개 · 문의</a></footer>
 <!-- [v2.7] 비교 담기 — 하단 고정 바 -->
 <div id="pickBar" hidden><div class="pb-inner"><div class="pb-thumbs" id="pbThumbs"></div><div class="pb-txt" id="pbTxt"></div><a class="pb-go" id="pbGo" href="#">비교하기</a></div></div>
+<script>
+/* [v3.0] Clarity: "구매하러 가기" 클릭 이벤트 (app.html과 같은 이벤트명 purchase_click) */
+document.addEventListener('click', function (e) {
+  var el = e.target.closest && e.target.closest('.cv-buybtn');
+  if (!el || el.classList.contains('disabled')) return;
+  if (typeof window.clarity !== 'function') return;
+  try {
+    window.clarity('event', 'purchase_click');
+    if (typeof activeCat !== 'undefined' && activeCat) window.clarity('set', 'category', String(activeCat));
+    var card = el.closest('.cv-card');
+    var nm = card && card.querySelector('.cv-name');
+    if (nm) window.clarity('set', 'product', nm.textContent.trim().slice(0, 60));
+  } catch (_) {}
+});
+</script>
 </body>
 </html>
