@@ -1,4 +1,7 @@
-// functions/sports-api.js  v2.4  (2026-09-18)
+// functions/sports-api.js  v2.5  (2026-10-04)
+// [v2.5] 헬스제품 테이블 이중가 구조 대응(네이버가격_원·쿠팡가격_원·1일비용_네이버기준_원·1일비용_쿠팡비용_원).
+//        가격·1회 비용은 쿠팡 링크가 있으면 쿠팡 기준, 없으면 네이버 기준(_lib/price.js — 건기식과 동일 규칙).
+//        기존 코드는 가격_원·쿠팡가격·1일비용_원만 읽어 새 테이블에서 가격·비용이 전부 비는 상태였다.
 // Cloudflare Pages Function: 운동 보충제 추천 (v2.0 — 2026-09-14 기준표 v2.1 전면 반영)
 //   단백질 core = 1회 단백질 g ÷ 25g(순도는 원료 등급 축) · 원료 등급 첫 표기 기준(WPI=WPH 100/MPI 85/ISP 75/WPC 60/미기재 30)
 //   인증 종류별 가산(도핑 검사 40·3rd party 25·GMP 20·FSMS 15·HACCP 10, 배합 속성 0) · 원료 브랜드 축 0.1
@@ -23,6 +26,7 @@
 //   저장하지 않는다(요청 단위).
 
 import { getRecords } from "./_lib/airtable.js";
+import { priceOf } from "./_lib/price.js";   // [v2.5] 가격 채널 규칙
 import { TABLES } from "./_lib/tables.js";   // [v1.3] 테이블명 중앙 설정
 import { gradeOf } from "./_lib/axis-scores.js";   // [v2.1] 등급 컷 단일 출처
 
@@ -272,10 +276,10 @@ export async function onRequest(context) {
 
   // 1일비용: 원본이 비면 가격 ÷ 총용량 × 1일섭취량으로 재계산한다.
   // 실측 결과 기존값과 오차 10% 이상 불일치가 0건이라 신뢰 가능.
-  function dailyCost(f) {
-    const c = N(f["1일비용_원"]);
-    if (c > 0) return Math.round(c);
-    const price = N(f["가격_원"]), tong = N(f["통_개수"]);
+  // [v2.5] 원본 1회 비용은 _lib/price.js가 판매처에 맞춰 고른다. 비면 같은 판매처 가격으로 재계산.
+  function dailyCost(f, pq) {
+    if (pq.dailyCost > 0) return pq.dailyCost;
+    const price = pq.price, tong = N(f["통_개수"]);
     if (!(price > 0 && tong > 0)) return null;
     const vg = N(f["1통_용량 (g)"]), cg = N(f["1일_총_섭취량(g)"]);
     if (vg > 0 && cg > 0) return Math.round(price / (vg * tong) * cg);
@@ -296,6 +300,7 @@ export async function onRequest(context) {
     const deeplink = S(f["coupang_deeplink"]);
     const coupang = S(f["쿠팡 URL"]);
     const naver = S(f["제품링크"]);
+    const pq = priceOf(f);   // [v2.5]
 
     const it = {
       id: S(f["product_id"]) || r.id,
@@ -303,8 +308,9 @@ export async function onRequest(context) {
       image: img(f["이미지URL"]),
       link: deeplink || coupang || naver,
       isAffiliate: !!deeplink,
-      price: N(f["가격_원"]) || N(f["쿠팡가격"]),   // [v1.1] 09.04 테이블은 가격_원 없이 쿠팡가격만 있음 → 비교표 가격이 전부 "—"였던 원인
-      dailyCost: dailyCost(f),
+      price: pq.price || null,          // [v2.5] 구매 버튼과 같은 판매처 기준
+      priceSource: pq.priceSource,
+      dailyCost: dailyCost(f, pq),
       reviewCount: N(f["네이버_리뷰수"]) || N(f["리뷰수"]) || N(f["쿠팡_리뷰수"]) || 0,   // [v2.4] 네이버 → 구분없음 → 쿠팡
       reviewSource: N(f["네이버_리뷰수"]) ? "naver" : (N(f["리뷰수"]) ? "unknown" : (N(f["쿠팡_리뷰수"]) ? "coupang" : null)),
       form: S(f["제형"]),
