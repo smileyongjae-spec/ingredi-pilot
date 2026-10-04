@@ -1,4 +1,5 @@
-// functions/counsel2.js  v17.29  (2026-09-23)
+// functions/counsel2.js  v17.30  (2026-10-04)
+// [v17.30 — 가격·하루 비용 채널 일치: 쿠팡 링크가 있으면 쿠팡 기준, 없으면 네이버 기준(_lib/price.js, recommend2 v8.6과 동일 규칙)]
 // [v17.29 — 유산균 PROBIOTICS_V2 연결 (axis-scores v2.4: Core 0.6 + 개별인정 0.1 + strain 표기 0.2 + 인증 0.1)]
 //   - productContext에 probiotic{individual, individualLabel, strainCoded, strainCount, humanTrial} 동봉,
 //     화자에게는 "근거" 필드(개별인정·균주 코드 표기·균주 N종·인체적용시험 표기)로 투영.
@@ -228,6 +229,7 @@
 //     ⑥ 응급 게이트 확장(발진·숨쉬기 힘듦·구토+어지럼). ⑦ 메타 게이트 확장(이 서비스 뭐야·ingredi·너 AI야).
 
 import { getRecords } from "./_lib/airtable.js";
+import { priceOf } from "./_lib/price.js";   // [v17.30] 가격 채널 규칙
 import { TABLES } from "./_lib/tables.js";   // [v15.28] 테이블명 중앙 설정
 import { qualityOf, gradeOf, probioticInfo } from "./_lib/axis-scores.js";   // [v16.0] core·축·등급 산식 전부 규칙 모듈에서 / [v17.29] probioticInfo
 
@@ -1326,7 +1328,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
           core_full: qx && qx.core != null ? qx.core >= 100 : null,     // 근거 용량 충족 여부(대안 게이트용)
           hold_reason: qx ? (qx.holdReason || null) : null,
           over_limit: !!(qx && qx.overLimit),
-          daily_cost: Math.round(parseFloat(getField(f, "1일비용_쿠팡기준_원", "1일비용_쿠팡_원", "1일비용_원", "1일비용_네이버기준_원", "1일비용_네이버_원")) || 0) || null,
+          daily_cost: priceOf(f).dailyCost,   // [v17.30]
           form: getField(f, "제형") || null,
           certs: asText(getField(f, "인증")) || null,
           segment: cfg.segmentField ? (String(getField(f, cfg.segmentField) || "").trim() || null) : null,
@@ -1406,7 +1408,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
               product_id: pid, name: getField(pf, "제품명", "네이버_제품명", "name") || "",
               primary_mg: ppri, primary_label: pqx && pqx.label ? pqx.label : null,
               core_full: pqx && pqx.core != null ? pqx.core >= 100 : null, hold_reason: pqx ? (pqx.holdReason || null) : null, over_limit: !!(pqx && pqx.overLimit),
-              daily_cost: Math.round(parseFloat(getField(pf, "1일비용_쿠팡기준_원", "1일비용_쿠팡_원", "1일비용_원", "1일비용_네이버기준_원", "1일비용_네이버_원")) || 0) || null,
+              daily_cost: priceOf(pf).dailyCost,   // [v17.30]
               form: getField(pf, "제형") || null, certs: asText(getField(pf, "인증")) || null,
               segment: cfg.segmentField ? (String(getField(pf, cfg.segmentField) || "").trim() || null) : null,
               descriptor: descriptorOf(matchedCategory, getField(pf, cfg.segmentField || "__none__"), ppri),
@@ -2209,8 +2211,8 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
           name: asText(getField(pf, "제품명", "네이버_제품명", "name")) || "",
           image: asText(getField(pf, "이미지URL")) || null,
           link: asText(getField(pf, "coupang_deeplink")) || asText(getField(pf, "쿠팡 URL", "쿠팡링크", "쿠팡URL")) || asText(getField(pf, "제품링크")) || null,
-          price: n(getField(pf, "쿠팡가격_원", "가격_원", "쿠팡가격", "네이버가격_원")),
-          daily_cost: item ? item.daily_cost : n(getField(pf, "1일비용_쿠팡기준_원", "1일비용_쿠팡_원", "1일비용_원", "1일비용_네이버기준_원", "1일비용_네이버_원")),
+          price: priceOf(pf).price || null,   // [v17.30] 버튼과 같은 판매처 기준
+          daily_cost: item ? item.daily_cost : priceOf(pf).dailyCost,
           grade: item ? item.grade : (qx ? qx.grade : null),
           score: item ? item.score : (qx ? qx.quality : null),
           primary_mg: item ? item.primary_mg : (qx ? qx.value : null),
