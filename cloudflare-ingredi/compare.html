@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- compare.html  v2.6  (2026-09-23) — [v2.6] 유산균 비교 행 추가: 개별인정 · 균주 코드 표기(점수 항목) / 균주 종류 수 · 인체적용시험 표기(참고 정보) -->
+<!-- compare.html  v2.7  (2026-10-04) — [v2.7] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v2.6] 유산균 비교 행 추가: 개별인정 · 균주 코드 표기(점수 항목) / 균주 종류 수 · 인체적용시험 표기(참고 정보) -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -587,6 +587,8 @@ selectCat(startCat, idsParam.length ? idsParam : null);
       t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
       y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
   })(window, document, "clarity", "script", "xilfyj7s52");
+    // [광고 측정] 유입 꼬리표 ?src= 를 Clarity 세션 태그로 (예: naver_ad_probiotic)
+    try { var _src = new URLSearchParams(location.search).get("src"); if (_src) window.clarity("set", "src", _src.slice(0, 40)); } catch (e) {}
 </script>
 
 <!-- "구매하러 가기" 클릭 이벤트 (범용 · 이벤트 위임) -->
