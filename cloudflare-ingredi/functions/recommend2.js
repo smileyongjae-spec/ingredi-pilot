@@ -1,4 +1,7 @@
-// functions/recommend2.js  v8.5  (2026-09-23)
+// functions/recommend2.js  v8.6  (2026-10-04)
+// [v8.6] 가격·하루 비용 채널 일치 — 쿠팡 링크가 있으면 쿠팡 기준, 없으면 네이버 기준(_lib/price.js 단일 규칙).
+//        기존엔 "쿠팡 가격이 있으면 쿠팡"이라 쿠팡 링크 없는 제품에 쿠팡 가격이 뜨고 버튼은 네이버로 가는 경우가 있었다.
+//        응답에 priceSource("coupang"|"naver"|…) 동봉.
 // [v8.5] 유산균 카드 정보 probiotic{strainCount, strainCoded, individual, individualLabel, humanTrial}를 응답에 동봉
 //        (axis-scores v2.4 probioticInfo). axisParts에 individual 추가. 산식 자체는 규칙 모듈이 담당.
 //        extra 컬럼(포스트바이오틱스 등)은 괄호 설명이 붙은 컬럼명도 접두어로 흡수.
@@ -49,6 +52,7 @@
 //          isAffiliate 는 coupang_deeplink 가 있을 때만 true.
 
 import { getRecords } from "./_lib/airtable.js";
+import { priceOf } from "./_lib/price.js";   // [v8.6] 가격 채널 규칙
 import { TABLES } from "./_lib/tables.js";   // [v7.6] 테이블명 중앙 설정
 import { qualityOf, gradeOf, probioticInfo } from "./_lib/axis-scores.js";   // [v8.5] probioticInfo   // [v8.0] core·축·등급 산식 전부 규칙 모듈에서
 
@@ -249,6 +253,7 @@ export async function onRequest(context) {
     const naverLink = str(f.제품링크).trim();
     const outLink = partnersLink || rawCoupang || naverLink;
     if (partnersLink) affiliateCount++;
+    const pq = priceOf(f);   // [v8.6]
 
     return {
       id: readProductId(f, r.id),
@@ -259,14 +264,12 @@ export async function onRequest(context) {
       form: str(f.제형),
       supplier: str(f.원료사),
       certs: str(f.인증),
-      // [v7.6] 이중가 모델(09.10~ 테이블: 쿠팡가격_원·네이버가격_원·1일비용_쿠팡기준_원·1일비용_네이버기준_원·네이버저렴)
-      //   화면의 가격·하루 비용은 쿠팡 기준 우선(구매 버튼이 쿠팡) → 옛 구조(가격_원·1일비용_원) → 네이버 기준 폴백.
-      //   네이버 가격·저렴 플래그는 응답에 실어두고 화면 노출은 별도 결정.
-      price: num(f.쿠팡가격_원) || num(f.가격_원) || num(f.쿠팡가격) || num(f.네이버가격_원),
-      naverPrice: num(f.네이버가격_원) || 0,
-      // 컬럼명 변형 흡수: 오메가3·눈 "1일비용_쿠팡기준_원" / 비타민C(09.11) "1일비용_쿠팡_원" / 옛 구조 "1일비용_원"
-      dailyCost: Math.round(num(f["1일비용_쿠팡기준_원"]) || num(f["1일비용_쿠팡_원"]) || num(f["1일비용_원"]) || num(f["1일비용_네이버기준_원"]) || num(f["1일비용_네이버_원"])),
-      naverDailyCost: Math.round(num(f["1일비용_네이버기준_원"]) || num(f["1일비용_네이버_원"])) || 0,
+      // [v8.6] 가격·하루 비용은 구매 버튼과 같은 판매처 기준 (_lib/price.js)
+      price: pq.price,
+      priceSource: pq.priceSource,
+      naverPrice: pq.naverPrice,
+      dailyCost: pq.dailyCost || 0,
+      naverDailyCost: pq.naverDailyCost,
       naverCheaper: String(f.네이버저렴 || "").trim().toUpperCase() === "O",
       dailyCapsules: num(f["1일캡슐수"]),
       capsuleMg: num(f.캡슐용량_mg),
