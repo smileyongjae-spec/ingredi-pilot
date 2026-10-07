@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v3.1  (2026-10-07) — [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
+<!-- sports.html  v3.2  (2026-10-07) — [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -730,7 +730,12 @@ window.fbSubmit = fbSubmit;
 function reviewLine(p){   // [리뷰 규칙 2026-09-18] 네이버 우선(요약 있으면 그 전체 건수) → 구분 없는 리뷰수 → 쿠팡. 출처는 표기하지 않는다. 근거 낮음(리뷰 적음)만 표시
   const n = Number(p.reviewCount||0); if (!(n>0)) return "";
   const low = (p.reviews && p.reviews.evidence==="낮음") ? " · 리뷰 적어 참고만" : "";
-  return `리뷰 ${n.toLocaleString()}건${low}`;
+  return `리뷰 ${reviewApprox(n)}${low}`;
+}
+function reviewApprox(n){   // [리뷰 수 근사 표기 2026-10-07] 2356 → "2,000+ 건", 534 → "500+ 건", 53 → "50+ 건". 10 미만은 정확히, 1만 이상은 천 단위로 내림
+  if (n < 10) return `${n}건`;
+  const unit = n >= 10000 ? 1000 : Math.pow(10, Math.floor(Math.log10(n)));
+  return `${(Math.floor(n/unit)*unit).toLocaleString()}+ 건`;
 }
 function card(p,d){
   const g=p.qualityGrade, c=GRADE[g]||['transparent','#9AA0A6','#E4E4E1'];

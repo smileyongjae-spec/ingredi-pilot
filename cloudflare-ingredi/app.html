@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v9.6  (2026-10-07) — [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
+<!-- app.html  v9.7  (2026-10-07) — [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -1309,7 +1309,12 @@ function compareBlock(cat, basis, p, m){
 function reviewLine(p){   // [리뷰 규칙 2026-09-18] 네이버 우선(요약 있으면 그 전체 건수) → 구분 없는 리뷰수 → 쿠팡. 출처는 표기하지 않는다. 근거 낮음(리뷰 적음)만 표시
   const n = Number(p.reviewCount||0); if (!(n>0)) return "";
   const low = (p.reviews && p.reviews.evidence==="낮음") ? " · 리뷰 적어 참고만" : "";
-  return `리뷰 ${n.toLocaleString()}건${low}`;
+  return `리뷰 ${reviewApprox(n)}${low}`;
+}
+function reviewApprox(n){   // [리뷰 수 근사 표기 2026-10-07] 2356 → "2,000+ 건", 534 → "500+ 건", 53 → "50+ 건". 10 미만은 정확히, 1만 이상은 천 단위로 내림
+  if (n < 10) return `${n}건`;
+  const unit = n >= 10000 ? 1000 : Math.pow(10, Math.floor(Math.log10(n)));
+  return `${(Math.floor(n/unit)*unit).toLocaleString()}+ 건`;
 }
 function renderCardV8(p, ctx){
   const cat = ctx.cat, m = ctx.metrics, st = ctx.stats, uid = ctx.idx;
