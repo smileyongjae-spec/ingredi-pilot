@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v3.2  (2026-10-07) — [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
+<!-- sports.html  v3.3  (2026-10-08) — [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -348,6 +348,7 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
     .site-foot a { color: var(--green-primary, #2D5F3F); text-decoration: none; font-weight: 700; }
     .fb-mail { width: 100%; box-sizing: border-box; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line, #E4E4E1); border-radius: 10px; font-family: inherit; font-size: 14px; background: var(--surface, #fff); color: var(--ink, #2B2B28); }
     .fb-mail:focus { outline: none; border-color: var(--green-primary, #2D5F3F); }
+[data-pcard] .cv-name, [data-pcard] .cv-thumb { cursor: pointer; }
   </style>
 </head>
 <body>
@@ -630,6 +631,19 @@ document.addEventListener('click', function(e){
   const o = AIEV[b.getAttribute('data-aieval')];
   panel.innerHTML = o ? aievBuild(o) : '<div class="aiev-body">평가 정보를 불러오지 못했어요.</div>';
   panel.hidden = false; b.innerHTML = '<span class="sb-t">평가 접기</span>';
+});
+
+// ── [v3.3] 제품 이름·사진 탭 → AI 평가 (Clarity 반응 없는 탭 1위가 이름·사진이었음, 2026-10-08) ──
+// 패널이 닫혀 있으면 그 카드의 "AI 평가" 버튼을 대신 눌러 열고, 이미 열려 있으면 닫지 않고 패널로 스크롤만 한다.
+document.addEventListener('click', function(e){
+  const t = e.target.closest && e.target.closest('.cv-name, .cv-thumb');
+  if (!t) return;
+  const card = t.closest('[data-pcard]'); if (!card) return;
+  const btn = card.querySelector('[data-aieval]'); if (!btn) return;
+  const panel = card.querySelector('[data-aipanel]');
+  if (panel && panel.hidden) btn.click();
+  try { if (window.clarity) clarity('event', 'aieval_name_tap'); } catch (_) {}
+  if (panel) setTimeout(function(){ panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
 });
 
 function holdReason(p, d){
