@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<!-- guide.html  v1.0  (2026-10-07) — 등급 기준 전문. 값은 functions/_lib/axis-scores.js v2.4 · sports-api.js v2.5 기준.
+     산식을 바꾸면 이 페이지도 함께 고친다. -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1B3A2E">
+<title>등급 기준 · ingredi — 영양제를 어떻게 채점하나</title>
+<meta name="description" content="ingredi가 유산균, 오메가3, 루테인, 비타민C, 단백질 보충제에 A~E 등급을 매기는 방법. 항목별 비중과 기준 용량, 출처를 모두 공개합니다.">
+<link rel="canonical" href="https://ingredi.kr/guide.html">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "xilfyj7s52");
+  try { var _src = new URLSearchParams(location.search).get("src"); if (_src) window.clarity("set", "src", _src.slice(0, 40)); } catch (e) {}
+</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="/tokens-v1.css">
+<link rel="stylesheet" href="/content-v1.css">
+<style>
+  .toc { columns: 2; column-gap: 24px; padding-left: 18px; margin: 18px 0 0; font-size: 15px; }
+  .toc li { margin-bottom: 4px; break-inside: avoid; }
+  .cuts { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 0 16px; font-size: 15px; }
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="logo" href="/app.html">ingredi</a>
+  <nav class="nav" aria-label="주요 메뉴">
+    <a href="/app.html">영양제 비교</a>
+    <a href="/sports.html">운동 보충제</a>
+    <a href="/guide.html" aria-current="page">등급 기준</a>
+    <a href="/insights.html">데이터 리포트</a>
+    <a href="/consult.html">AI 상담</a>
+    <a href="/about.html">소개</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <section style="padding-top:48px">
+    <h1>등급은 이렇게 매깁니다</h1>
+    <p class="lead">ingredi의 등급은 다른 제품과 견주는 상대 평가가 아니라, 정해진 기준을 얼마나 채웠는지 보는 절대 평가입니다. 무엇을 얼마나 반영하는지 아래에 모두 적었습니다.</p>
+    <ol class="toc">
+      <li><a href="#common">모든 제품에 같은 원칙</a></li>
+      <li><a href="#probiotics">유산균</a></li>
+      <li><a href="#omega3">오메가3</a></li>
+      <li><a href="#eye">눈 건강</a></li>
+      <li><a href="#vitc">비타민C</a></li>
+      <li><a href="#milk">밀크씨슬</a></li>
+      <li><a href="#sports">운동 보충제</a></li>
+      <li><a href="#price">하루 값 계산</a></li>
+    </ol>
+  </section>
+
+  <section id="common">
+    <h2>모든 제품에 같은 원칙</h2>
+    <p>제품마다 0점부터 100점까지 품질 점수를 계산하고, 점수 구간으로 등급을 나눕니다.</p>
+    <div class="cuts">
+      <span><span class="g gA">A</span> 85점 이상</span>
+      <span><span class="g gB">B</span> 70점 이상</span>
+      <span><span class="g gC">C</span> 55점 이상</span>
+      <span><span class="g gD">D</span> 40점 이상</span>
+      <span><span class="g gE">E</span> 40점 미만</span>
+    </div>
+    <h3>가격과 리뷰는 점수에 넣지 않습니다</h3>
+    <p>비싼 제품이 좋은 제품이라는 보장이 없고, 리뷰 수는 판매량과 광고에 좌우되기 때문입니다. 가격은 등급과 따로 "하루 값"으로 보여 드리고, 가격 대비 순서로 보고 싶을 때는 목록에서 가성비 순서를 고를 수 있습니다.</p>
+    <h3>기준 용량은 공적 기준부터 씁니다</h3>
+    <p>함량 점수는 "이만큼 들어 있으면 만점"이라는 기준 용량에 비해 얼마나 들어 있는지로 계산합니다. 기준 용량은 식약처 일일섭취량을 먼저 쓰고, 식약처 기준이 없으면 보건복지부 영양소 섭취기준, 그것도 없으면 국제스포츠영양학회(ISSN) 같은 전문 학회의 권장량을 씁니다. 기준을 넘는다고 점수가 더 올라가지는 않습니다.</p>
+    <h3>표시되지 않은 항목</h3>
+    <p>핵심 성분의 함량이 표시되어 있지 않으면 등급을 매기지 않고 "평가 보류"로 둡니다. 제형이나 원료처럼 등급의 일부인 항목이 표시되어 있지 않으면, 그 항목에는 가장 낮은 점수의 절반을 줍니다. 좋은 원료나 제형을 쓴 제품은 대부분 그 사실을 표시하기 때문에, 표시가 없다는 것도 판단의 근거로 봅니다.</p>
+    <h3>인증은 효능 보증이 아닙니다</h3>
+    <p>GMP, HACCP, NSF 같은 인증은 제조와 품질 관리에 대한 확인입니다. 몸에 더 잘 듣는다는 뜻은 아니어서, 점수에서 차지하는 비중을 작게 두었습니다. 할랄, 코셔, Non-GMO처럼 배합의 성격을 나타내는 표시는 점수에 넣지 않습니다.</p>
+  </section>
+
+  <section id="probiotics">
+    <h2>유산균</h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>항목</th><th>비중</th><th>기준</th></tr></thead>
+      <tbody>
+        <tr><td>유산균 수 (보장균수)</td><td class="num">60%</td><td>100억 마리 이상이면 만점. 식약처 일일섭취량 1억~100억 마리의 상한</td></tr>
+        <tr><td>균주 표기</td><td class="num">20%</td><td>LGG, BNR17처럼 균주 이름까지 밝혔는지</td></tr>
+        <tr><td>식약처 개별인정</td><td class="num">10%</td><td>그 원료가 따로 자료를 내서 식약처 인정을 받았는지</td></tr>
+        <tr><td>품질 인증</td><td class="num">10%</td><td>FDA NDI·EFSA QPS 20점, GRAS·ISO 22000·NSF 15점, GMP 10점을 더해 100점 상한</td></tr>
+      </tbody>
+    </table></div>
+    <p>균주 이름을 밝히는 이유는, 유산균의 효과 연구가 균주 단위로 이루어지기 때문입니다. 같은 락토바실러스라도 균주가 다르면 연구 결과를 그대로 가져올 수 없습니다. 균주 종류 수, 인체적용시험 여부, 코팅, 냉장 유통은 점수에 넣지 않고 제품 정보로만 보여 드립니다.</p>
+  </section>
+
+  <section id="omega3">
+    <h2>오메가3</h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>항목</th><th>비중</th><th>기준</th></tr></thead>
+      <tbody>
+        <tr><td>EPA+DHA 함량</td><td class="num">50%</td><td>하루 1,000mg이면 만점. 식약처 일일섭취량 500~2,000mg 기준</td></tr>
+        <tr><td>제형</td><td class="num">30%</td><td>rTG 100점, nTG 75점, EE 50점, 표시 없음 25점</td></tr>
+        <tr><td>품질 인증</td><td class="num">20%</td><td>IFOS 5스타 55점, IFOS 40점, GOED 25점, NSF·MSC·ISO 22000·FOS 15점, GMP·IFFO 10점을 더해 100점 상한</td></tr>
+      </tbody>
+    </table></div>
+    <p>하루 EPA+DHA가 2,000mg을 넘는 제품은 점수를 깎지 않지만, 식약처 상한을 넘는다는 뜻으로 "의사 상담 권고"를 함께 표시합니다.</p>
+  </section>
+
+  <section id="eye">
+    <h2>눈 건강</h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>항목</th><th>비중</th><th>기준</th></tr></thead>
+      <tbody>
+        <tr><td>핵심 성분 함량</td><td class="num">70%</td><td>루테인과 지아잔틴을 합해 20mg이면 만점. 아스타잔틴 제품은 12mg이면 만점. 식약처 고시 기준</td></tr>
+        <tr><td>원료</td><td class="num">30%</td><td>임상과 규격을 공개한 브랜드 원료 85점, 원료사만 표시 70점, 표시 없음 35점</td></tr>
+      </tbody>
+    </table></div>
+    <p>원산지로는 점수를 나누지 않습니다. 원료의 품질은 원산지보다 원료사가 공개한 규격과 연구로 판단하는 것이 정확하다고 봅니다.</p>
+  </section>
+
+  <section id="vitc">
+    <h2>비타민C</h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>항목</th><th>비중</th><th>기준</th></tr></thead>
+      <tbody>
+        <tr><td>비타민C 함량</td><td class="num">60%</td><td>하루 1,000mg이면 만점. 식약처 별도 기준이 없어 보건복지부 섭취기준 범위에서 정함</td></tr>
+        <tr><td>원료</td><td class="num">30%</td><td>브랜드 원료 85점, 원료사만 표시 70점, 표시 없음 35점</td></tr>
+        <tr><td>품질 인증</td><td class="num">10%</td><td>NSF 20점, ISO 22000 15점, GMP 10점</td></tr>
+      </tbody>
+    </table></div>
+    <p>하루 2,000mg을 넘는 제품에는 상한을 넘는다는 표시를 함께 보여 드립니다.</p>
+  </section>
+
+  <section id="milk">
+    <h2>밀크씨슬</h2>
+    <p>밀크씨슬은 등급을 매기지 않습니다. 제품 사이의 품질 차이를 가릴 만한 검증된 기준이 아직 충분하지 않은데, 억지로 같은 잣대를 대면 등급이 오히려 오해를 만든다고 판단했습니다.</p>
+    <p>대신 실리마린(또는 밀크씨슬 추출물) 함량을 밝힌 제품을 앞에 두고, 그 안에서 하루 값이 낮은 순서로 보여 드립니다. 함량을 밝히지 않은 제품이 싸다는 이유만으로 위에 오지 않게 하기 위해서입니다.</p>
+  </section>
+
+  <section id="sports">
+    <h2>운동 보충제</h2>
+    <p>운동 보충제는 대부분 일반식품이라 식약처 기준이 없습니다. 그래서 국제스포츠영양학회(ISSN) 입장문의 권장량을 기준 용량으로 씁니다.</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>종류</th><th>점수 구성</th><th>만점 기준 용량</th></tr></thead>
+      <tbody>
+        <tr><td>단백질 파우더</td><td>함량 50%, 원료 30%, 인증 20%</td><td>1회 단백질 25g</td></tr>
+        <tr><td>게이너</td><td>함량 50%, 원료 30%, 인증 20%</td><td>1회 단백질 40g</td></tr>
+        <tr><td>크레아틴</td><td>함량 70%, 원료 브랜드 10%, 인증 20%</td><td>하루 3,000mg</td></tr>
+        <tr><td>EAA</td><td>함량 70%, 원료 브랜드 10%, 인증 20%</td><td>필수아미노산 합계 10,000mg</td></tr>
+        <tr><td>베타알라닌</td><td>함량 70%, 원료 브랜드 10%, 인증 20%</td><td>하루 3,200mg</td></tr>
+        <tr><td>HMB</td><td>함량 70%, 원료 브랜드 10%, 인증 20%</td><td>체중 1kg당 38mg</td></tr>
+        <tr><td>부스터</td><td>함량 70%, 원료 브랜드 10%, 인증 20%</td><td>카페인 체중 1kg당 3mg. 시트룰린 3,000mg, 베타알라닌 1,600mg이 함께 들어 있으면 평균</td></tr>
+      </tbody>
+    </table></div>
+    <h3>단백질 원료 점수</h3>
+    <p>성분표에 가장 먼저 적힌 단백질 원료로 판단합니다. 분리유청(WPI)·가수분해유청(WPH) 100점, 분리우유단백(MPI) 85점, 분리대두단백(ISP) 75점, 농축유청(WPC)·농축우유단백(MPC) 60점입니다.</p>
+    <h3>원료 브랜드와 인증</h3>
+    <p>크레아퓨어(Creapure), 카르노신(CarnoSyn)처럼 등록된 원료 브랜드는 100점, 원산지나 제조사 이름만 있으면 70점입니다. 인증은 도핑 검사 인증(Informed Sport, NSF Certified for Sport) 40점, 제3자 성분 검사 25점, GMP 20점, FSSC·ISO 22000 15점, HACCP 10점을 더해 100점 상한입니다.</p>
+    <h3>등급이 없는 종류</h3>
+    <p>BCAA, 글루타민, 카르니틴, 카페인이 없는 부스터(아르기닌·시트룰린 위주)는 ISSN이 권장량을 따로 제시하지 않아 등급을 매기지 않습니다. 함량을 밝힌 제품을 앞에 두고, 하루 값이 낮은 순서로 보여 드립니다.</p>
+  </section>
+
+  <section id="price">
+    <h2>하루 값 계산</h2>
+    <p>하루 값은 판매가를 제품에 적힌 섭취량대로 먹었을 때 며칠 먹을 수 있는지로 나눈 금액입니다. 60캡슐에 하루 2캡슐이면 30일로 나눕니다. 용량과 통 크기가 달라도 같은 기준으로 비교할 수 있습니다.</p>
+    <p>가격은 구매 버튼이 연결되는 판매처 기준입니다. 쿠팡 링크가 있는 제품은 쿠팡 판매가, 쿠팡에 없는 제품은 네이버 판매가를 씁니다. 할인 쿠폰과 공동구매 가격은 반영하지 않습니다.</p>
+    <div class="note">기준이 바뀌면 이 페이지를 함께 고칩니다. 데이터가 잘못된 제품을 발견하시면 <a href="mailto:hello@ingredi.kr">hello@ingredi.kr</a>로 알려 주세요. 확인한 뒤 바로 고칩니다.</div>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  ingredi는 제품사로부터 광고비를 받지 않고, 공개된 제품 정보로 비교합니다. 쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있으며, 수수료는 등급과 순위에 영향을 주지 않습니다. 이 서비스는 의료 자문이 아니며, 질병의 진단과 치료는 의사·약사와 상의하세요.<br>
+  <a href="/about.html">소개 · 문의</a> · <a href="mailto:hello@ingredi.kr">hello@ingredi.kr</a>
+</footer>
+</body>
+</html>
