@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v3.3  (2026-10-08) — [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
+<!-- sports.html  v3.4  (2026-10-08) — [v3.4] CLS 개선: 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.28→0) / [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -349,9 +349,11 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
     .fb-mail { width: 100%; box-sizing: border-box; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line, #E4E4E1); border-radius: 10px; font-family: inherit; font-size: 14px; background: var(--surface, #fff); color: var(--ink, #2B2B28); }
     .fb-mail:focus { outline: none; border-color: var(--green-primary, #2D5F3F); }
 [data-pcard] .cv-name, [data-pcard] .cv-thumb { cursor: pointer; }
+/* [v3.4] CLS — 불러오는 동안 위쪽 탭 줄이 채워지며 아래 요소가 밀리던 문제. 로딩 중엔 숨겼다가 데이터와 함께 보인다 */
+body.cat-loading .cat-search, body.cat-loading .disclosure, body.cat-loading .feedback, body.cat-loading .site-foot { display:none !important; }
   </style>
 </head>
-<body>
+<body class="cat-loading">
 <div class="app">
   <header class="header">
     <div class="header-back" onclick="location.href='/app.html'">
@@ -941,9 +943,12 @@ function render(d){
 }
 window.showTier = showTier;
 
+let _loadSeq = 0;   // [v3.4] 마지막 요청이 끝날 때만 로딩 표시를 해제
 async function load(){
+  const _seq = ++_loadSeq;
   document.getElementById('catStatus').textContent='불러오는 중…';
   document.getElementById('catCards').innerHTML='';
+  document.body.classList.add('cat-loading');   // [v3.4] CLS
   try{
     // [중요] 반드시 /sports-api 다. Cloudflare Pages가 .html을 자동으로 떼므로
     // Function 이름(sports-api)과 화면 파일명(sports.html)이 겹치면 API가 화면을 가로챈다.
@@ -957,6 +962,8 @@ async function load(){
     render(d);
   }catch(e){
     document.getElementById('catStatus').textContent='불러오기에 실패했습니다. ('+e.message+')';
+  }finally{
+    if (_seq === _loadSeq) document.body.classList.remove('cat-loading');
   }
 }
 window.go = function(c){ if(activeCat!==c) cmpClear(); activeCat=c; activeSub=null;

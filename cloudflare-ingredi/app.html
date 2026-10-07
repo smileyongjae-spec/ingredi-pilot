@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v9.8  (2026-10-08) — [v9.8] 제품 이름·사진 탭 → AI 평가 열기, 상단 ingredi 로고 탭 → 첫 화면·맨 위로 / [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
+<!-- app.html  v9.9  (2026-10-08) — [v9.9] CLS 개선: 카테고리 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.32→0) / [v9.8] 제품 이름·사진 탭 → AI 평가 열기, 상단 ingredi 로고 탭 → 첫 화면·맨 위로 / [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -557,6 +557,8 @@
     .fb-mail { width: 100%; box-sizing: border-box; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line, #E4E4E1); border-radius: 10px; font-family: inherit; font-size: 14px; background: var(--surface, #fff); color: var(--ink, #2B2B28); }
     .fb-mail:focus { outline: none; border-color: var(--green-primary, #2D5F3F); }
     [data-pcard] .cv-name, [data-pcard] .cv-thumb { cursor: pointer; }
+    /* [v9.9] CLS — 불러오는 동안 위쪽 탭 줄이 채워지며 아래 요소가 밀리던 문제. 로딩 중엔 숨겼다가 데이터와 함께 보인다 */
+    body.cat-loading #screenCategory .cat-search, body.cat-loading #screenCategory .cat-compare-cta, body.cat-loading #screenCategory .disclosure, body.cat-loading #screenCategory .feedback, body.cat-loading .site-foot { display: none !important; }
   </style>
 </head>
 <body>
@@ -1687,6 +1689,7 @@ async function loadCategory(cat){
   document.getElementById('catCards').innerHTML="";
   document.getElementById('catMeta').textContent="";
   document.getElementById('catStatus').textContent="불러오는 중…";
+  document.body.classList.add('cat-loading');   // [v9.9] CLS
   try{
     const res = await fetch(`${API_BASE}/recommend2?category=${encodeURIComponent(cat)}`);
     if (!res.ok) throw new Error("HTTP "+res.status);
@@ -1696,6 +1699,8 @@ async function loadCategory(cat){
     renderCategory(data);
   }catch(e){
     document.getElementById('catStatus').textContent = "불러오기에 실패했습니다. ("+e.message+")";
+  }finally{
+    if (activeCat === cat) document.body.classList.remove('cat-loading');   // [v9.9] 빠르게 탭을 바꾼 경우 마지막 요청이 끝날 때 해제
   }
 }
 window.loadCategory = loadCategory;
