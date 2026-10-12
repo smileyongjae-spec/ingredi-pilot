@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v3.5  (2026-10-12) — [v3.5] 목록 화면에 AI 질문 입구(카테고리별 예시 질문 칩) + 측정 이벤트(consult_open·cat_search·compare_add·compare_go) + 제품명 검색어 기록 / [v3.4] CLS 개선: 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.28→0) / [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
+<!-- sports.html  v3.5  (2026-10-12) — [v3.5] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v3.4] CLS 개선: 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.28→0) / [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -51,17 +51,13 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
 .cat-search input { width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid var(--line); border-radius:11px; font-family:inherit; font-size:14px; background:var(--surface); color:var(--ink); }
 .cat-search input:focus { outline:none; border-color:var(--green-primary); }
 
-/* [ask-v1 2026-10-12] 목록 화면 AI 질문 입구 */
-.cat-ask { margin: 2px 2px 10px; padding: 12px; background: var(--green-tint); border: 1px solid var(--green-hover, #CFE3D6); border-radius: 12px; }
-.cat-ask-head { display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color: var(--green-deep); margin-bottom:8px; }
-.cat-ask-badge { font-size:10.5px; font-weight:800; letter-spacing:.04em; color:#fff; background: var(--green-primary); border-radius:6px; padding:2px 6px; }
-.cat-ask-row { position:relative; }
-.cat-ask-row input { width:100%; box-sizing:border-box; padding:11px 46px 11px 13px; border:1.5px solid var(--green-primary); border-radius:11px; font-family:inherit; font-size:15px; background: var(--surface); color: var(--ink); }
-.cat-ask-row input:focus { outline:none; border-color: var(--green-deep); }
-.cat-ask-row button { position:absolute; right:5px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:9px; background: var(--green-primary); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-.cat-ask-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-.cat-ask-chips button { border:1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius:999px; padding:6px 11px; font-size:12.5px; font-family:inherit; cursor:pointer; }
-body.cat-loading .cat-ask { display:none !important; }
+/* [ask-v2 2026-10-12] 검색창 → AI 연결 한 줄 · 1~3위 바로 비교 링크 */
+.cat-askrow { margin: 0 2px 8px; display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; padding:11px 12px; border-radius:11px; background: var(--green-tint); border:1px solid #CFE3D6; font-size:13.5px; font-family:inherit; color: var(--green-deep); text-align:left; cursor:pointer; }
+.cat-askrow[hidden] { display:none; }
+.cat-askrow .ar-badge { flex-shrink:0; font-size:10px; font-weight:800; color:#fff; background: var(--green-primary); border-radius:6px; padding:2px 6px; }
+.cat-askrow .ar-t { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cat-askrow .ar-go { flex-shrink:0; font-weight:800; }
+.cat-quickcmp { margin-left:auto; padding-left:8px; color: var(--green-primary); font-weight:700; text-decoration:none; white-space:nowrap; }
 /* 제품 비교 CTA — app.html(건기식)과 동일 컴포넌트. compare.html v2가 스포츠 성분유형 비교를 지원한다. */
 .cat-compare-cta { margin:6px 2px 20px; background:var(--green-tint); border:1px solid var(--green-hover); border-radius:14px; padding:15px; }
 .ccta-head { display:flex; align-items:center; gap:10px; margin-bottom:11px; }
@@ -397,8 +393,8 @@ body.cat-loading .cat-search, body.cat-loading .disclosure, body.cat-loading .fe
     </div>
 
     <div id="wtBox"></div>
-    <div class="cat-search"><input type="search" id="catSearch" placeholder="제품명으로 찾기" autocomplete="off" aria-label="제품명 검색"></div>
-    <div class="cat-ask" id="catAsk"><div class="cat-ask-head"><span class="cat-ask-badge">AI</span>고르기 어렵다면 물어보세요</div><div class="cat-ask-row"><input type="text" id="catAskInput" placeholder="예: 우유 먹으면 배가 아파요" autocomplete="off" aria-label="AI에게 질문"><button type="button" id="catAskBtn" aria-label="질문하기"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button></div><div class="cat-ask-chips" id="catAskChips"></div></div>
+    <div class="cat-search"><input type="search" id="catSearch" placeholder="제품명이나 고민 (예: 다이어트 중이에요)" autocomplete="off" aria-label="제품명 또는 고민 검색"></div>
+    <button type="button" class="cat-askrow" id="catAskRow" hidden><span class="ar-badge">AI</span><span class="ar-t" id="catAskText"></span><span class="ar-go">→</span></button>
     <div class="cat-meta" id="catMeta"></div>
     <div id="catCards"></div>
     <div class="cat-status" id="catStatus"></div>
@@ -805,7 +801,7 @@ function card(p,d){
   const buy = `<div class="cv-buyrow">${buyCore}`
     + `<button class="cv-sbtn" type="button" data-aieval="${esc(String(p.id))}"><span class="sb-t">AI 평가</span></button>`
     + `<button class="cv-sbtn cv-cmpbtn${_on ? ' on' : ''}" type="button" data-pick="${esc(String(p.id))}" data-pname="${esc(p.name||'')}" data-pimg="${esc(p.image||'')}">`
-    + `<span class="sb-t">${_on ? '✓ 담음' : '제품 비교'}</span><span class="sb-s">${_on ? '빼기' : '(3개까지)'}</span></button>`
+    + `<span class="sb-t">${_on ? '✓ 담음' : '비교 담기'}</span><span class="sb-s">${_on ? '빼기' : ''}</span></button>`
     + `</div><div class="cv-aipanel" data-aipanel hidden></div>`;
   // 무채점 유형은 등급 배지 자리를 비운다. 회색 배지나 "미부여" 표기를 넣지 않는다.
   const badge = (d.tier==='none') ? ''
@@ -866,6 +862,7 @@ function cmpToggle(btn){
   else {
     if (cmpPicks.length >= CMP_MAX){ cmpFlash(`${CMP_MAX}개까지 비교할 수 있어요`); return; }
     cmpPicks.push({ id, name: btn.getAttribute('data-pname') || '', img: btn.getAttribute('data-pimg') || '' });
+    try { window.ingrEv && window.ingrEv('compare_add', 'category', activeSub || activeCat); } catch (_) {}   // [v3.5]
   }
   cmpSync();
 }
@@ -873,8 +870,8 @@ function cmpSync(){
   document.querySelectorAll('[data-pick]').forEach(function(b){
     const on = cmpHas(b.getAttribute('data-pick'));
     b.classList.toggle('on', on);
-    const t = b.querySelector('.sb-t'); if (t) t.textContent = on ? '✓ 담음' : '제품 비교';
-    const sb = b.querySelector('.sb-s'); if (sb) sb.textContent = on ? '빼기' : `(${CMP_MAX}개까지)`;
+    const t = b.querySelector('.sb-t'); if (t) t.textContent = on ? '✓ 담음' : '비교 담기';
+    const sb = b.querySelector('.sb-s'); if (sb) sb.textContent = on ? '빼기' : '';
     const legacy = b.querySelector('.cvp-txt'); if (legacy) legacy.textContent = on ? '담음' : '비교 담기';
   });
   document.querySelectorAll('[data-pcard]').forEach(function(c){ c.classList.toggle('picked', cmpHas(c.getAttribute('data-pcard'))); });
@@ -882,22 +879,29 @@ function cmpSync(){
 }
 let _cmpMsg = null;
 function cmpFlash(m){ _cmpMsg = m; cmpRenderBar(); setTimeout(function(){ _cmpMsg = null; cmpRenderBar(); }, 2000); }
+// [v3.5] compare.html은 ids로 받는다(v2.8). 같은 성분유형끼리만 비교
+function cmpHref(ids){ return `/compare.html?domain=sports&category=${encodeURIComponent(activeSub || activeCat)}&ids=${encodeURIComponent(ids.join(","))}`; }
 function cmpRenderBar(){
   const bar = document.getElementById('pickBar'); if (!bar) return;
   if (!cmpPicks.length){ bar.hidden = true; document.body.style.paddingBottom = ''; return; }
   bar.hidden = false;
   const ready = cmpPicks.length >= 2;
-  bar.querySelector('.pb-inner').classList.toggle('ready', ready);
+  // [v3.5] 1개만 담았으면 1위(담은 게 1위면 2위)와 바로 비교
+  const top = window._catTop || [];
+  const mate = cmpPicks.length === 1 ? (top.find(id => id !== cmpPicks[0].id) || null) : null;
+  bar.querySelector('.pb-inner').classList.toggle('ready', ready || !!mate);
   document.getElementById('pbThumbs').innerHTML = cmpPicks.map(function(p){
     return `<span class="pb-th"><img src="${p.img ? esc(p.img) : PLACEHOLDER}" alt="" onerror="this.onerror=null;this.src='${PLACEHOLDER}'"><button class="pb-x" type="button" data-punpick="${esc(p.id)}" aria-label="빼기">×</button></span>`;
   }).join("");
   document.getElementById('pbTxt').innerHTML = _cmpMsg ? esc(_cmpMsg)
     : (ready ? `${cmpPicks.length}개 담음<br><span style="font-size:11px">최대 ${CMP_MAX}개</span>`
-             : `1개 담음 — <b style="color:var(--ink)">하나 더</b> 담으면 비교할 수 있어요`);
+             : (mate ? `1개 담음<br><span style="font-size:11px">하나 더 담거나, ${mate === top[0] ? '1위' : '2위'}와 바로 비교</span>`
+                     : `1개 담음 — <b style="color:var(--ink)">하나 더</b> 담으면 비교할 수 있어요`));
   const go = document.getElementById('pbGo');
-  go.classList.toggle('on', ready);
-  go.textContent = ready ? '비교하기 →' : '비교하기';
-  go.href = ready ? `/compare.html?domain=sports&category=${encodeURIComponent(activeSub || activeCat)}&ids=${encodeURIComponent(cmpPicks.map(p => p.id).join(","))}` : '#';   // [v2.8] compare.html은 ids로 받는다
+  go.classList.toggle('on', ready || !!mate);
+  go.setAttribute('data-mode', ready ? 'pick' : 'with_top');
+  go.textContent = ready ? '비교하기 →' : (mate ? `${mate === top[0] ? '1위' : '2위'}와 비교 →` : '비교하기');
+  go.href = ready ? cmpHref(cmpPicks.map(p => p.id)) : (mate ? cmpHref([cmpPicks[0].id, mate]) : '#');
   document.body.style.paddingBottom = '78px';
 }
 document.addEventListener('click', function(e){
@@ -922,6 +926,7 @@ function render(d){
   renderSubs(d); renderWeight(d); renderProfileBar(d);
   d.products = sortList(d.products, d.tier);
   d.products.forEach((p,i)=>{ p.rank = i+1; });
+  window._catTop = d.products.slice(0,3).map(p=>String(p.id));   // [v3.5] 1~3위 바로 비교 · 1위와 비교용
   const one = !d.subs || d.subs.length<2;
   const sortLabel = profile==='value' ? '가성비 우선 정렬'
                   : (d.tier==='none' ? '함량순 정렬' : '성분 우선 정렬');
@@ -930,7 +935,8 @@ function render(d){
     ? `<button class="tier-chip" onclick="showTier(data)"><span class="dot ${d.tier}"></span>${TIER_LABEL[d.tier]}<span class="tier-chip-q">?</span></button>`
     : '';
   document.getElementById('catMeta').innerHTML =
-    `${chip}<span>${esc(d.category)} · ${d.total}개 · ${sortLabel}</span>`;
+    `${chip}<span>${esc(d.category)} · ${d.total}개 · ${sortLabel}</span>`
+    + (window._catTop.length >= 2 && !((document.getElementById('catSearch')||{}).value||'').trim() ? `<a class="cat-quickcmp" data-quickcmp href="${cmpHref(window._catTop)}">1~3위 바로 비교 →</a>` : '');   // [v3.5]
   document.getElementById('catDisclaimer').textContent = d.disclaimer||'';
   const el=document.getElementById('catCards');
   if(!d.products.length){ el.innerHTML=''; document.getElementById('catStatus').textContent='표시할 제품이 없습니다.'; return; }
@@ -1014,51 +1020,29 @@ document.addEventListener('click', function (e) {
 </script>
 
 <script>
-/* [ask-v1 2026-10-12] 목록 화면 AI 질문 입구 + 측정(consult_open·cat_search·compare_add·compare_go) + 제품명 검색어 기록 */
+/* [ask-v2 2026-10-12] 검색창 → AI 연결, 측정 이벤트(consult_open·cat_search·compare_add·compare_go), 제품명 검색어 기록 */
 (function(){
-  var CHIPS = {
-    "단백질": [{l:"우유 먹으면 배가 아파요", q:"우유 먹으면 배가 아픈데 어떤 단백질 파우더가 좋아?"}, {l:"다이어트 중이에요", q:"다이어트 중인데 단백질 파우더 추천해줘"}, {l:"가성비 프로틴", q:"가성비 좋은 단백질 파우더 추천해줘"}],
-    "크레아틴": [{l:"처음 먹어요", q:"크레아틴 처음 먹는데 뭐부터 고를까?"}],
-    "아미노산": [{l:"운동 중에 마실 것", q:"운동 중에 마실 아미노산 추천해줘"}],
-    "부스터": [{l:"카페인 없는 것", q:"카페인 없는 부스터 추천해줘"}, {l:"저녁 운동", q:"저녁에 운동하는데 부스터 추천해줘"}],
-    "카르니틴": [{l:"카르니틴 처음이에요", q:"카르니틴 처음 먹는데 뭐부터 고를까?"}]
-  };
-  var PH = {"단백질":"예: 우유 먹으면 배가 아파요","크레아틴":"예: 처음 먹어보는데 뭐부터 고를까요?","아미노산":"예: 운동 중에 마시고 싶어요","부스터":"예: 카페인 없는 걸 찾아요","카르니틴":"예: 처음 먹어보는데 뭐부터 고를까요?"};
-  function curCat(){ try { return activeCat; } catch(_) { return ''; } }
+  function curCat(){ try { return (activeSub || activeCat); } catch(_) { return ''; } }
   function ev(name, k, v){ try { if (typeof window.clarity === 'function'){ window.clarity('event', name); if (k) window.clarity('set', k, String(v||'').slice(0,60)); } } catch(_){} }
+  window.ingrEv = ev;
   function srcParam(){ try { return (new URLSearchParams(location.search).get('src') || '').slice(0,40); } catch(_) { return ''; } }
-  function goConsult(q, how){
-    q = String(q||'').trim(); if (!q) return;
-    ev('consult_open', 'consult_from', 'list_' + how + ':' + curCat());
-    location.href = '/consult.html?q=' + encodeURIComponent(q);
+  var inp = document.getElementById('catSearch'), row = document.getElementById('catAskRow'), txt = document.getElementById('catAskText');
+  // 고민형 문장인지: 물음·부탁 어미나 고민 단어가 있으면 문장으로 본다(제품명은 보통 해당 없음)
+  var ASKY = /(\?|요$|까$|줘$|나$|지$|추천|좋은|어떤|뭐|먹|아파|예민|다이어트|처음|부담)/;
+  function updateRow(){
+    if (!inp || !row) return;
+    var q = (inp.value || '').trim();
+    var n = document.querySelectorAll('#catCards .cv-card, #catCards .cr-card').length;
+    var show = q.length >= 2 && (n === 0 || ASKY.test(q));
+    row.hidden = !show;
+    if (show) txt.textContent = '"' + q + '" AI에게 물어보기';
   }
-  function renderAsk(){
-    var c = curCat(), box = document.getElementById('catAskChips'), inp = document.getElementById('catAskInput');
-    if (!box || !inp) return;
-    inp.placeholder = PH[c] || '예: 처음 먹어보는데 뭐부터 고를까요?';
-    var list = CHIPS[c] || [];
-    box.innerHTML = list.map(function(t){ return '<button type="button" data-ask="' + t.q.replace(/"/g,'&quot;') + '">' + t.l + '</button>'; }).join('');
-  }
-  window.renderAsk = renderAsk;
-  document.addEventListener('click', function(e){
-    var chip = e.target.closest && e.target.closest('[data-ask]');
-    if (chip){ goConsult(chip.getAttribute('data-ask'), 'chip'); return; }
-    if (e.target.closest && e.target.closest('#catAskBtn')){ goConsult((document.getElementById('catAskInput')||{}).value, 'input'); return; }
-    var go = e.target.closest && e.target.closest('#pbGo.on, .cat-compare-cta a');
-    if (go){ ev('compare_go', 'compare_from', (go.id === 'pbGo' ? 'pick:' : 'cta:') + curCat()); }
-  }, true);
-  document.addEventListener('keypress', function(e){ if (e.key === 'Enter' && e.target && e.target.id === 'catAskInput') goConsult(e.target.value, 'input'); });
-  // 비교 담기 측정: 담을 때만(뺄 때 제외)
-  try { var _pt = cmpToggle; if (typeof _pt === 'function') { cmpToggle = function(btn){ var was = btn && btn.classList.contains('on'); _pt(btn); if (!was && btn && btn.classList.contains('on')) ev('compare_add', 'category', curCat()); }; } } catch(_){}
-  // 카테고리가 바뀌어 다시 그릴 때 칩도 바꾼다
-  try { var _r = render; if (typeof _r === 'function') { render = function(d){ var out = _r.apply(this, arguments); renderAsk(); return out; }; } } catch(_){}
-  // 제품명 검색어 기록: 입력이 1.5초 멈추고 2자 이상일 때, 같은 검색어는 한 번만
-  (function(){
-    var inp = document.getElementById('catSearch'); if (!inp) return;
-    var tm = null, last = '';
+  if (inp){
+    var tm = null, tmLog = null, last = '';
     inp.addEventListener('input', function(){
-      clearTimeout(tm);
-      tm = setTimeout(function(){
+      clearTimeout(tm); tm = setTimeout(updateRow, 220);   // 목록 재렌더(150ms) 뒤에 판단
+      clearTimeout(tmLog);
+      tmLog = setTimeout(function(){
         var q = (inp.value || '').trim(); if (q.length < 2 || q === last) return; last = q;
         var n = document.querySelectorAll('#catCards .cv-card, #catCards .cr-card').length;
         ev('cat_search', 'category', curCat());
@@ -1066,8 +1050,19 @@ document.addEventListener('click', function (e) {
           body: JSON.stringify({ type:'검색', content:q, category: curCat() || '미상', resultCount:n, src: srcParam() }) }).catch(function(){}); } catch(_){}
       }, 1500);
     });
-  })();
-  renderAsk();
+    inp.addEventListener('keydown', function(e){ if (e.key === 'Enter' && row && !row.hidden){ e.preventDefault(); row.click(); } });
+  }
+  if (row) row.addEventListener('click', function(){
+    var q = (inp && inp.value || '').trim(); if (!q) return;
+    ev('consult_open', 'consult_from', 'list_search:' + curCat());
+    location.href = '/consult.html?q=' + encodeURIComponent(q);
+  });
+  document.addEventListener('click', function(e){
+    var t = e.target.closest && e.target.closest('#pbGo.on, .cat-compare-cta a, [data-quickcmp]');
+    if (!t) return;
+    var how = t.hasAttribute('data-quickcmp') ? 'top3' : (t.id === 'pbGo' ? (t.getAttribute('data-mode') || 'pick') : 'cta');
+    ev('compare_go', 'compare_from', how + ':' + curCat());
+  }, true);
 })();
 </script>
 </body>
