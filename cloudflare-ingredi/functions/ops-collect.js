@@ -130,9 +130,27 @@ async function run({ request, env }) {
     try {
       const all = await clarityExport(env, []);
       const byUrl = await clarityExport(env, ['URL']);
-      site['Clarity_JSON'] = JSON.stringify({ all, byUrl }).slice(0, 90000);
+      // URL별 결과(광고 클릭마다 fbclid가 달라 행이 많음)를 src별로 합친다
+      const bySrc = {};
+      for (const m of byUrl || []) {
+        for (const row of m.information || []) {
+          let src = '(없음)', path = '';
+          try { const uu = new URL(row.Url || row.url || ''); src = uu.searchParams.get('src') || '(없음)'; path = uu.pathname; } catch (_) {}
+          if (/pages\.dev/.test(row.Url || '')) continue; // 미리보기 도메인 제외
+          const b = (bySrc[src] = bySrc[src] || {});
+          const k = m.metricName;
+          b[k] = b[k] || { sessions: 0, withMetric: 0, subTotal: 0 };
+          const sc = Number(row.sessionsCount || 0);
+          b[k].sessions += sc;
+          b[k].withMetric += Math.round(sc * Number(row.sessionsWithMetricPercentage || 0) / 100);
+          b[k].subTotal += Number(row.subTotal || 0);
+        }
+      }
+      const summary = {};
+      for (const m of all || []) summary[m.metricName] = m.information;
+      site['Clarity_JSON'] = JSON.stringify({ 기준: '최근 24시간(UTC)', 전체: summary, src별: bySrc }).slice(0, 90000);
       status.clarity = 'ok (최근 24시간 기준)';
-      out.clarity = { all, byUrl };
+      out.clarity = { summary, bySrc };
     } catch (e) { status.clarity = '실패: ' + e.message; }
   }
 
