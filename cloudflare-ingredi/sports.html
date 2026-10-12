@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v3.5  (2026-10-12) — [v3.5] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v3.4] CLS 개선: 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.28→0) / [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
+<!-- sports.html  v3.6  (2026-10-12) — [v3.6] 광고 랜딩 딥링크: &profile=value(가성비 우선) / [v3.5] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v3.4] CLS 개선: 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.28→0) / [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -997,6 +997,8 @@ window.pick = function(s){ if(activeSub!==s) cmpClear(); activeSub=s; showTierAf
   const c=sp.get('category'); if(c&&CATS.indexOf(c)!==-1) activeCat=c;
   const s=sp.get('sub'); if(s) activeSub=s;
   const w=parseInt(sp.get('weight')||'',10); if(w>=45&&w<=115) weight=w;
+  // [v3.6] 광고 랜딩: &profile=value(또는 budget)이면 가성비 우선(1일 비용 낮은 순)으로 연다
+  const pf=(sp.get('profile')||'').toLowerCase(); if(pf==='value'||pf==='budget') profile='value'; else if(pf==='quality') profile='quality';
   renderTabs(); load();
 })();
 </script>
