@@ -1,4 +1,4 @@
-// functions/log-search.js
+// functions/log-search.js  v1.1  (2026-10-12) — [v1.1] 결과수: 값이 없으면(null) 비워 둠(기존엔 0으로 기록되던 버그) / 유입 경로 src 기록(검색로그 테이블 src 열)
 // 검색어 · 카운슬링 질문 로깅 → Airtable "검색로그" 테이블
 // 응답 속도에 영향을 주지 않도록 Airtable 쓰기는 waitUntil로 백그라운드 처리.
 
@@ -7,7 +7,7 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    let { type, content, category, resultCount } = body;
+    let { type, content, category, resultCount, src } = body;
 
     // 내용 정리 + 상한
     content = (content == null ? '' : String(content)).trim().slice(0, 2000);
@@ -18,8 +18,12 @@ export async function onRequestPost(context) {
       '내용': content,
       '카테고리': (category == null ? '미상' : String(category)).slice(0, 100),
     };
-    const rc = Number(resultCount);
-    if (Number.isFinite(rc)) fields['결과수'] = rc;
+    // [v1.1] null·빈 값은 Number()가 0이 되므로 먼저 걸러낸다
+    if (resultCount !== null && resultCount !== undefined && resultCount !== '') {
+      const rc = Number(resultCount);
+      if (Number.isFinite(rc)) fields['결과수'] = rc;
+    }
+    if (src) fields['src'] = String(src).slice(0, 40);
 
     // 토큰 환경변수 이름 자동 탐색 (기존 /feedback 과 동일한 것을 사용)
     const TOKEN =
