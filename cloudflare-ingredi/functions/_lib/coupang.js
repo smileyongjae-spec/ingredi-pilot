@@ -42,7 +42,7 @@ async function hmacHex(secret, message) {
 
 // CEA Authorization 헤더 생성
 // message = datetime + method + path + query
-async function buildAuth(method, path, query, accessKey, secretKey) {
+export async function buildAuth(method, path, query, accessKey, secretKey) {
   const datetime = signedDate();
   const message = datetime + method + path + (query || "");
   const signature = await hmacHex(secretKey, message);
