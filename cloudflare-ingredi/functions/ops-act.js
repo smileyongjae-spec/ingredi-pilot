@@ -14,7 +14,11 @@ import { json, checkSecret, kstDate, T, atList, atUpdate, meta, META_ACT } from 
 const AUTO_MOVE_CAP = 10000;
 const MIN_DAILY = 1400;
 
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet(ctx) {
+  try { return await run(ctx); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500); }
+}
+
+async function run({ request, env }) {
   const u = new URL(request.url);
   if (!checkSecret(env, u.searchParams.get('key'))) return json({ ok: false, error: 'forbidden' }, 403);
   const dry = u.searchParams.get('dry') === '1';

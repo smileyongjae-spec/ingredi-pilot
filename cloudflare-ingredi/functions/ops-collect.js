@@ -12,7 +12,11 @@ import {
   metaAdInsights, coupangReport, sumNumeric, clarityExport,
 } from './_lib/ops.js';
 
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet(ctx) {
+  try { return await run(ctx); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500); }
+}
+
+async function run({ request, env }) {
   const u = new URL(request.url);
   if (!checkSecret(env, u.searchParams.get('key'))) return json({ ok: false, error: 'forbidden' }, 403);
 
@@ -23,7 +27,7 @@ export async function onRequestGet({ request, env }) {
   const out = { ok: true, date, dry };
 
   // 소재 목록: 광고명 → 소재 레코드, src → 소재 레코드
-  const creatives = await atList(env, T.creative, null, ['소재ID', '광고명', 'src', '채널']);
+  const creatives = await atList(env, T.creative, null);
   const byName = new Map(), bySrc = new Map();
   for (const r of creatives) {
     const f = r.fields;
