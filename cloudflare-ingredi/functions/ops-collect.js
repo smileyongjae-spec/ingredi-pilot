@@ -1,4 +1,4 @@
-// functions/ops-collect.js  v1.0 (2026-10-13)
+// functions/ops-collect.js  v1.1 (2026-10-14) — [v1.1] 쿠팡 전날 재수집·숫자 열, Clarity 하루 1회(재시도 시 건너뜀)
 // 매일 04:30(KST) GitHub Actions가 호출 → 어제 하루 데이터를 API로 모아 Airtable에 기록.
 //   GET /ops-collect?key=<OPS_SECRET>[&date=YYYY-MM-DD][&dry=1][&only=meta,coupang,clarity,self]
 // 결과:
@@ -112,21 +112,48 @@ async function run({ request, env }) {
     } catch (e) { status.self = '실패: ' + e.message; }
   }
 
-  /* 3) 쿠팡 파트너스 (전날 값은 오후에 확정될 수 있음 → 다음 날 재수집으로 덮어씀) */
+  /* 3) 쿠팡 파트너스 — 전날 값은 다음 날 오후에 집계되므로 그 전날(date-1)도 다시 받아 덮어쓴다 */
+  const extraSite = [];
   if (only.includes('coupang')) {
-    try {
+    const cp = async (d) => {
       const [clicks, orders, commission] = await Promise.all([
-        coupangReport(env, 'clicks', date), coupangReport(env, 'orders', date), coupangReport(env, 'commission', date),
+        coupangReport(env, 'clicks', d), coupangReport(env, 'orders', d), coupangReport(env, 'commission', d),
       ]);
       const c = sumNumeric(clicks), o = sumNumeric(orders), m = sumNumeric(commission);
-      site['쿠팡_JSON'] = JSON.stringify({ clicks: c, orders: o, commission: m }).slice(0, 5000);
-      status.coupang = `ok (clicks ${c.rows}행, orders ${o.rows}행, commission ${m.rows}행)`;
-      out.coupang = { clicks, orders, commission };
+      return {
+        fields: {
+          쿠팡_JSON: JSON.stringify({ clicks: c, orders: o, commission: m }).slice(0, 5000),
+          쿠팡클릭_파트너스: c.sum.click || 0, 쿠팡주문행: o.rows, 쿠팡수익: Math.round(m.sum.commission || 0),
+        },
+        note: `clicks ${c.sum.click || 0}, orders ${o.rows}행, 수익 ₩${Math.round(m.sum.commission || 0)}`,
+        raw: { clicks, orders, commission },
+      };
+    };
+    try {
+      const a = await cp(date);
+      Object.assign(site, a.fields);
+      status.coupang = `ok (${a.note})`;
+      out.coupang = a.raw;
     } catch (e) { status.coupang = '실패: ' + e.message; }
+    try {
+      const prev = kstDate(-1, Date.parse(date + 'T12:00:00+09:00'));
+      const b = await cp(prev);
+      extraSite.push({ 날짜: prev, ...b.fields });
+      status.coupang_prev = `${prev} 재수집 ok (${b.note})`;
+    } catch (e) { status.coupang_prev = '실패: ' + e.message; }
   }
 
   /* 4) Clarity (최근 24시간, 하루 10회 한도) */
-  if (only.includes('clarity')) {
+  // 같은 날짜로 하루 여러 번 돌 수 있으므로(예약 재시도), 이미 성공했으면 Clarity는 다시 부르지 않는다(하루 10회 한도)
+  let clarityDone = false;
+  if (only.includes('clarity') && u.searchParams.get('force') !== '1') {
+    try {
+      const ex = await atList(env, T.site, `{날짜}='${date}'`, ['수집상태']);
+      clarityDone = ex.some((r) => /clarity: ok/.test(String(r.fields['수집상태'] || '')));
+    } catch (_) {}
+  }
+  if (clarityDone) status.clarity = 'ok (이전 실행에서 수집됨)';
+  if (only.includes('clarity') && !clarityDone) {
     try {
       const all = await clarityExport(env, []);
       const byUrl = await clarityExport(env, ['URL']);
@@ -163,7 +190,7 @@ async function run({ request, env }) {
   if (!dry) {
     try {
       if (rows.size) await atUpsert(env, T.daily, ['키'], [...rows.values()]);
-      await atUpsert(env, T.site, ['날짜'], [site]);
+      await atUpsert(env, T.site, ['날짜'], [site, ...extraSite]);
       // 3일 지난 세션로그 삭제
       const cutoff = kstDate(-3);
       const old = await atList(env, T.evlog, `DATETIME_FORMAT(SET_TIMEZONE(CREATED_TIME(),'Asia/Seoul'),'YYYY-MM-DD')<'${cutoff}'`, ['이벤트']);
