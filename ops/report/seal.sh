@@ -21,19 +21,25 @@ basename "$PDF" > "$WORK/name.txt"           # 파일명은 평문(날짜·번�
 sha256sum "$PDF" | cut -d' ' -f1 > "$WORK/sha256.txt"   # 원본 확인용
 rm -f "$WORK/k"
 
-# reports 브랜치(코드와 분리된 orphan 브랜치)에 reports/<date>/ 로 커밋
-WT="$WORK/wt"
+# reports 브랜치(코드와 분리, reports/ 만 담는 브랜치)에 reports/<date>/ 로 커밋.
+# 작업 트리를 건드리지 않도록 임시 인덱스로 트리를 만들어 커밋한다.
 cd "$REPO"
-git fetch -q origin reports 2>/dev/null || true
-if git ls-remote --exit-code --heads origin reports >/dev/null 2>&1; then
-  git worktree add -q -B reports-local "$WT" origin/reports
-else
-  git worktree add -q --detach "$WT"
-  (cd "$WT" && git checkout -q --orphan reports-local && git rm -rq . >/dev/null 2>&1 || true)
+export GIT_INDEX_FILE="$WORK/index"
+PARENT=""
+git read-tree --empty
+if git fetch -q origin reports 2>/dev/null; then
+  PARENT="$(git rev-parse FETCH_HEAD)"
+  # 이전 커밋에서 reports/ 폴더만 이어받는다 (그 밖의 파일은 브랜치에 두지 않음)
+  if git cat-file -e "$PARENT:reports" 2>/dev/null; then
+    git read-tree --prefix=reports/ "$PARENT:reports"
+  fi
 fi
-mkdir -p "$WT/reports/$DATE"
-cp "$WORK"/{pdf.enc,mail.enc,key.enc,name.txt,sha256.txt} "$WT/reports/$DATE/"
-(cd "$WT" && git add "reports/$DATE" && git commit -qm "report $DATE (encrypted)" && git push -q origin reports-local:reports)
-git worktree remove --force "$WT"
-git branch -D reports-local >/dev/null 2>&1 || true
-echo "sealed reports/$DATE  sha256=$(cat "$WORK/sha256.txt")"
+for f in pdf.enc mail.enc key.enc name.txt sha256.txt; do
+  h="$(git hash-object -w "$WORK/$f")"
+  git update-index --add --cacheinfo 100644 "$h" "reports/$DATE/$f"
+done
+TREE="$(git write-tree)"
+unset GIT_INDEX_FILE
+COMMIT="$(git commit-tree "$TREE" ${PARENT:+-p "$PARENT"} -m "report $DATE (encrypted)")"
+git push -q origin "$COMMIT:refs/heads/reports"
+echo "sealed reports/$DATE  commit=${COMMIT:0:7}  sha256=$(cat "$WORK/sha256.txt")"
