@@ -104,6 +104,10 @@ def main():
     d = f"reports/{date}"
     if not os.path.isdir(d):
         raise SystemExit(f"{d} 없음 (reports 브랜치에 seal.sh로 올렸는지 확인)")
+    missing = [k for k in ("REPORT_PRIVATE_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN")
+               if not os.environ.get(k)]
+    if missing:
+        raise SystemExit(f"GitHub Secrets 미등록: {', '.join(missing)}")
     name = open(f"{d}/name.txt").read().strip()
     pdf, mail = decrypt(d, os.environ["REPORT_PRIVATE_KEY"])
     want = open(f"{d}/sha256.txt").read().strip()
@@ -115,6 +119,8 @@ def main():
               "drive_id": f.get("id"), "drive_link": f.get("webViewLink")}
     if os.environ.get("SKIP_MAIL") == "1":
         result["mail"] = "skipped"
+    elif how == "already" and os.environ.get("FORCE_MAIL") != "1":
+        result["mail"] = "skipped (같은 PDF가 이미 Drive에 있음 = 이전 실행에서 발송됨)"
     else:
         sent = gmail_send(tok, mail, name, pdf)
         result["mail"] = "sent"; result["mail_id"] = sent.get("id"); result["to"] = mail["to"]

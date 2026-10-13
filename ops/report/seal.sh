@@ -24,6 +24,7 @@ rm -f "$WORK/k"
 # reports 브랜치(코드와 분리, reports/ 만 담는 브랜치)에 reports/<date>/ 로 커밋.
 # 작업 트리를 건드리지 않도록 임시 인덱스로 트리를 만들어 커밋한다.
 cd "$REPO"
+git fetch -q origin main
 export GIT_INDEX_FILE="$WORK/index"
 PARENT=""
 git read-tree --empty
@@ -38,6 +39,8 @@ for f in pdf.enc mail.enc key.enc name.txt sha256.txt; do
   h="$(git hash-object -w "$WORK/$f")"
   git update-index --add --cacheinfo 100644 "$h" "reports/$DATE/$f"
 done
+# push 이벤트는 push된 커밋에 있는 워크플로 파일을 쓰므로 main의 report.yml을 함께 넣는다
+git update-index --add --cacheinfo 100644 "$(git rev-parse origin/main:.github/workflows/report.yml)" .github/workflows/report.yml
 TREE="$(git write-tree)"
 unset GIT_INDEX_FILE
 COMMIT="$(git commit-tree "$TREE" ${PARENT:+-p "$PARENT"} -m "report $DATE (encrypted)")"
