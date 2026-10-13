@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<!-- compare.html  v2.7  (2026-10-04) — [v2.7] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v2.6] 유산균 비교 행 추가: 개별인정 · 균주 코드 표기(점수 항목) / 균주 종류 수 · 인체적용시험 표기(참고 정보) -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1B3A2E">
+<link rel="apple-touch-icon" href="/apple-touch-icon-v3.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ingredi">
+  <meta property="og:type" content="website">
+<meta property="og:site_name" content="ingredi">
+<meta property="og:title" content="ingredi · 광고 없는 건강기능식품 비교">
+<meta property="og:description" content="AI가 상담하고 추천해드려요">
+<meta property="og:url" content="https://ingredi.kr/">
+<meta property="og:image" content="https://ingredi.kr/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="description" content="AI가 상담하고 추천해드려요. 광고 없는 건강기능식품 비교 서비스, ingredi.">
+<title>ingredi · 제품 비교</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="/tokens-v1.css">
+<style>
+  /* 컬러·형태 토큰: /tokens-v1.css (단일 원본) */
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--paper);color:var(--ink);font-size:16px;letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
+  .app{max-width:520px;margin:0 auto;min-height:100vh;background:var(--paper);box-shadow:0 0 40px rgba(27,58,46,.05)}
+  .header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line-soft);background:var(--paper);position:sticky;top:0;z-index:20}
+  .hb{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);text-decoration:none;border-radius:8px}
+  .hb:hover{background:var(--green-light)}
+  .htitle{font-size:18px;font-weight:700;color:var(--green-deep)}
+  .hspacer{width:36px}
+    /* ── 공유 버튼 ── */
+    .header-share { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); background: none; border: none; border-radius: 8px; padding: 0; }
+    .header-share:active { transform: scale(0.92); }
+    .header-share svg { width: 21px; height: 21px; }
+    .share-toast { position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: var(--green-deep); color: var(--surface); font-size: 14px; font-weight: 600; padding: 12px 20px; border-radius: 100px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+    .share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .body{padding:16px 18px 40px}
+  .tabs{display:flex;gap:7px;overflow-x:auto;padding:4px 0 14px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:14px;font-family:inherit;font-weight:600;padding:9px 16px;border-radius:22px;cursor:pointer;white-space:nowrap;transition:.15s}
+  .tab.active{background:var(--green-deep);color:var(--surface);border-color:var(--green-deep)}
+  /* [v2] 도메인 토글(건강기능식품 / 운동 보충제) — 카테고리 탭 위의 상위 스위치 */
+  .domtoggle{display:flex;gap:6px;padding:2px;background:var(--green-tint,#EEF3EE);border-radius:12px;margin:0 0 10px}
+  .domtoggle button{flex:1;border:0;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:13.5px;font-weight:700;padding:9px 6px;border-radius:10px;cursor:pointer;transition:.15s}
+  .domtoggle button.active{background:var(--surface);color:var(--green-deep);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .tiernote{font-size:12px;color:var(--ink-soft);line-height:1.5;background:var(--green-tint,#EEF3EE);border-radius:10px;padding:9px 12px;margin:0 0 10px}
+  .pgrade.na,.pc-grade.na{display:none}
+  .pgrade.hold{width:auto;height:auto;border-radius:8px;padding:3px 8px;font-size:11px;color:#6E7177;border-color:#E1E2E4;background:transparent}
+  .pc-hold{display:inline-block;font-size:10.5px;font-weight:700;color:#6E7177;border:1px solid #E1E2E4;border-radius:8px;padding:3px 7px;white-space:nowrap}
+
+  .seltray{position:sticky;top:65px;z-index:10;background:var(--paper);padding:6px 0 12px;border-bottom:1px solid var(--line-soft)}
+  .selchips{display:flex;gap:7px;flex-wrap:wrap;min-height:34px}
+  .selchip{display:inline-flex;align-items:center;gap:6px;background:var(--green-light);color:var(--green-deep);font-size:13px;font-weight:600;padding:6px 9px 6px 11px;border-radius:100px;max-width:200px}
+  .selchip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .selchip b{cursor:pointer;color:var(--green-primary);font-weight:700;font-size:15px;line-height:1}
+  .selempty{font-size:13px;color:var(--ink-faint);padding:8px 2px}
+  .cmpbtn{width:100%;margin-top:10px;padding:14px;background:var(--green-primary);color:var(--surface);border:none;border-radius:11px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .cmpbtn:hover{background:var(--green-deep)}
+  .cmpbtn.need{animation:cmpPulse 2.4s ease-in-out infinite}
+  .cmpbtn.ready{box-shadow:0 3px 10px rgba(45,95,63,.28)}
+  .cmpbtn.shake{animation:cmpShake .4s}
+  .cmp-finger{animation:fingerBlink 1.6s ease-in-out infinite}
+  @keyframes cmpPulse{0%,100%{box-shadow:0 0 0 0 rgba(45,95,63,.42)}50%{box-shadow:0 0 0 7px rgba(45,95,63,0)}}
+  @keyframes fingerBlink{0%,100%{opacity:1}50%{opacity:.25}}
+  @keyframes cmpShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  .cmp-hint{font-size:11px;color:var(--warn);margin-top:6px;min-height:0}
+
+  .search{width:100%;margin:14px 0 10px;padding:11px 14px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;font-family:inherit;font-size:15px;color:var(--ink)}
+  .search:focus{outline:none;border-color:var(--green-primary);box-shadow:0 0 0 3px rgba(45,95,63,.08)}
+  .meta{font-size:12px;color:var(--ink-faint);padding:2px 2px 8px}
+
+  .prow{display:flex;align-items:center;gap:11px;padding:11px 12px;background:var(--surface);border:1.5px solid var(--line-soft);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:.12s}
+  .prow:hover{border-color:var(--green-mid)}
+  .prow.sel{border-color:var(--green-primary);background:var(--green-tint)}
+  .prow.dim{opacity:.45}
+  .pthumb{width:42px;height:42px;border-radius:9px;object-fit:cover;flex-shrink:0;background:var(--green-tint);border:1px solid var(--line-soft)}
+  .pinfo{flex:1;min-width:0}
+  .pname{font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .psub{font-size:12px;color:var(--ink-faint);margin-top:2px}
+  .pright{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex-shrink:0}
+  .pgrade{width:26px;height:26px;border-radius:50%;border:1px solid;font-size:12.5px;font-weight:700;
+          display:flex;align-items:center;justify-content:center}
+  .pgrade{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;border:1px solid}
+  .pcheck{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--surface);font-size:12px;font-weight:700}
+  .prow.sel .pcheck{background:var(--green-primary);border-color:var(--green-primary)}
+
+  .status{padding:50px 18px;text-align:center;color:var(--ink-faint);font-size:14px}
+
+  /* 비교표 */
+  .cmpwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px -2px 0;padding:2px}
+  table.cmp{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed}
+  table.cmp th,table.cmp td{vertical-align:top;text-align:left}
+  .ch-head{position:sticky;left:0;background:var(--paper);z-index:2;width:52px;min-width:52px;font-size:12px;color:var(--ink-faint);font-weight:600;padding:12px 6px 12px 2px;border-bottom:1px solid var(--line-soft)}
+  .ch-prod{padding:0 4px 12px;vertical-align:top;height:1px}
+  .pc{background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:9px 7px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;height:100%;box-sizing:border-box}
+  /* 카드 높이 통일 — 등급 원형(26px)·보류 라벨(22px)·배지 없음(무채점)이 섞여도, 상위% 줄 유무가 달라도 같은 규격 */
+  .pc-badge{height:30px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+  .pc-badge .pc-grade,.pc-badge .pc-hold{margin:0}
+  .pc-thumb{width:100%;max-width:60px;aspect-ratio:1;height:auto;border-radius:9px;object-fit:cover;background:var(--green-tint);border:1px solid var(--line-soft);display:block;margin-bottom:7px}
+  .pc-grade{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;
+            font-size:12.5px;font-weight:700;border:1px solid;margin:0 auto 5px}
+  .pc-pct{font-size:10.5px;color:var(--ink-faint);margin-top:4px;height:16px;line-height:16px}
+  .pc-name{font-size:11.5px;font-weight:700;color:var(--green-deep);line-height:1.3;height:45px;overflow:hidden;overflow-wrap:anywhere}
+  .pc-rm{display:block;width:100%;margin-top:auto;padding-top:5px;padding:5px;background:var(--green-light);color:var(--green-deep);border:none;border-radius:7px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
+  .rlabel{position:sticky;left:0;background:var(--paper);z-index:2;font-size:11px;color:var(--ink-faint);font-weight:600;padding:11px 4px 11px 2px;border-top:1px solid var(--line-soft);line-height:1.25}
+  .rcell{padding:11px 4px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+  .rcell .v{font-weight:700;color:var(--green-deep)}
+  .rcell.best .v{color:var(--green-primary)}
+  .best-dot{display:inline-block;font-size:10px;color:var(--green-primary);margin-left:3px;vertical-align:middle}
+  .rcell .unit{font-size:11px;color:var(--ink-faint);font-weight:500}
+  .cmp-basis{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:11.5px;color:var(--ink-faint)}
+  .cmp-basis b{font-weight:700;color:var(--green-primary);background:var(--green-light);padding:2px 8px;border-radius:20px;font-size:11px}
+  .buyrow{display:flex;gap:8px;margin-top:14px}
+  .buy{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 8px;border-radius:10px;text-decoration:none;background:var(--green-primary);color:var(--surface);box-shadow:0 3px 10px rgba(45,95,63,.24)}
+  .buy:active{transform:scale(.99)}
+  .buy-cap{font-size:10.5px;font-weight:500;opacity:.72;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .buy-act{display:flex;align-items:center;justify-content:center;gap:5px;font-size:13px;font-weight:700;white-space:nowrap}
+  .buy.disabled{background:var(--line);color:var(--ink-faint);box-shadow:none;pointer-events:none}
+  .backsel{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--green-primary);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0 14px}
+
+  footer{padding:24px 4px 40px;font-size:11px;color:var(--ink-faint);line-height:1.6;text-align:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <a class="hb" id="backLink" href="/app.html" aria-label="뒤로" onclick="smartBack('/app.html');return false;">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="htitle" id="hTitle">제품 비교</div>
+    <button class="header-share" type="button" aria-label="공유하기" onclick="shareIngredi()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+  </header>
+  <div class="body">
+    <!-- 선택 화면 -->
+    <div id="selectView">
+      <div class="domtoggle" id="domToggle"></div>
+      <div class="tabs" id="tabs"></div>
+      <div class="tiernote" id="tierNote" style="display:none"></div>
+      <div class="seltray">
+        <div class="selchips" id="selChips"></div>
+        <button class="cmpbtn need" id="cmpBtn" onclick="goCompare()"><span class="cmp-finger">👆</span><span id="cmpBtnText">비교하기 (2개 또는 3개 선택)</span></button>
+        <div class="cmp-hint" id="cmpHint"></div>
+      </div>
+      <input class="search" id="search" placeholder="제품명 검색" autocomplete="off">
+      <div class="meta" id="listMeta"></div>
+      <div id="list"></div>
+      <div class="status" id="listStatus"></div>
+    </div>
+    <!-- 비교 화면 -->
+    <div id="compareView" style="display:none">
+      <button class="backsel" onclick="backToSelect()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        제품 다시 고르기
+      </button>
+      <div id="compareTable"></div>
+      <footer>
+        ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다. 모든 비교는 공개된 제품 데이터 기준이며, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있습니다. 수수료는 순위에 영향을 주지 않습니다. · <a href="/about.html" style="color:var(--green-primary);font-weight:700;text-decoration:none">소개 · 문의</a>
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script>
+// [v2] 두 도메인을 한 화면에서 비교. 건기식은 recommend2, 스포츠는 sports-api(성분유형 단위).
+// 스포츠는 성분유형끼리만 비교한다 — 앵커가 유형마다 달라(단백질 80% / 크레아틴 3,000mg / 체중당 38mg)
+// 다른 유형을 나란히 놓으면 등급 비교가 무의미해진다.
+const DOMAINS = {
+  health: { label: "건강기능식품", api: window.location.origin + "/recommend2",
+    tabs: [
+      { key:"오메가3", label:"오메가3" }, { key:"눈", label:"눈 건강" },
+      { key:"마이크로바이옴", label:"유산균" }, { key:"비타민C", label:"비타민C" },
+      { key:"밀크씨슬", label:"밀크씨슬" }
+    ] },
+  sports: { label: "운동 보충제", api: window.location.origin + "/sports-api",
+    tabs: [
+      { key:"웨이프로틴", cat:"단백질", label:"단백질 파우더" }, { key:"웨이트게이너", cat:"단백질", label:"게이너" },
+      { key:"크레아틴", cat:"크레아틴", label:"크레아틴" },
+      { key:"EAA", cat:"아미노산", label:"EAA" }, { key:"HMB", cat:"아미노산", label:"HMB" },
+      { key:"BCAA", cat:"아미노산", label:"BCAA" }, { key:"베타알라닌", cat:"아미노산", label:"베타알라닌" }, { key:"글루타민", cat:"아미노산", label:"글루타민" }, { key:"시트룰린", cat:"아미노산", label:"아르기닌·시트룰린" },
+      { key:"부스터", cat:"부스터", label:"부스터" },
+      { key:"카르니틴", cat:"카르니틴", label:"카르니틴" }
+    ] }
+};
+let activeDomain = "health";
+const API = DOMAINS.health.api;   // 하위 호환(기존 참조용)
+
+function shareIngredi(){
+  var url = location.origin + location.pathname;
+  var data = { title: 'ingredi', text: 'AI가 상담하고 추천하는, 광고 없는 영양제·보충제 비교 · ingredi', url: url };
+  if (navigator.share) { navigator.share(data).catch(function(){}); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url)
+      .then(function(){ showShareToast('링크가 복사되었어요'); })
+      .catch(function(){ window.prompt('아래 링크를 복사하세요', url); });
+  } else { window.prompt('아래 링크를 복사하세요', url); }
+}
+window.shareIngredi = shareIngredi;
+function showShareToast(msg){
+  var t = document.getElementById('shareToast');
+  if (!t) { t = document.createElement('div'); t.id = 'shareToast'; t.className = 'share-toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  requestAnimationFrame(function(){ t.classList.add('show'); });
+  clearTimeout(t._shareTimer);
+  t._shareTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+window.showShareToast = showShareToast;
+
+// 백버튼 표준: 같은 사이트에서 왔으면 진짜 직전 화면, 직접 진입이면 폴백
+function smartBack(fallback) {
+  try {
+    const ref = document.referrer;
+    if (history.length > 1 && ref && new URL(ref).origin === location.origin) {
+      history.back();
+      return;
+    }
+  } catch (e) {}
+  location.href = fallback || '/app.html';
+}
+window.smartBack = smartBack;
+function CATS(){ return DOMAINS[activeDomain].tabs; }
+function tabOf(key){ return CATS().find(c => c.key === key) || null; }
+function catLabel(key){ const t = tabOf(key); return t ? t.label : key; }
+// [배경, 글자, 테두리] — A만 채우고 나머지는 물러선다.
+// 등급은 순서형이므로 색상(hue)을 바꾸면 범주로 읽힌다. 낮은 등급에 빨강·갈색을 쓰면
+// "사지 마라"는 판정이 되므로, 회색으로 "우리 지표에서 앞서지 않았다"만 말한다.
+const GRADE = {
+  A:["#2D5F3F","#FAF8F3","#2D5F3F"],     B:["#EAF1EA","#2D5F3F","#CADBCD"],
+  C:["transparent","#5A5E63","#D3D5D8"], D:["transparent","#6E7177","#E1E2E4"], E:["transparent","#6E7177","#E8E9EA"]
+};
+function gradeFromScore(s){ s = parseFloat(s); if (isNaN(s)) s = 0; return s>=90?"A":s>=80?"B":s>=70?"C":s>=60?"D":"E"; }
+
+/* ── app.html과 동일한 프로필 점수 엔진 (표시 점수·등급 일치용) ── */
+// 점수·등급은 서버 quality/qualityGrade. compare 는 "균형(품질점수)" 관점 하나만 보여준다.
+const PROFILES = [{ key:"balanced", label:"성분 우선" }];
+let activeProfile = "balanced";   // URL ?profile= 로 덮어씀. 미지정/미인식 → 균형
+let activeSubKey = null;          // URL ?sub= (유산균 대상분류 / 비타민C 용량)
+function profileLabel(){ const p = PROFILES.find(x=>x.key===activeProfile); return p ? p.label : "균형"; }
+
+const SUBFILTERS = {
+  "마이크로바이옴": ["일반","여성","키즈"],
+  "비타민C": ["일반","메가도즈"]
+};
+function truthyStr(v){
+  if (v===true) return true;
+  if (typeof v==="number") return v>0;
+  const t = String(v==null?"":v).trim().toLowerCase();
+  return t!=="" && t!=="0" && t!=="false" && t!=="no" && t!=="없음" && t!=="x" && t!=="-";
+}
+function matchSub(cat, key, p){
+  if (cat==="마이크로바이옴"){
+    const t = String(p.target||"").trim() || "일반";
+    return key==="일반" ? (t==="일반") : (t===key);
+  }
+  if (cat==="비타민C"){
+    const mega = num(p.primaryValue) >= 2000;
+    return key==="메가도즈" ? mega : !mega;
+  }
+  return true;
+}
+// 표시 점수: 모집단 밖 제품은 원본 V_Score로 폴백
+// 카테고리 응답을 app.html과 같은 모집단 기준으로 준비하고, 화면에 쓸 목록을 돌려준다
+function preparePopulation(data){
+  const cat = data.category;
+  const all = data.products || [];
+  // 점수·등급은 서버(recommend2 v7) 확정값을 그대로 쓴다.
+  const subs = SUBFILTERS[cat];
+  const useSub = subs && activeSubKey && subs.indexOf(activeSubKey)!==-1;
+  const population = useSub ? all.filter(p=>matchSub(cat, activeSubKey, p)) : all;
+  data._all = all;                 // 종합 백분위 계산에 쓴다
+  data._population = population;   // 목록에 보여줄 대상
+  return population;
+}
+
+// 카테고리 전체에서 이 제품의 품질 위치 (참고용 — 등급 자체는 절대 기준)
+function overallPct(all, p){
+  if (!all || all.length < 2 || p.quality == null) return null;
+  const scored = all.filter(x => x.quality != null);
+  if (scored.length < 2) return null;
+  const better = scored.filter(x => x.quality > p.quality).length;
+  return Math.max(1, Math.round((better / scored.length) * 100));
+}
+const PLACEHOLDER = "data:image/svg+xml," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 58 58"><rect width="58" height="58" rx="13" fill="#EEF1EC"/><rect x="22" y="12" width="14" height="7" rx="2" fill="#9FB6A4"/><rect x="17" y="18" width="24" height="29" rx="6" fill="#2D5F3F"/><rect x="17" y="29" width="24" height="9" fill="#fff" opacity="0.9"/></svg>'
+);
+const MAX = 3;
+
+const cache = {};
+let activeCat = null;
+let curData = null;          // 현재 카테고리 응답
+let selected = [];           // 선택된 product id (현재 카테고리 한정)
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
+function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
+function gradeLetter(p){ return p.qualityGrade || (p.quality != null ? gradeFromScore(p.quality) : null); }
+// 채점 카테고리인데 점수가 없는 제품의 사유(사실 진술). 스포츠 단백질류는 정제도 미표기가 대부분.
+function holdReason(p){
+  if (p.holdReason) return p.holdReason;                     // [v2.2] 서버가 준 사유 우선(근거 성분 없음 등)
+  if (!(num(p.primaryValue) > 0)) return "함량 미표기";
+  return "자료 부족";
+}
+function gradeOf(p){ return GRADE[gradeLetter(p)] || ["transparent","#9AA0A6","#E4E4E1"]; }
+function prodById(id){ return (curData?curData.products:[]).find(p=>String(p.id)===String(id)); }
+
+function renderTabs(){
+  document.getElementById('domToggle').innerHTML = Object.keys(DOMAINS).map(d=>
+    `<button type="button" class="${d===activeDomain?'active':''}" onclick="selectDomain('${d}')">${DOMAINS[d].label}</button>`).join("");
+  document.getElementById('tabs').innerHTML = CATS().map(c=>
+    `<button class="tab" data-key="${c.key}" onclick="selectCat('${c.key}')">${c.label}</button>`).join("");
+}
+function selectDomain(d){
+  if (!DOMAINS[d] || d === activeDomain) return;
+  activeDomain = d;
+  renderTabs();
+  selectCat(CATS()[0].key);
+}
+window.selectDomain = selectDomain;
+
+// [v2] 응답 어댑터 — 두 API를 한 형태로. 화면 코드는 이 형태만 본다.
+//  products[].{id,name,image,link,quality,qualityGrade,primaryValue,dailyCost,price,capsuleMg,form,certs,function,supplier,flavor,extra}
+//  metrics.primary.{label,unit} · unscored · tierNote · anchorLabel
+function normalize(data, domain){
+  if (domain === "health"){
+    const unscored = !!(data.qualityMeta && data.qualityMeta.unscored) || data.category === "밀크씨슬";
+    return Object.assign(data, { _domain: "health", unscored, tierNote: unscored
+      ? "밀크씨슬은 등급을 매기지 않는 카테고리예요. 실리마린 함량을 표기한 제품을 앞에 두고 하루 비용순으로 보여드립니다. 원료사는 참고 정보로만 표기해요."
+      : null });
+  }
+  // sports-api → 공통 형태
+  const first = (data.products || []).find(p => p.primary) || {};
+  const pl = (first.primary && first.primary.label) || data.sub || "함량";
+  const pu = (first.primary && first.primary.unit) || "";
+  const products = (data.products || []).map(p => ({
+    id: p.id, name: p.name, image: p.image, link: p.link,
+    quality: p.quality, qualityGrade: p.qualityGrade,
+    primaryValue: p.primary && p.primary.v != null ? p.primary.v : 0,
+    dailyCost: p.dailyCost, price: p.price, capsuleMg: 0,
+    form: p.form, certs: p.certs, function: p.mfdsFunction || "", supplier: p.supplier, flavor: p.flavor, purityScore: p.purityScore, proteinSource: p.proteinSource || null,
+    holdReason: p.holdReason || null, overLimit: false, claimed: p.claimed || null, leucineLow: p.leucineLow || null, extra: {}
+  }));
+  return { _domain: "sports", category: data.sub, products,
+    metrics: { primary: { label: pl, unit: pu, higherBetter: true } },
+    unscored: data.tier === "none", tierNote: data.tierNote || null, anchorLabel: data.anchorLabel || null,
+    qualityMeta: { unscored: data.tier === "none" } };
+}
+function markTab(cat){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.key===cat)); }
+
+async function selectCat(cat, presetIds){
+  activeCat = cat; markTab(cat);
+  selected = []; renderChips();
+  document.getElementById('search').value = "";
+  document.getElementById('list').innerHTML = "";
+  document.getElementById('listMeta').textContent = "";
+  document.getElementById('listStatus').textContent = "불러오는 중…";
+  try{
+    const ck = activeDomain + ":" + cat;
+    if (!cache[ck]){
+      const tab = tabOf(cat);
+      const url = activeDomain === "sports"
+        ? `${DOMAINS.sports.api}?category=${encodeURIComponent(tab.cat)}&sub=${encodeURIComponent(cat)}`
+        : `${DOMAINS.health.api}?category=${encodeURIComponent(cat)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP "+res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.message||data.error);
+      cache[ck] = normalize(data, activeDomain);
+    }
+    curData = cache[ck];
+    preparePopulation(curData);
+    const tn = document.getElementById('tierNote');
+    if (curData.tierNote){ tn.textContent = curData.tierNote; tn.style.display = ""; } else { tn.style.display = "none"; }
+    document.getElementById('listStatus').textContent = "";
+    if (presetIds && presetIds.length){
+      selected = presetIds.map(String).filter(id => curData.products.some(p=>String(p.id)===id)).slice(0, MAX);
+      renderChips();
+      if (selected.length >= 2){ goCompare(); return; }  // 상위 비교 → 바로 비교표
+    }
+    renderList("");
+  }catch(e){
+    document.getElementById('listStatus').textContent = "불러오기 실패 ("+e.message+")";
+  }
+}
+window.selectCat = selectCat;
+
+function renderList(filter){
+  if (!curData) return;
+  const m = curData.metrics.primary;
+  const f = (filter||"").trim().toLowerCase();
+  const pool = curData._population || curData.products;
+  const unscored = !!curData.unscored;
+  let items = pool.filter(p=> !f || String(p.name).toLowerCase().indexOf(f)!==-1).slice();
+  if (!unscored) items.sort((a,b)=>{
+      const qa = a.quality, qb = b.quality;
+      if (qa == null && qb == null) return 0;
+      if (qa == null) return 1;              // 평가 준비중은 뒤로
+      if (qb == null) return -1;
+      return qb - qa || num(a.dailyCost) - num(b.dailyCost);
+    });                                       // 무채점은 서버 정렬(2단/가격순) 그대로
+  document.getElementById('listMeta').textContent = `${catLabel(activeCat)} · ${items.length}개 · ${unscored ? "가성비 정렬 · 등급 없음" : (curData._domain === "sports" ? "ISSN 근거 기준" : profileLabel() + " 기준")} · 최대 ${MAX}개 선택`;
+  const atMax = selected.length >= MAX;
+  document.getElementById('list').innerHTML = items.map(p=>{
+    const g = gradeOf(p); const gl = gradeLetter(p) || "–"; const isSel = selected.indexOf(String(p.id))!==-1;
+    const dim = atMax && !isSel ? " dim" : "";
+    const img = p.image ? esc(p.image) : PLACEHOLDER;
+    const sub = num(p.primaryValue) > 0 ? `${esc(m.label)} ${fmt(num(p.primaryValue))}${esc(m.unit)}` : `함량 미표기`;
+    const badge = unscored ? "" : (gradeLetter(p)
+      ? `<span class="pgrade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}</span>`
+      : `<span class="pgrade hold" title="${holdReason(p)}">보류</span>`);
+    return `<div class="prow${isSel?' sel':''}${dim}" onclick="toggleSel('${esc(String(p.id))}')">
+      <div class="pcheck">${isSel?'✓':''}</div>
+      <img class="pthumb" src="${img}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
+      <div class="pinfo"><div class="pname">${esc(p.name)}</div><div class="psub">${sub}</div></div>
+      <div class="pright">${badge}</div>
+    </div>`;
+  }).join("");
+  if (!items.length) document.getElementById('list').innerHTML = '<div class="status">검색 결과가 없습니다.</div>';
+}
+
+function toggleSel(id){
+  id = String(id);
+  const i = selected.indexOf(id);
+  if (i!==-1) selected.splice(i,1);
+  else { if (selected.length>=MAX) return; selected.push(id); }
+  renderChips();
+  renderList(document.getElementById('search').value);
+}
+window.toggleSel = toggleSel;
+
+function renderChips(){
+  const box = document.getElementById('selChips');
+  if (!selected.length){ box.innerHTML = '<div class="selempty">비교할 제품을 2~3개 골라주세요</div>'; }
+  else {
+    box.innerHTML = selected.map(id=>{
+      const p = prodById(id); if(!p) return "";
+      return `<span class="selchip"><span>${esc(p.name)}</span><b onclick="event.stopPropagation();toggleSel('${esc(id)}')">×</b></span>`;
+    }).join("");
+  }
+  const btn = document.getElementById('cmpBtn');
+  const txt = document.getElementById('cmpBtnText');
+  const finger = btn.querySelector('.cmp-finger');
+  if (selected.length < 2){
+    btn.classList.add('need'); btn.classList.remove('ready');
+    if (finger) finger.style.display = "";
+    txt.textContent = "비교하기 (2개 또는 3개 선택)";
+  } else {
+    btn.classList.remove('need'); btn.classList.add('ready');
+    if (finger) finger.style.display = "none";
+    txt.textContent = `비교하기 (${selected.length}개)`;
+    const hint = document.getElementById('cmpHint'); if (hint) hint.textContent = "";
+  }
+}
+
+function cell(val, unit, isBest){
+  return `<td class="rcell${isBest?' best':''}"><span class="v">${val}</span>${unit?`<span class="unit"> ${unit}</span>`:''}${isBest?'<span class="best-dot">●</span>':''}</td>`;
+}
+
+function goCompare(){
+  if (selected.length<2){
+    const btn = document.getElementById('cmpBtn');
+    const hint = document.getElementById('cmpHint');
+    if (hint) hint.textContent = "제품을 2개 이상 선택해주세요";
+    if (btn){ btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake'); }
+    return;
+  }
+  const prods = selected.map(prodById).filter(Boolean);
+  const m = curData.metrics.primary;
+  // best 계산
+  const primVals = prods.map(p=>num(p.primaryValue));
+  const bestPrim = m.higherBetter===false ? Math.min(...primVals) : Math.max(...primVals);
+  const costVals = prods.map(p=>num(p.dailyCost)).filter(v=>v>0);
+  const bestCost = costVals.length?Math.min(...costVals):null;
+  const priceVals = prods.map(p=>num(p.price)).filter(v=>v>0);
+  const bestPrice = priceVals.length?Math.min(...priceVals):null;
+  const capVals = prods.map(p=>num(p.capsuleMg)).filter(v=>v>0);
+  const bestCap = capVals.length?Math.min(...capVals):null;
+
+  const unscored = !!curData.unscored;
+  const isSports = curData._domain === "sports";
+  const heads = prods.map(p=>{
+    const g = gradeOf(p); const gl = gradeLetter(p) || "–"; const img = p.image?esc(p.image):PLACEHOLDER;
+    const pct = unscored ? null : overallPct(curData._all, p);
+    return `<th class="ch-prod"><div class="pc">
+      <img class="pc-thumb" src="${img}" onerror="this.onerror=null;this.src='${PLACEHOLDER}'">
+      <div class="pc-badge">${unscored ? "" : (gradeLetter(p)
+          ? `<span class="pc-grade" style="background:${g[0]};color:${g[1]};border-color:${g[2]}">${gl}</span>`
+          : `<span class="pc-hold">평가 보류 · ${holdReason(p)}</span>`)}</div>
+      <div class="pc-name">${esc(p.name)}</div>
+      <div class="pc-pct">${pct!==null ? `종합 상위 ${pct}%` : (p.overLimit ? "상한 초과 · 의사 상담" : (p.leucineLow ? "류신 2.5g 미만" : ""))}</div>
+      <button class="pc-rm" onclick="removeFromCompare('${esc(String(p.id))}')">빼기</button>
+    </div></th>`;
+  }).join("");
+
+  function row(label, fn){ return `<tr><td class="rlabel">${label}</td>${prods.map(fn).join("")}</tr>`; }
+  function sub(t){ return `<div style="font-weight:400;font-size:10px;color:var(--ink-faint);margin-top:2px;line-height:1.3">${t}</div>`; }
+
+  let rows = "";
+  const anyHas = fn => prods.some(p => { const v = fn(p); return v && String(v).trim() !== "" && String(v).trim() !== "-"; });
+  // 함량: 미표기(0)는 "미표기"로 정직하게, best 표시도 표기 제품끼리만
+  const labelOf = p => esc(p.primaryLabel || (p.primary && p.primary.label) || m.label);
+  rows += row((isSports ? "지표" : "효능성분<br>함량") + sub(esc(m.label)), p=> num(p.primaryValue)>0
+    ? cell(fmt(num(p.primaryValue)), esc(m.unit) + ((p.primaryLabel && p.primaryLabel !== m.label) ? " " + labelOf(p) : ""), num(p.primaryValue)===bestPrim && bestPrim>0)
+    : cell("미표기","",false));
+  rows += row("1일 비용", p=> cell(num(p.dailyCost)?fmt(num(p.dailyCost)):"—", num(p.dailyCost)?"원":"", bestCost!==null && num(p.dailyCost)===bestCost));
+  rows += row("가격", p=> cell(num(p.price)?fmt(num(p.price)):"—", num(p.price)?"원":"", bestPrice!==null && num(p.price)===bestPrice));
+  if (isSports && anyHas(p=>p.proteinSource)) rows += row("단백질<br>원료", p=> cell(esc(p.proteinSource||"—"),"",false));
+  if (!isSports) rows += row("캡슐<br>크기", p=> num(p.capsuleMg)>0 ? cell(fmt(num(p.capsuleMg)),"mg", bestCap!==null && num(p.capsuleMg)===bestCap) : cell("가루 형태","",false));
+  rows += row("제형", p=> cell(esc(p.form||"—"),"",false));
+  if (isSports && anyHas(p=>p.flavor)) rows += row("맛", p=> cell(esc(p.flavor||"—"),"",false));
+  rows += row("인증", p=> { const c = String(p.certs||"").split(/[,\/·]/).map(x=>x.trim()).filter(Boolean).slice(0,4);
+    return cell(c.length ? esc(c.join(" · ")) : "—","",false); });
+  // [v2.6] 유산균 근거 행 — 앞 둘은 점수 항목(개별인정 0.1·strain 표기 0.2), 뒤 둘은 참고 정보
+  if (activeCat === "마이크로바이옴" && anyHas(p=>p.probiotic)) {
+    const pb = p => p.probiotic || {};
+    const anyInd = prods.some(p=>pb(p).individual);
+    rows += row("개별인정" + sub("점수 반영"), p=> pb(p).individual ? cell(esc(pb(p).individualLabel || "개별인정"),"", anyInd) : cell("고시형","",false));
+    const anyCoded = prods.some(p=>pb(p).strainCoded);
+    rows += row("균주 코드<br>표기" + sub("점수 반영"), p=> pb(p).strainCoded ? cell("표기","", anyCoded) : cell("미표기","",false));
+    rows += row("균주 종류" + sub("참고 정보"), p=> pb(p).strainCount ? cell(fmt(pb(p).strainCount),"종",false) : cell("—","",false));
+    rows += row("인체적용시험<br>표기" + sub("참고 정보"), p=> cell(pb(p).humanTrial ? "있음" : "—","",false));
+  }
+  if (activeCat === "밀크씨슬") rows += row("원료사" + sub("참고 정보"), p=> cell(esc((p.supplier && String(p.supplier).trim() !== "-") ? p.supplier : "—"),"",false));
+  // 스포츠 보충제는 일반식품이 원칙 — 식약처 기능성 행은 선택 제품 중 하나라도 별도 인정을 받았을 때만 표시
+  if (isSports) { if (anyHas(p=>p.function)) rows += row("식약처<br>기능성" + sub("별도 인정"), p=> cell(esc(String(p.function||"—").slice(0,40)),"",false)); }
+  else rows += row("주된 기능성", p=> cell(esc(String(p.function||"—").slice(0,40)),"",false));
+
+  const cart = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
+  const buys = `<div class="buyrow">${prods.map(p=> p.link
+      ? `<a class="buy" href="${esc(p.link)}" target="_blank" rel="noopener" title="${esc(p.name)}" data-product="${esc(p.name)}"><span class="buy-act">${cart}구매하러 가기</span></a>`
+      : `<span class="buy disabled" title="${esc(p.name)}"><span class="buy-act">${cart}링크 없음</span></span>`).join("")}</div>`;
+
+  const nAll = (curData._all || []).length;
+  const basis = unscored
+    ? `<div class="cmp-basis"><b>등급 없음</b><span>${isSports ? "ISSN 별도 지침이 없는 성분이라" : "밀크씨슬은"} 등급을 매기지 않아요. 표 안의 ● 표시는 선택한 ${prods.length}개끼리 함량·비용을 비교한 것뿐이에요.</span></div>`
+    : `<div class="cmp-basis"><b>${isSports ? "ISSN 근거 기준" : profileLabel()}</b><span>등급은 절대 기준(${isSports ? (curData.anchorLabel ? "앵커 " + esc(curData.anchorLabel) + " · 정제도·인증" : "근거 함량·정제도·인증") : "식약처·복지부 기준 함량·제형·인증"})이에요. 종합 위치는 ${catLabel(activeCat)} 전체에서의 참고치, 표 안의 표시는 선택한 ${prods.length}개끼리의 비교예요.</span></div>`;
+  document.getElementById('compareTable').innerHTML =
+    `${basis}<div class="cmpwrap"><table class="cmp"><thead><tr><th class="ch-head"></th>${heads}</tr></thead><tbody>${rows}</tbody></table></div>${buys}`;
+
+  document.getElementById('selectView').style.display = "none";
+  document.getElementById('compareView').style.display = "block";
+  document.getElementById('hTitle').textContent = `${catLabel(activeCat)} 비교`;
+  window.scrollTo(0,0);
+}
+window.goCompare = goCompare;
+
+function removeFromCompare(id){
+  toggleSel(id);
+  if (selected.length<2) backToSelect();
+  else goCompare();
+}
+window.removeFromCompare = removeFromCompare;
+
+function backToSelect(){
+  document.getElementById('compareView').style.display = "none";
+  document.getElementById('selectView').style.display = "block";
+  document.getElementById('hTitle').textContent = "제품 비교";
+  renderChips(); renderList(document.getElementById('search').value);
+  window.scrollTo(0,0);
+}
+window.backToSelect = backToSelect;
+
+document.getElementById('search').addEventListener('input', e=> renderList(e.target.value));
+
+// init
+const params = new URLSearchParams(location.search);
+// ?domain=sports&category=크레아틴 (스포츠는 category=성분유형). domain 미지정 시 category로 추론.
+const domParam = params.get('domain');
+if (DOMAINS[domParam]) activeDomain = domParam;
+else if (params.get('category') && DOMAINS.sports.tabs.some(c=>c.key===params.get('category'))) activeDomain = "sports";
+renderTabs();
+const idsParam = (params.get('ids')||"").split(',').map(s=>s.trim()).filter(Boolean);
+const startCat = CATS().find(c=>c.key===params.get('category')) ? params.get('category') : CATS()[0].key;
+// 기준: app.html에서 넘어온 balanced/premium/budget만 인정. 그 외(카운슬링의 premium_seeker 등)·미지정 → 균형
+const pParam = params.get('profile');
+if (PROFILES.some(x=>x.key===pParam)) activeProfile = pParam;
+activeSubKey = params.get('sub') || null;
+selectCat(startCat, idsParam.length ? idsParam : null);
+</script>
+  <!-- Microsoft Clarity -->
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "xilfyj7s52");
+    // [광고 측정] 유입 꼬리표 ?src= 를 Clarity 세션 태그로 (예: naver_ad_probiotic)
+    try { var _src = new URLSearchParams(location.search).get("src"); if (_src) window.clarity("set", "src", _src.slice(0, 40)); } catch (e) {}
+</script>
+<script src="/t.js?v=1"></script>
+
+<!-- "구매하러 가기" 클릭 이벤트 (범용 · 이벤트 위임) -->
+<script type="text/javascript">
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    var txt = (a.textContent || '').replace(/\s+/g, '');
+    var isBuy = txt.indexOf('구매하러가기') !== -1
+             || /cv-buybtn|btn-mini\s+primary|buy/i.test(a.className || '');
+    if (!isBuy) return;
+    if (a.classList && a.classList.contains('disabled')) return;
+    if (typeof window.clarity !== 'function') return;
+    try {
+      window.clarity('event', 'purchase_click');
+      var cat = window.activeCat || window.CURRENT_CAT_KO || '';
+      if (cat) window.clarity('set', 'category', String(cat));
+      var dp = a.getAttribute && a.getAttribute('data-product');
+      if (dp) {
+        window.clarity('set', 'product', dp.trim().slice(0, 60));
+      } else {
+        var card = a.closest('.cv-card, .product-card, .cr-card, [class*="card"]');
+        var nm = card && card.querySelector('.cv-name, .product-name, .cr-name, h2, h3');
+        if (nm) window.clarity('set', 'product', nm.textContent.trim().slice(0, 60));
+      }
+    } catch (_) {}
+  });
+</script>
+  <script src="/install-v1.js" defer></script>
+</body>
+</html>
