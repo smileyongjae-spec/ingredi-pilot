@@ -162,6 +162,12 @@ export async function metaAll(env, path, params) {
   return out;
 }
 
+// 토큰 정보(만료일) — 사용자 토큰은 자기 자신으로 debug_token 조회 가능
+export async function metaTokenInfo(env) {
+  const d = await meta(env, 'GET', 'debug_token', { input_token: env.META_TOKEN });
+  return d.data || {};
+}
+
 // 하루치 광고별 성과
 export async function metaAdInsights(env, date) {
   const rows = await metaAll(env, `${META_ACT}/insights`, {

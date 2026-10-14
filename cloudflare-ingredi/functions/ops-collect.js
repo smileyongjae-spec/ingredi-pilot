@@ -1,4 +1,5 @@
-// functions/ops-collect.js  v1.1 (2026-10-14) — [v1.1] 쿠팡 전날 재수집·숫자 열, Clarity 하루 1회(재시도 시 건너뜀)
+// functions/ops-collect.js  v1.2 (2026-10-15) — [v1.2] 소재 매칭 필드 '광고명(매체 표기)', Meta 토큰 만료일 점검
+//   v1.1 (2026-10-14) — 쿠팡 전날 재수집·숫자 열, Clarity 하루 1회(재시도 시 건너뜀)
 // 매일 04:30(KST) GitHub Actions가 호출 → 어제 하루 데이터를 API로 모아 Airtable에 기록.
 //   GET /ops-collect?key=<OPS_SECRET>[&date=YYYY-MM-DD][&dry=1][&only=meta,coupang,clarity,self]
 // 결과:
@@ -9,7 +10,7 @@
 import {
   json, checkSecret, kstDate, T,
   atList, atUpsert, atDelete,
-  metaAdInsights, coupangReport, sumNumeric, clarityExport,
+  metaAdInsights, metaTokenInfo, coupangReport, sumNumeric, clarityExport,
 } from './_lib/ops.js';
 
 export async function onRequestGet(ctx) {
@@ -31,7 +32,8 @@ async function run({ request, env }) {
   const byName = new Map(), bySrc = new Map();
   for (const r of creatives) {
     const f = r.fields;
-    if (f['광고명']) byName.set(String(f['광고명']).trim(), r);
+    const adName = f['광고명(매체 표기)'] || f['광고명'];
+    if (adName) byName.set(String(adName).trim(), r);
     if (f['src']) bySrc.set(String(f['src']).trim(), r);
   }
   const rows = new Map(); // 키 → fields
@@ -58,6 +60,16 @@ async function run({ request, env }) {
       status.meta = `ok ${ins.length}개 광고` + (unmatched.length ? `, 소재 미연결: ${unmatched.join(' / ')}` : '');
       out.meta = ins;
     } catch (e) { status.meta = '실패: ' + e.message; }
+    // [v1.2] 토큰 만료일 — 14일 이내면 수집상태에 '갱신 필요'로 남겨 05시 분석·07시 보고가 알린다
+    try {
+      const t = await metaTokenInfo(env);
+      if (t.expires_at) {
+        const daysLeft = Math.floor((t.expires_at * 1000 - Date.now()) / 86400e3);
+        const exp = kstDate(0, t.expires_at * 1000);
+        status.meta_token = (daysLeft <= 14 ? '갱신 필요: ' : 'ok: ') + `만료 ${exp} (${daysLeft}일 남음)`;
+      } else if (t.is_valid) status.meta_token = 'ok: 만료 없음';
+      else status.meta_token = '무효 — 재발급 필요';
+    } catch (e) { status.meta_token = '확인 실패: ' + e.message; }
   }
 
   /* 2) 자체 기록(세션로그) → src별·사이트 전체 */
