@@ -1,0 +1,12 @@
+# ingredi-cron — 수집기·실행기 예약 호출 전용 Worker (공개 URL 없음)
+name = "ingredi-cron"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false
+
+[triggers]
+crons = ["*/10 * * * *"]
+
+[observability]
+enabled = true

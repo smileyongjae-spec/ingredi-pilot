@@ -1,0 +1,24 @@
+# ingredi-cron Worker 배포 (2026-10-15)
+# cloudflare-ingredi-cron/ 이 바뀌어 main에 올라오면 Cloudflare에 배포하고, OPS_SECRET을 Worker secret으로 넣는다.
+# 필요한 GitHub Secrets: CLOUDFLARE_API_TOKEN(Workers 편집 권한), OPS_SECRET
+name: ingredi-cron-deploy
+on:
+  push:
+    branches: [main]
+    paths: ['cloudflare-ingredi-cron/**', '.github/workflows/cron-deploy.yml']
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: fa87b417c856f7909c5a5f5888eda7d7
+          workingDirectory: cloudflare-ingredi-cron
+          secrets: |
+            OPS_SECRET
+        env:
+          OPS_SECRET: ${{ secrets.OPS_SECRET }}
