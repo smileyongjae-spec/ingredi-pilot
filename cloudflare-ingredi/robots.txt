@@ -1,0 +1,69 @@
+# robots.txt  v1.0  (2026-10-17) — 첫 배포. 검색·AI 인용 봇 허용, 서버 기능(API) 경로 차단
+#
+# 차단 기준: 화면을 그리는 데 쓰지 않는 서버 기능만 막는다.
+#  - /recommend2, /sports-api, /compare-products, /fit-api 는 막지 않는다.
+#    app·sports·compare·fit 화면이 이 주소로 제품 목록을 불러오므로, 막으면 구글이 빈 화면으로 읽는다.
+#  - AI 상담(/counsel2 등)은 호출마다 비용이 들어 막는다.
+#  - 기록(/log-search, /track, /feedback)과 운영(/ops-*, /cache-refresh, /coupang-convert, /health)은 막는다.
+# 주의: 봇 이름을 따로 적은 그룹은 "*" 그룹을 읽지 않는다. 그래서 같은 Disallow 줄을 각 그룹에 반복한다.
+
+# ── 모든 봇 기본값 ──
+User-agent: *
+Allow: /
+Disallow: /counsel2
+Disallow: /counsel-api
+Disallow: /sports-counsel
+Disallow: /explain-recommendation
+Disallow: /search-faq
+Disallow: /search-knowledge
+Disallow: /match-profile
+Disallow: /log-search
+Disallow: /track
+Disallow: /feedback
+Disallow: /changelog
+Disallow: /health
+Disallow: /cache-refresh
+Disallow: /coupang-convert
+Disallow: /ops-act
+Disallow: /ops-collect
+
+# ── 검색엔진 · AI 검색 인용 · 사용자 요청형 봇 (명시 허용) ──
+User-agent: Googlebot
+User-agent: Yeti
+User-agent: Bingbot
+User-agent: Applebot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+Allow: /
+Disallow: /counsel2
+Disallow: /counsel-api
+Disallow: /sports-counsel
+Disallow: /explain-recommendation
+Disallow: /search-faq
+Disallow: /search-knowledge
+Disallow: /match-profile
+Disallow: /log-search
+Disallow: /track
+Disallow: /feedback
+Disallow: /changelog
+Disallow: /health
+Disallow: /cache-refresh
+Disallow: /coupang-convert
+Disallow: /ops-act
+Disallow: /ops-collect
+
+# ── 학습용 봇 ──
+# 허용 (2026-10-17 Oliver 결정). 위 "*" 그룹을 따른다. 3개월 뒤(2027-01) 서버 로그로 다시 판단.
+# 막기로 바꾸면 아래 주석을 풀어 배포한다.
+# User-agent: GPTBot
+# User-agent: Google-Extended
+# User-agent: ClaudeBot
+# User-agent: CCBot
+# User-agent: Applebot-Extended
+# Disallow: /
+
+Sitemap: https://ingredi.kr/sitemap.xml
