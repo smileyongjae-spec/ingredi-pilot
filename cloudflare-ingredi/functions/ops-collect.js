@@ -1,4 +1,4 @@
-// functions/ops-collect.js  v1.4 (2026-10-16) — [v1.4] 랜딩 테스트 src×배정 집계(실험_JSON) / v1.3 — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
+// functions/ops-collect.js  v1.5 (2026-10-17) — [v1.5] 사이트 설명 숫자 자동 반영(site-stats: KV 갱신, 변경 내역을 일별_사이트지표.사이트숫자_변경에) / v1.4 (2026-10-16) — [v1.4] 랜딩 테스트 src×배정 집계(실험_JSON) / v1.3 — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
 //   v1.2 (2026-10-15) — 소재 매칭 필드 '광고명(매체 표기)', Meta 토큰 만료일 점검
 //   v1.1 (2026-10-14) — 쿠팡 전날 재수집·숫자 열, Clarity 하루 1회(재시도 시 건너뜀)
 // 매일 04:30(KST) GitHub Actions가 호출 → 어제 하루 데이터를 API로 모아 Airtable에 기록.
@@ -14,6 +14,7 @@ import {
   metaAdInsights, metaTokenInfo, coupangReport, sumNumeric, clarityExport,
   metaReach, CAMPAIGN_START,
 } from './_lib/ops.js';
+import { refreshSiteStats } from './_lib/site-stats.js';
 
 export async function onRequestGet(ctx) {
   try { return await run(ctx); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500); }
@@ -25,7 +26,7 @@ async function run({ request, env }) {
 
   const date = /^\d{4}-\d{2}-\d{2}$/.test(u.searchParams.get('date') || '') ? u.searchParams.get('date') : kstDate(-1);
   const dry = u.searchParams.get('dry') === '1';
-  const only = (u.searchParams.get('only') || 'meta,coupang,clarity,self').split(',');
+  const only = (u.searchParams.get('only') || 'meta,coupang,clarity,self,stats').split(',');
   const status = {};
   const out = { ok: true, date, dry };
 
@@ -252,6 +253,17 @@ async function run({ request, env }) {
       status.clarity = 'ok (최근 24시간 기준)';
       out.clarity = { summary, bySrc };
     } catch (e) { status.clarity = '실패: ' + e.message; }
+  }
+
+  /* [v1.5] 사이트 설명 숫자 — 오늘(KST) 값으로 KV 갱신, 변경 내역은 어제 날짜 행(07시 보고가 읽는 행)에 */
+  if (only.includes('stats')) {
+    try {
+      const r = await refreshSiteStats(env, u.origin, kstDate(0), dry);
+      status.site_numbers = r.status === 'ok' ? 'ok' : r.status;   // '실패' 문구 금지(광고 자율 실행 멈춤 조건과 겹침)
+      if (r.text) site['사이트숫자_변경'] = r.text;
+      else if (r.status !== 'ok' && r.status !== 'dry') site['사이트숫자_변경'] = `${kstDate(0)} ${r.status}`;
+      out.site_numbers = { status: r.status, text: r.text || null, changes: r.changes || [] };
+    } catch (e) { status.site_numbers = '보류: ' + (e.message || e); }
   }
 
   site['수집상태'] = Object.entries(status).map(([k, v]) => `${k}: ${v}`).join('\n');

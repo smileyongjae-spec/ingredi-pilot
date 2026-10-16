@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- index.html  v2.1  (2026-10-17) — [v2.1] 첫 화면 버튼 1개(ingredi 시작하기 → /app), AI 버튼 제거 / [v2.0] [v2.0] 즉시 이동(→ /app) 페이지를 소개 겸 입구 페이지로 교체(GEO: 검색·AI가 읽을 본문).
+<!-- index.html  v2.2  (2026-10-17) — [v2.2] 숫자에 data-stat 표시 → functions/_middleware.js가 매일 Airtable 기준 값으로 바꿔 내보냄(정적 숫자는 대체값) / [v2.1] [v2.1] 첫 화면 버튼 1개(ingredi 시작하기 → /app), AI 버튼 제거 / [v2.0] [v2.0] 즉시 이동(→ /app) 페이지를 소개 겸 입구 페이지로 교체(GEO: 검색·AI가 읽을 본문).
      주소에 ?category= 등 쿼리가 붙어 오면(옛 링크·광고) 지금처럼 /app으로 넘긴다. 쿼리 없는 / 는 이 페이지를 보여 준다.
      카테고리 숫자 = 2026-10-17 05시 /recommend2·/sports-api 실조회값(사람이 보는 목록과 같은 값). 카테고리 페이지 빌드가 생기면 자동 생성으로 바꾼다.
      h1 = 기존 /app 문구 "광고 없는 정직한 비교" 유지, 아래 정의 문장은 2026-10-17 Oliver 확정. -->
@@ -76,26 +76,26 @@
   </section>
 
   <section id="supplements">
-    <h2>영양제 5종류 · 477개</h2>
-    <p class="asof">하루 비용 = 판매가를 제품에 적힌 섭취량으로 나눈 값. 2026년 10월 17일 기준</p>
+    <h2>영양제 5종류 · <span data-stat="tot.h">477</span>개</h2>
+    <p class="asof">하루 비용 = 판매가를 제품에 적힌 섭취량으로 나눈 값. <span data-stat="asof">2026년 10월 17일</span> 기준</p>
     <ul class="rows">
-      <li><a href="/app?category=오메가3"><span class="rt">오메가3</span><span class="rd"><b>104개</b> · 하루 160~3,273원, 가운데 값 651원</span></a></li>
-      <li><a href="/app?category=마이크로바이옴"><span class="rt">유산균</span><span class="rd"><b>185개</b> · 하루 110~4,267원, 가운데 값 698원</span></a></li>
-      <li><a href="/app?category=눈"><span class="rt">눈 건강(루테인)</span><span class="rd"><b>64개</b> · 하루 98~2,200원, 가운데 값 336원</span></a></li>
-      <li><a href="/app?category=비타민C"><span class="rt">비타민C</span><span class="rd"><b>60개</b> · 하루 41~1,667원, 가운데 값 308원</span></a></li>
-      <li><a href="/app?category=밀크씨슬"><span class="rt">밀크씨슬</span><span class="rd"><b>64개</b> · 하루 66~2,663원, 가운데 값 326원 · 등급 없이 함량과 비용만 비교</span></a></li>
+      <li><a href="/app?category=오메가3"><span class="rt">오메가3</span><span class="rd"><b><span data-stat="h.오메가3.n">104</span>개</b> · 하루 <span data-stat="h.오메가3.range">160~3,273원</span>, 가운데 값 <span data-stat="h.오메가3.med">651원</span></span></a></li>
+      <li><a href="/app?category=마이크로바이옴"><span class="rt">유산균</span><span class="rd"><b><span data-stat="h.마이크로바이옴.n">185</span>개</b> · 하루 <span data-stat="h.마이크로바이옴.range">110~4,267원</span>, 가운데 값 <span data-stat="h.마이크로바이옴.med">698원</span></span></a></li>
+      <li><a href="/app?category=눈"><span class="rt">눈 건강(루테인)</span><span class="rd"><b><span data-stat="h.눈.n">64</span>개</b> · 하루 <span data-stat="h.눈.range">98~2,200원</span>, 가운데 값 <span data-stat="h.눈.med">336원</span></span></a></li>
+      <li><a href="/app?category=비타민C"><span class="rt">비타민C</span><span class="rd"><b><span data-stat="h.비타민C.n">60</span>개</b> · 하루 <span data-stat="h.비타민C.range">41~1,667원</span>, 가운데 값 <span data-stat="h.비타민C.med">308원</span></span></a></li>
+      <li><a href="/app?category=밀크씨슬"><span class="rt">밀크씨슬</span><span class="rd"><b><span data-stat="h.밀크씨슬.n">64</span>개</b> · 하루 <span data-stat="h.밀크씨슬.range">66~2,663원</span>, 가운데 값 <span data-stat="h.밀크씨슬.med">326원</span> · 등급 없이 함량과 비용만 비교</span></a></li>
     </ul>
   </section>
 
   <section id="sports">
-    <h2>운동 보충제 5종류 · 178개</h2>
-    <p class="asof">국제스포츠영양학회(ISSN) 기준 용량으로 비교해요. 2026년 10월 17일 기준</p>
+    <h2>운동 보충제 5종류 · <span data-stat="tot.s">178</span>개</h2>
+    <p class="asof">국제스포츠영양학회(ISSN) 기준 용량으로 비교해요. <span data-stat="asof">2026년 10월 17일</span> 기준</p>
     <ul class="rows">
-      <li><a href="/sports?category=단백질"><span class="rt">단백질</span><span class="rd"><b>38개</b> · 단백질 파우더 18개는 하루 1,058~4,914원 · 게이너 20개</span></a></li>
-      <li><a href="/sports?category=크레아틴"><span class="rt">크레아틴</span><span class="rd"><b>18개</b> · 하루 75~697원, 가운데 값 201원</span></a></li>
-      <li><a href="/sports?category=아미노산"><span class="rt">아미노산</span><span class="rd"><b>87개</b> · EAA, 베타알라닌, HMB, BCAA, 글루타민, 아르기닌·시트룰린</span></a></li>
-      <li><a href="/sports?category=부스터"><span class="rt">부스터</span><span class="rd"><b>22개</b> · 카페인은 몸무게 1kg당 3mg 기준</span></a></li>
-      <li><a href="/sports?category=카르니틴"><span class="rt">카르니틴</span><span class="rd"><b>13개</b> · 하루 96~2,023원 · 등급 없이 함량과 비용만 비교</span></a></li>
+      <li><a href="/sports?category=단백질"><span class="rt">단백질</span><span class="rd"><b><span data-stat="s.단백질.n">38</span>개</b> · 단백질 파우더 <span data-stat="s.단백질.웨이프로틴.n">18</span>개는 하루 <span data-stat="s.단백질.웨이프로틴.range">1,058~4,914원</span> · 게이너 <span data-stat="s.단백질.웨이트게이너.n">20</span>개</span></a></li>
+      <li><a href="/sports?category=크레아틴"><span class="rt">크레아틴</span><span class="rd"><b><span data-stat="s.크레아틴.n">18</span>개</b> · 하루 <span data-stat="s.크레아틴.range">75~697원</span>, 가운데 값 <span data-stat="s.크레아틴.med">201원</span></span></a></li>
+      <li><a href="/sports?category=아미노산"><span class="rt">아미노산</span><span class="rd"><b><span data-stat="s.아미노산.n">87</span>개</b> · EAA, 베타알라닌, HMB, BCAA, 글루타민, 아르기닌·시트룰린</span></a></li>
+      <li><a href="/sports?category=부스터"><span class="rt">부스터</span><span class="rd"><b><span data-stat="s.부스터.n">22</span>개</b> · 카페인은 몸무게 1kg당 3mg 기준</span></a></li>
+      <li><a href="/sports?category=카르니틴"><span class="rt">카르니틴</span><span class="rd"><b><span data-stat="s.카르니틴.n">13</span>개</b> · 하루 <span data-stat="s.카르니틴.range">96~2,023원</span> · 등급 없이 함량과 비용만 비교</span></a></li>
     </ul>
   </section>
 
