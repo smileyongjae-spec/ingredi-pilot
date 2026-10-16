@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v10.6  (2026-10-17) — [v10.6] AI 입력창 예시 칩을 실제 질문 유형 5개로 교체(효능 표현 칩 제거), 입력창 안내 문구 변경 / [v10.5] [v10.5] 'AI 카운슬링' 표기를 'AI 상담'으로 통일 / [v10.4] GEO: canonical /app, 제목에 잉그레디, 첫 화면 카테고리 카드에 제품 수, 푸터에 종류별 바로가기 링크(검색엔진이 따라갈 수 있는 a 링크) / [v10.3] [v10.3] 하단 비교 바 "N개 담음"→"N개 비교 중", "담거나/담으면"→"고르거나/고르면" / [v10.2] 비교 버튼 문구 "+ 제품 비교" / 담긴 후 "✓ 비교 중" / [v10.1] 광고 랜딩 딥링크: &profile=budget|value(가성비 우선)·&sub=<대상 탭> / [v10.0] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v9.9] CLS 개선: 카테고리 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.32→0) / [v9.8] 제품 이름·사진 탭 → AI 평가 열기, 상단 ingredi 로고 탭 → 첫 화면·맨 위로 / [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
+<!-- app.html  v10.7  (2026-10-17) — [v10.7] 푸터 링크 .html 제거 / [v10.6] [v10.6] AI 입력창 예시 칩을 실제 질문 유형 5개로 교체(효능 표현 칩 제거), 입력창 안내 문구 변경 / [v10.5] [v10.5] 'AI 카운슬링' 표기를 'AI 상담'으로 통일 / [v10.4] GEO: canonical /app, 제목에 잉그레디, 첫 화면 카테고리 카드에 제품 수, 푸터에 종류별 바로가기 링크(검색엔진이 따라갈 수 있는 a 링크) / [v10.3] [v10.3] 하단 비교 바 "N개 담음"→"N개 비교 중", "담거나/담으면"→"고르거나/고르면" / [v10.2] 비교 버튼 문구 "+ 제품 비교" / 담긴 후 "✓ 비교 중" / [v10.1] 광고 랜딩 딥링크: &profile=budget|value(가성비 우선)·&sub=<대상 탭> / [v10.0] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v9.9] CLS 개선: 카테고리 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.32→0) / [v9.8] 제품 이름·사진 탭 → AI 평가 열기, 상단 ingredi 로고 탭 → 첫 화면·맨 위로 / [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <script>
@@ -693,17 +693,17 @@
 
     <h2 class="section-title tools-title">다른 방법으로 찾기</h2>
     <div class="tools-list">
-      <a class="tool-row" href="/fit.html">
+      <a class="tool-row" href="/fit">
         <svg class="tool-icon" style="color:var(--fit-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h10M9 12h10M9 19h10M4 5l1 1 2-2M4 12l1 1 2-2M4 19l1 1 2-2"/></svg>
         <span class="tool-texts"><span class="tool-title">내 영양제 조합 점검</span><span class="tool-desc">겹침·과잉·상호작용 확인</span></span>
         <svg class="tool-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
       </a>
-      <a class="tool-row" href="/for-me.html">
+      <a class="tool-row" href="/for-me">
         <svg class="tool-icon" style="color:var(--green-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M4 20c0-3.3 2.7-6 6-6 1 0 2 .25 2.8.7"/><circle cx="17" cy="16" r="3.2"/><path d="M19.5 18.5L22 21"/></svg>
         <span class="tool-texts"><span class="tool-title">성별·나이 맞춤 추천</span><span class="tool-desc">몇 가지만 고르면 추천해드려요</span></span>
         <svg class="tool-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
       </a>
-      <a class="tool-row" href="/compare.html">
+      <a class="tool-row" href="/compare">
         <svg class="tool-icon" style="color:var(--green-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="16" rx="1"/><rect x="17" y="4" width="4" height="16" rx="1"/></svg>
         <span class="tool-texts"><span class="tool-title">제품 직접 비교</span><span class="tool-desc">최대 3개 나란히 보기</span></span>
         <svg class="tool-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
@@ -1573,7 +1573,7 @@ async function runAiEval(btn){
     aiEvalCache.set(key, html);
     panel.innerHTML = html;
   } catch (e) {
-    panel.innerHTML = aievHead('') + '<div class="aiev-body">지금 평가를 불러오지 못했어요. <a href="/consult.html?q=' + encodeURIComponent(name + ' 평가해줘') + '">상담 화면에서 보기 →</a></div>';
+    panel.innerHTML = aievHead('') + '<div class="aiev-body">지금 평가를 불러오지 못했어요. <a href="/consult?q=' + encodeURIComponent(name + ' 평가해줘') + '">상담 화면에서 보기 →</a></div>';
   } finally { clearTimeout(_t1); clearTimeout(_t2); aievBtn(btn, 'open'); }
 }
 document.addEventListener('click', function(e){
@@ -1709,7 +1709,7 @@ function renderCategory(data){
   const howto = howToRead(cat);
   const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, basis, idx:i, rank: rankOf.get(p.id)})).join("");
   const cmpCta = filtered.length
-    ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">함량 · 가격 · 캡슐 · 인증을 한눈에</div></div></div><a href="/compare.html?category=${encodeURIComponent(cat)}&profile=${activeProfile}${subs ? `&sub=${encodeURIComponent(subKey)}` : ""}">제품 비교하기 →</a></div>`
+    ? `<div class="cat-compare-cta"><div class="ccta-head"><div class="ccta-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M3 12h7M3 18h7M17 4v16M14 8l3-3 3 3M14 16l3 3 3-3"/></svg></div><div><div class="ccta-title">제품을 나란히 비교해보세요</div><div class="ccta-sub">함량 · 가격 · 캡슐 · 인증을 한눈에</div></div></div><a href="/compare?category=${encodeURIComponent(cat)}&profile=${activeProfile}${subs ? `&sub=${encodeURIComponent(subKey)}` : ""}">제품 비교하기 →</a></div>`
     : "";
   const restArr = products.slice(3);
   let rest = "";
@@ -1968,7 +1968,7 @@ document.addEventListener('click', function(e){
 })();
 </script>
   <script src="/install-v1.js" defer></script>
-<footer class="site-foot">ingredi는 광고를 받지 않고 공개된 제품 데이터로 비교합니다. 쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있으며, 수수료는 순위에 영향을 주지 않습니다. · <a href="/guide.html">등급 기준</a> · <a href="/insights.html">데이터 리포트</a> · <a href="/about.html">소개 · 문의</a><br>종류별 비교: <a href="/app?category=오메가3">오메가3</a> · <a href="/app?category=마이크로바이옴">유산균</a> · <a href="/app?category=눈">눈 건강</a> · <a href="/app?category=비타민C">비타민C</a> · <a href="/app?category=밀크씨슬">밀크씨슬</a> · <a href="/sports?category=단백질">단백질</a> · <a href="/sports?category=크레아틴">크레아틴</a> · <a href="/sports?category=아미노산">아미노산</a> · <a href="/sports?category=부스터">부스터</a> · <a href="/sports?category=카르니틴">카르니틴</a> (제품 수·비용 2026-10-17 기준)</footer>
+<footer class="site-foot">ingredi는 광고를 받지 않고 공개된 제품 데이터로 비교합니다. 쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있으며, 수수료는 순위에 영향을 주지 않습니다. · <a href="/guide">등급 기준</a> · <a href="/insights">데이터 리포트</a> · <a href="/about">소개 · 문의</a><br>종류별 비교: <a href="/app?category=오메가3">오메가3</a> · <a href="/app?category=마이크로바이옴">유산균</a> · <a href="/app?category=눈">눈 건강</a> · <a href="/app?category=비타민C">비타민C</a> · <a href="/app?category=밀크씨슬">밀크씨슬</a> · <a href="/sports?category=단백질">단백질</a> · <a href="/sports?category=크레아틴">크레아틴</a> · <a href="/sports?category=아미노산">아미노산</a> · <a href="/sports?category=부스터">부스터</a> · <a href="/sports?category=카르니틴">카르니틴</a> (제품 수·비용 2026-10-17 기준)</footer>
 <!-- [v9.0] 비교 담기 — 하단 고정 바 -->
 <div id="pickBar" hidden><div class="pb-inner"><div class="pb-thumbs" id="pbThumbs"></div><div class="pb-txt" id="pbTxt"></div><a class="pb-go" id="pbGo" href="#">비교하기</a></div></div>
 

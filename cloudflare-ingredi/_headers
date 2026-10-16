@@ -1,0 +1,5 @@
+# _headers  v1.0  (2026-10-17) — 텍스트 파일 한글이 깨지지 않게 charset 명시(GEO: llms.txt·robots.txt)
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+/robots.txt
+  Content-Type: text/plain; charset=utf-8

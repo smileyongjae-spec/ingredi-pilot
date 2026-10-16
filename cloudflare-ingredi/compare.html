@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- compare.html  v2.7  (2026-10-04) — [v2.7] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v2.6] 유산균 비교 행 추가: 개별인정 · 균주 코드 표기(점수 항목) / 균주 종류 수 · 인체적용시험 표기(참고 정보) -->
+<!-- compare.html  v2.8  (2026-10-17) — [GEO] 대표 주소(canonical)·공유 주소를 .html 없는 주소로, 제목 끝 'ingredi 잉그레디', 설명문 정리, 내부 링크 .html 제거 / [v2.7] [v2.7] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v2.6] 유산균 비교 행 추가: 개별인정 · 균주 코드 표기(점수 항목) / 균주 종류 수 · 인체적용시험 표기(참고 정보) -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -12,14 +12,15 @@
 <meta name="apple-mobile-web-app-title" content="ingredi">
   <meta property="og:type" content="website">
 <meta property="og:site_name" content="ingredi">
-<meta property="og:title" content="ingredi · 광고 없는 건강기능식품 비교">
-<meta property="og:description" content="AI가 상담하고 추천해드려요">
-<meta property="og:url" content="https://ingredi.kr/">
+<meta property="og:title" content="ingredi 잉그레디 · 제품 직접 비교">
+<meta property="og:description" content="제품 2~3개를 함량·하루 비용·등급으로 나란히 비교해요">
+<meta property="og:url" content="https://ingredi.kr/compare">
+<link rel="canonical" href="https://ingredi.kr/compare">
 <meta property="og:image" content="https://ingredi.kr/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta name="description" content="AI가 상담하고 추천해드려요. 광고 없는 건강기능식품 비교 서비스, ingredi.">
-<title>ingredi · 제품 비교</title>
+<meta name="description" content="영양제·운동 보충제 2~3개를 함량, 하루 비용, 등급으로 나란히 비교해요. 광고 없는 정직한 비교, ingredi 잉그레디.">
+<title>제품 직접 비교 · ingredi 잉그레디</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="/tokens-v1.css">
@@ -129,7 +130,7 @@
 <body>
 <div class="app">
   <header class="header">
-    <a class="hb" id="backLink" href="/app.html" aria-label="뒤로" onclick="smartBack('/app.html');return false;">
+    <a class="hb" id="backLink" href="/app" aria-label="뒤로" onclick="smartBack('/app.html');return false;">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
     <div class="htitle" id="hTitle">제품 비교</div>
@@ -159,7 +160,7 @@
       </button>
       <div id="compareTable"></div>
       <footer>
-        ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다. 모든 비교는 공개된 제품 데이터 기준이며, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있습니다. 수수료는 순위에 영향을 주지 않습니다. · <a href="/about.html" style="color:var(--green-primary);font-weight:700;text-decoration:none">소개 · 문의</a>
+        ingredi는 제품사로부터 어떠한 광고비도 받지 않습니다. 모든 비교는 공개된 제품 데이터 기준이며, 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 받을 수 있습니다. 수수료는 순위에 영향을 주지 않습니다. · <a href="/about" style="color:var(--green-primary);font-weight:700;text-decoration:none">소개 · 문의</a>
       </footer>
     </div>
   </div>
