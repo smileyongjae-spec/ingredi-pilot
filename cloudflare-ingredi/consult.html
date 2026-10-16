@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- consult.html  v3.9  (2026-10-12) — [v3.9] ?src= 유입 태그를 Clarity 세션 태그로 기록(광고 측정) / [v3.8] 스트리밍 수신(counsel2?stream=1): 평결·본문이 생기는 대로 먼저 표시, 완료 시 최종본으로 교체 / [v3.7] 전체보기 버튼 틴트 그린 / [v3.6] 카드 버튼 2개 · more_link 렌더 -->
+<!-- consult.html  v4.0  (2026-10-17) — [v4.0] 첫 화면 개편: 지원 범위 10종(영양제 5·운동 보충제 5) 표시, 예시 질문 6개(검색로그 실제 질문 기준), 답하는 것·답하지 않는 것·등급 기준 링크, 첫 화면 글꼴을 사이트 본문 글꼴로, 이름을 'AI 상담'으로 통일 / [v3.9] [v3.9] ?src= 유입 태그를 Clarity 세션 태그로 기록(광고 측정) / [v3.8] 스트리밍 수신(counsel2?stream=1): 평결·본문이 생기는 대로 먼저 표시, 완료 시 최종본으로 교체 / [v3.7] 전체보기 버튼 틴트 그린 / [v3.6] 카드 버튼 2개 · more_link 렌더 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -19,7 +19,7 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="description" content="AI가 상담하고 추천해드려요. 광고 없는 건강기능식품 비교 서비스, ingredi.">
-  <title>ingredi · AI 카운슬링</title>
+  <title>AI 상담 · ingredi 잉그레디</title>
   <!-- Microsoft Clarity -->
   <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -168,8 +168,14 @@
 
     /* ── 첫 화면 (인사) ── */
     .intro { padding-top: 8px; }
-    .intro-voice { font-family: var(--font-voice); font-size: 20px; line-height: 1.65; color: var(--ink); margin-bottom: 6px; }
-    .intro-sub { font-family: var(--font-voice); font-size: 14px; line-height: 1.8; color: var(--ink-soft); margin-bottom: 18px; }
+    .intro-voice { font-family: var(--font-ui); font-size: 21px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.45; color: var(--ink); margin-bottom: 8px; }
+    .intro-sub { font-family: var(--font-ui); font-size: 14.5px; line-height: 1.7; color: var(--ink-soft); margin-bottom: 18px; }
+    .intro-h { font-size: 12.5px; font-weight: 700; color: var(--ink-faint); margin: 18px 0 8px; }
+    .intro .chips { margin-top: 0; }
+    .intro .chips.cats .chip { font-size: 13.5px; padding: 7px 13px; }
+    .intro-scope { margin-top: 22px; padding-top: 14px; border-top: 0.5px solid var(--line); font-size: 13px; line-height: 1.75; color: var(--ink-soft); }
+    .intro-scope b { color: var(--ink); font-weight: 700; }
+    .intro-scope a { color: var(--green-primary); font-weight: 600; }
 
     /* ── 피드백 (기존 이식) ── */
     @keyframes fbFade { from { opacity: 0; } to { opacity: 1; } }
@@ -211,7 +217,7 @@
     <a class="header-back" href="/app.html" aria-label="뒤로" onclick="smartBack('/app.html');return false;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
-    <div class="header-title">AI 카운슬링</div>
+    <div class="header-title">AI 상담</div>
     <div style="display:flex;align-items:center;gap:2px">
       <button class="header-share" type="button" aria-label="공유하기" onclick="shareIngredi()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
       <button class="header-action" type="button" onclick="resetThread()">새 상담</button>
@@ -801,14 +807,38 @@ window.resetThread = resetThread;
 /* ═══════════ 첫 화면 ═══════════ */
 function renderIntro() {
   var thread = document.getElementById('thread');
+  function cat(label, q) { return '<button class="chip" type="button" data-prompt="' + q + '">' + label + '</button>'; }
+  function ex(q) { return '<button class="chip" type="button" data-prompt="' + q + '">' + q + '</button>'; }
+  // 예시 질문: 2026-10 검색로그의 실제 질문·입력 유형 기준(제품명 입력, 프로틴 소화, 처음 시작 등)
   var h = '<div class="turn turn-assistant intro">' +
-    '<div class="eyebrow">INGREDI &nbsp;·&nbsp; 상담</div>' +
-    '<p class="intro-voice">무엇이 궁금하세요?</p>' +
-    '<p class="intro-sub">오메가3, 눈, 유산균, 비타민C — 네 가지를 깊게 봅니다. 제품을 골라드리기도 하고, 갖고 계신 제품이 괜찮은지 봐드리기도 해요.</p>' +
+    '<div class="eyebrow">INGREDI &nbsp;·&nbsp; AI 상담</div>' +
+    '<p class="intro-voice">영양제·운동 보충제,<br>무엇이든 물어보세요</p>' +
+    '<p class="intro-sub">ingredi가 비교한 655개 제품의 성분표와 가격 데이터로 답해요. 제품 이름만 적어도 돼요. ingredi에 있는 제품이면 등급과 함께 보여 드려요.</p>' +
+    '<div class="intro-h">영양제</div>' +
+    '<div class="chips cats">' +
+      cat('오메가3', '오메가3 고르는 법 알려 주세요') + cat('눈 건강', '루테인 고르는 법 알려 주세요') +
+      cat('유산균', '유산균 고르는 법 알려 주세요') + cat('비타민C', '비타민C 고르는 법 알려 주세요') +
+      cat('밀크씨슬', '밀크씨슬 고르는 법 알려 주세요') +
+    '</div>' +
+    '<div class="intro-h">운동 보충제</div>' +
+    '<div class="chips cats">' +
+      cat('단백질', '단백질 파우더 고르는 법 알려 주세요') + cat('크레아틴', '크레아틴 고르는 법 알려 주세요') +
+      cat('아미노산', 'EAA와 BCAA 중 무엇을 골라야 하나요?') + cat('부스터', '부스터 고르는 법 알려 주세요') +
+      cat('카르니틴', '카르니틴 고르는 법 알려 주세요') +
+    '</div>' +
+    '<div class="intro-h">이렇게 물어보세요</div>' +
     '<div class="chips">' +
-    '<button class="chip" type="button" data-prompt="회사에서 받은 오메가3가 있는데 먹어도 괜찮은지 봐주세요">갖고 있는 제품 확인</button>' +
-    '<button class="chip" type="button" data-prompt="영양제를 처음 시작하려는데 뭐부터 먹어야 할까요?">뭐부터 먹어야 할까</button>' +
-    '<button class="chip" type="button" data-prompt="유산균 고르는 기준이 궁금해요">고르는 기준</button>' +
+      ex('회사에서 받은 오메가3, 괜찮은 제품인가요?') +
+      ex('우유 먹으면 배가 아픈데, 프로틴 뭐 먹지?') +
+      ex('알이 작은 오메가3 있을까요?') +
+      ex('아이가 먹을 유산균 골라 주세요') +
+      ex('크레아틴 처음 사는데 뭘 보면 돼요?') +
+      ex('영양제를 처음 시작하는데 뭐부터 먹어야 할까요?') +
+    '</div>' +
+    '<div class="intro-scope">' +
+      '<b>답하는 것</b> · 제품 고르기, 갖고 있는 제품 확인, 고르는 기준<br>' +
+      '<b>답하지 않는 것</b> · 질병 진단과 치료, 약과 같이 먹어도 되는지 판단 — 의사·약사와 상의하세요<br>' +
+      '채점 방법은 <a href="/guide">등급 기준</a>에 모두 공개돼 있어요.' +
     '</div></div>';
   thread.innerHTML = h;
 }
