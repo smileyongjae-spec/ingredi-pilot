@@ -191,6 +191,25 @@ export async function metaAdInsights(env, date) {
   });
 }
 
+// [2026-10-16] 노출·도달(빈도 계산용). level = 'account' | 'ad'.
+//   daily=true  → since~until 하루별 행(time_increment=1)
+//   daily=false → since~until 전체 기간 한 행(도달은 기간 안에서 중복 제거된 값)
+export const CAMPAIGN_START = '2026-10-08';
+export async function metaReach(env, level, since, until, daily) {
+  const rows = await metaAll(env, `${META_ACT}/insights`, {
+    level,
+    time_range: { since, until },
+    ...(daily ? { time_increment: 1 } : {}),
+    fields: (level === 'ad' ? 'ad_id,ad_name,' : '') + 'impressions,reach',
+  });
+  return rows.map((r) => ({
+    date: r.date_start,
+    ad_name: r.ad_name,
+    impressions: Number(r.impressions || 0),
+    reach: Number(r.reach || 0),
+  }));
+}
+
 /* ───────── 쿠팡 파트너스 리포트 ───────── */
 const CP_HOST = 'https://api-gateway.coupang.com';
 const CP_REPORT = '/v2/providers/affiliate_open_api/apis/openapi/v1/reports/';

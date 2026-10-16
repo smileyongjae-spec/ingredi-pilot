@@ -1,12 +1,13 @@
-/* t.js v1.0 (2026-10-13) — ingredi 자체 방문·이벤트 기록 (Clarity와 함께 동작)
+/* t.js v2.0 (2026-10-16) — ingredi 자체 방문·이벤트 기록 (Clarity와 함께 동작)
+   - [v2] 이 기기에서 처음 방문(ing_vid를 새로 만든 경우)이면 'new_vid'를 한 번 보냄 → 신규/재방문 방문자 구분
    - 페이지 열림(pv), 활성 시간(act, 초), Clarity 이벤트(window.clarity('event', name))를 /track으로 보냄
-   - Clarity 스니펫 바로 뒤에 <script src="/t.js?v=1"></script> 로 넣는다 */
+   - Clarity 스니펫 바로 뒤에 <script src="/t.js?v=2"></script> 로 넣는다 */
 (function () {
   try {
     if (window.__ingT) return; window.__ingT = 1;
     function rid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
-    var vid = 'na', sid, src = '';
-    try { vid = localStorage.getItem('ing_vid') || ''; if (!vid) { vid = rid(); localStorage.setItem('ing_vid', vid); } } catch (e) {}
+    var vid = 'na', sid, src = '', isNew = false;
+    try { vid = localStorage.getItem('ing_vid') || ''; if (!vid) { vid = rid(); localStorage.setItem('ing_vid', vid); isNew = localStorage.getItem('ing_vid') === vid; } } catch (e) {}
     try { sid = sessionStorage.getItem('ing_sid'); if (!sid) { sid = rid(); sessionStorage.setItem('ing_sid', sid); } } catch (e) { sid = rid(); }
     try {
       src = new URLSearchParams(location.search).get('src') || sessionStorage.getItem('ing_src') || '';
@@ -22,6 +23,7 @@
       } catch (err) {}
     }
     send('pv');
+    if (isNew) send('new_vid');
 
     // 활성 시간: 화면이 보이고 최근 30초 안에 조작이 있었던 시간
     var last = Date.now(), active = 0, sent = 0;

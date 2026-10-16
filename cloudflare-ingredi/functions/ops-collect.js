@@ -1,4 +1,5 @@
-// functions/ops-collect.js  v1.2 (2026-10-15) — [v1.2] 소재 매칭 필드 '광고명(매체 표기)', Meta 토큰 만료일 점검
+// functions/ops-collect.js  v1.3 (2026-10-16) — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
+//   v1.2 (2026-10-15) — 소재 매칭 필드 '광고명(매체 표기)', Meta 토큰 만료일 점검
 //   v1.1 (2026-10-14) — 쿠팡 전날 재수집·숫자 열, Clarity 하루 1회(재시도 시 건너뜀)
 // 매일 04:30(KST) GitHub Actions가 호출 → 어제 하루 데이터를 API로 모아 Airtable에 기록.
 //   GET /ops-collect?key=<OPS_SECRET>[&date=YYYY-MM-DD][&dry=1][&only=meta,coupang,clarity,self]
@@ -11,6 +12,7 @@ import {
   json, checkSecret, kstDate, T,
   atList, atUpsert, atDelete,
   metaAdInsights, metaTokenInfo, coupangReport, sumNumeric, clarityExport,
+  metaReach, CAMPAIGN_START,
 } from './_lib/ops.js';
 
 export async function onRequestGet(ctx) {
@@ -43,6 +45,7 @@ async function run({ request, env }) {
     return rows.get(key);
   };
   const site = { 날짜: date };
+  const reachSite = [], reachRows = []; // [v1.3] 지난 날짜 도달 보완
 
   /* 1) Meta */
   if (only.includes('meta')) {
@@ -54,12 +57,39 @@ async function run({ request, env }) {
         spend += r.spend;
         const rec = byName.get(String(r.ad_name).trim());
         if (!rec) { unmatched.push(r.ad_name); continue; }
-        Object.assign(rowFor(rec), { 지출: r.spend, 노출: r.impressions, 클릭: r.clicks, LPV: r.lpv });
+        Object.assign(rowFor(rec), { 지출: r.spend, 노출: r.impressions, 클릭: r.clicks, LPV: r.lpv, 도달: r.reach });
       }
       site['Meta_지출'] = spend;
       status.meta = `ok ${ins.length}개 광고` + (unmatched.length ? `, 소재 미연결: ${unmatched.join(' / ')}` : '');
       out.meta = ins;
     } catch (e) { status.meta = '실패: ' + e.message; }
+    // [v1.3] 도달·빈도 — 계정 전체 하루값(최근 5일, 지난 날짜도 채움)과 광고 시작 이후 누적(광고별·계정 전체)
+    try {
+      const since5 = kstDate(-4, Date.parse(date + 'T12:00:00+09:00'));
+      const start = since5 < CAMPAIGN_START ? CAMPAIGN_START : since5;
+      const acctDaily = await metaReach(env, 'account', start, date, true);
+      for (const r of acctDaily) {
+        if (r.date === date) Object.assign(site, { Meta_노출: r.impressions, Meta_도달: r.reach });
+        else reachSite.push({ 날짜: r.date, Meta_노출: r.impressions, Meta_도달: r.reach });
+      }
+      // 광고별 하루 도달 — 지난 4일 행도 도달만 채운다(10/16 도입 전 날짜 보완, 사후 수정 반영)
+      const adDaily = await metaReach(env, 'ad', start, date, true);
+      for (const r of adDaily) {
+        if (r.date === date) continue; // 오늘 날짜는 위 metaAdInsights 값 사용
+        const rec = byName.get(String(r.ad_name).trim());
+        if (!rec) continue;
+        reachRows.push({ 키: `${r.date}_${rec.fields['소재ID']}`, 날짜: r.date, 소재: [rec.id], 도달: r.reach });
+      }
+      const [acctCum] = await metaReach(env, 'account', CAMPAIGN_START, date, false);
+      if (acctCum) Object.assign(site, { Meta_노출_누적: acctCum.impressions, Meta_도달_누적: acctCum.reach });
+      const adCum = await metaReach(env, 'ad', CAMPAIGN_START, date, false);
+      for (const r of adCum) {
+        const rec = byName.get(String(r.ad_name).trim());
+        // 그날 성과 행이 있는 광고만(중지된 광고에 빈 행을 만들지 않음)
+        if (rec && rows.has(`${date}_${rec.fields['소재ID']}`)) Object.assign(rowFor(rec), { 노출_누적: r.impressions, 도달_누적: r.reach });
+      }
+      status.meta_reach = `ok (하루 ${acctDaily.length}일, 누적 광고 ${adCum.length}개)`;
+    } catch (e) { status.meta_reach = '실패: ' + e.message; }
     // [v1.2] 토큰 만료일 — 14일 이내면 수집상태에 '갱신 필요'로 남겨 05시 분석·07시 보고가 알린다
     try {
       const t = await metaTokenInfo(env);
@@ -90,7 +120,9 @@ async function run({ request, env }) {
           else cnt[x['이벤트']] = (cnt[x['이벤트']] || 0) + 1;
         }
         const s = sids.size;
-        return { 세션: s, UV: vids.size, 페이지뷰: pv, 활성초: act, cnt,
+        // [v1.3] 신규 = 이날 new_vid 이벤트가 있는 방문자(t.js v2가 처음 방문 때 한 번 보냄), 재방문 = 나머지
+        const newV = new Set(list.filter((r) => r.fields['이벤트'] === 'new_vid' && r.fields.vid).map((r) => r.fields.vid));
+        return { 세션: s, UV: vids.size, 신규UV: newV.size, 재방문UV: vids.size - newV.size, 페이지뷰: pv, 활성초: act, cnt,
           세션당페이지뷰: s ? Math.round((pv / s) * 100) / 100 : null,
           세션당활성초: s ? Math.round(act / s) : null };
       };
@@ -99,7 +131,7 @@ async function run({ request, env }) {
 
       const all = agg(evs);
       Object.assign(site, {
-        세션: all.세션, UV: all.UV, 페이지뷰: all.페이지뷰, 활성시간_초: all.세션당활성초,
+        세션: all.세션, UV: all.UV, 신규UV: all.신규UV, 재방문UV: all.재방문UV, 페이지뷰: all.페이지뷰, 활성시간_초: all.세션당활성초,
         쿠팡클릭_자체: sessCount(evs, 'purchase_click'),
         이벤트_JSON: JSON.stringify(all.cnt),
       });
@@ -112,7 +144,7 @@ async function run({ request, env }) {
         const rec = bySrc.get(s);
         if (!rec) continue;
         Object.assign(rowFor(rec), {
-          세션: a.세션, UV: a.UV, 활성시간_초: a.세션당활성초, 세션당페이지뷰: a.세션당페이지뷰,
+          세션: a.세션, UV: a.UV, 신규UV: a.신규UV, 재방문UV: a.재방문UV, 활성시간_초: a.세션당활성초, 세션당페이지뷰: a.세션당페이지뷰,
           쿠팡클릭: sessCount(list, 'purchase_click'),
           비교: sessCount(list, 'compare_add') || sessCount(list, 'compare_go'),
           카운슬링: sessCount(list, 'consult_open'),
@@ -198,11 +230,16 @@ async function run({ request, env }) {
   out.status = status;
   out.rows = [...rows.values()];
   out.site = site;
+  out.reachBackfill = { site: reachSite, rows: reachRows.length };
 
   if (!dry) {
     try {
       if (rows.size) await atUpsert(env, T.daily, ['키'], [...rows.values()]);
-      await atUpsert(env, T.site, ['날짜'], [site, ...extraSite]);
+      if (reachRows.length) await atUpsert(env, T.daily, ['키'], reachRows);
+      // 같은 날짜가 한 요청에 두 번 들어가지 않게 날짜별로 합친다(쿠팡 전날 재수집 + 도달 보완)
+      const siteByDate = new Map([[date, site]]);
+      for (const r of [...extraSite, ...reachSite]) siteByDate.set(r.날짜, { ...(siteByDate.get(r.날짜) || {}), ...r });
+      await atUpsert(env, T.site, ['날짜'], [...siteByDate.values()]);
       // 3일 지난 세션로그 삭제
       const cutoff = kstDate(-3);
       const old = await atList(env, T.evlog, `DATETIME_FORMAT(SET_TIMEZONE(CREATED_TIME(),'Asia/Seoul'),'YYYY-MM-DD')<'${cutoff}'`, ['이벤트']);
