@@ -2,7 +2,7 @@
   "name": "ingredi",
   "short_name": "ingredi",
   "description": "광고 없는 건강기능식품 비교 · AI가 상담하고 추천해드려요",
-  "start_url": "/",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "background_color": "#FAF8F3",
