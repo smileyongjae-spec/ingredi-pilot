@@ -1,4 +1,6 @@
-// functions/_lib/site-stats.js  v1.0  (2026-10-17)
+// functions/_lib/site-stats.js  v1.1  (2026-10-17)
+// v1.1: 기준일 = 사이트에 보이는 제품 정보가 실제로 바뀐 마지막 날(갱신 주 2~3회, Oliver 2026-10-17 B안).
+//       종류별 제품 목록의 표시 항목(가격·하루 비용·등급·함량·원료사·인증 등)을 지문(fp)으로 요약해 어제와 비교. 변경 없는 날은 날짜를 올리지 않는다
 // 사이트 설명 숫자(종류별 제품 수·하루 비용 범위·가운데 값·기준일) 자동 반영 — Oliver 승인 2026-10-17(사전 승인 없이 매일 반영, 데일리 보고에 내용만 추가)
 //   1) ops-collect가 매일 refreshSiteStats()로 /recommend2·/sports-api(사람이 보는 목록과 같은 값)를 읽어 KV site_stats_v1에 저장
 //   2) functions/_middleware.js가 /, /app, /about, /consult, /sports, /llms.txt 응답에서 숫자를 KV 값으로 바꿔 내보낸다
@@ -14,6 +16,17 @@ const KV_KEY = 'site_stats_v1';
 const KV_LOG = 'site_stats_log_v1';
 
 const won = (n) => Math.round(n).toLocaleString('en-US');
+
+// 사이트에 보이는 항목만 골라 지문을 만든다(FNV-1a 32bit). 이미지·링크처럼 화면 내용과 무관한 값은 뺀다
+const FP_KEYS = ['id', 'name', 'price', 'dailyCost', 'grade', 'vScore', 'qualityGrade', 'quality', 'form', 'supplier', 'certs',
+  'primaryValue', 'capsuleMg', 'dailyCapsules', 'reviewCount', 'function', 'mfdsFunction', 'flavor'];
+function fp(products) {
+  const rows = products.map((x) => FP_KEYS.map((k) => (x[k] == null ? '' : String(x[k]))).join('|')).sort();
+  let h = 0x811c9dc5;
+  const str = rows.join('\n');
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16);
+}
 
 function dist(arr) {
   const a = arr.map(Number).filter((x) => x > 0).sort((x, y) => x - y);
@@ -34,20 +47,21 @@ export async function computeStats(origin) {
   for (const [key] of HEALTH) {
     const j = await getJson(`${origin}/recommend2?category=${encodeURIComponent(key)}`);
     const p = j.products || [];
-    health[key] = { n: p.length, ...(dist(p.map((x) => x.dailyCost)) || {}) };
+    health[key] = { n: p.length, fp: fp(p), ...(dist(p.map((x) => x.dailyCost)) || {}) };
   }
   for (const cat of SPORTS) {
     const j = await getJson(`${origin}/sports-api?category=${encodeURIComponent(cat)}&weight=70`);
     const subs = {};
-    const all = [];
+    const all = [], fps = [];
     for (const s of j.subs || []) {
       const k = typeof s === 'string' ? s : s.key;
       const jj = await getJson(`${origin}/sports-api?category=${encodeURIComponent(cat)}&sub=${encodeURIComponent(k)}&weight=70`);
       const p = jj.products || [];
       p.forEach((x) => all.push(x.dailyCost));
+      fps.push(k + ':' + fp(p));
       subs[k] = { label: (s && s.label) || k, n: p.length, ...(dist(p.map((x) => x.dailyCost)) || {}) };
     }
-    sports[cat] = { n: Object.values(subs).reduce((t, x) => t + x.n, 0), subs, ...(dist(all) || {}) };
+    sports[cat] = { n: Object.values(subs).reduce((t, x) => t + x.n, 0), fp: fps.join(','), subs, ...(dist(all) || {}) };
   }
   const totH = Object.values(health).reduce((t, x) => t + x.n, 0);
   const totS = Object.values(sports).reduce((t, x) => t + x.n, 0);
@@ -119,7 +133,7 @@ export function applyLlms(text, saved) {
   let s = text;
   const i = s.indexOf('## 비교 대상'), j = s.indexOf('## 계산 방법');
   if (i >= 0 && j > i) s = s.slice(0, i) + sec + s.slice(j);
-  s = s.replace(/(제품 수와 하루 비용은 )\d{4}-\d{2}-\d{2}/g, `$1${a}`)
+  s = s.replace(/(마지막 갱신일 )\d{4}-\d{2}-\d{2}/g, `$1${a}`)
        .replace(/(ingredi\(잉그레디\) 데이터, )\d{4}-\d{2}-\d{2}/g, `$1${a}`);
   return applyTotals(s, saved);
 }
@@ -140,14 +154,19 @@ export async function refreshSiteStats(env, origin, today, dry = false) {
         changes.push(`${label} ${a.n}→${b.n}개`);
         if (a.n > 0 && Math.abs(b.n - a.n) / a.n > 0.5) jumps.push(label);
       }
-      if (a.min && b.min && (a.min !== b.min || a.max !== b.max)) changes.push(`${label} 하루 ${won(a.min)}~${won(a.max)}원→${won(b.min)}~${won(b.max)}원`);
+      const costMoved = a.min && b.min && (a.min !== b.min || a.max !== b.max);
+      if (costMoved) changes.push(`${label} 하루 ${won(a.min)}~${won(a.max)}원→${won(b.min)}~${won(b.max)}원`);
+      // 제품 수·비용 범위는 그대로인데 화면의 제품 정보(가격·등급·함량 등)가 바뀐 경우
+      if (a.n === b.n && !costMoved && a.fp && b.fp && a.fp !== b.fp) changes.push(`${label} 제품 정보 갱신`);
     };
     for (const [k, label] of HEALTH) cmp(label, prev.data.health[k], st.health[k]);
     for (const k of SPORTS) cmp(k, prev.data.sports[k], st.sports[k]);
   }
   if (jumps.length) return { status: '보류: 제품 수 50% 넘게 변함 — ' + jumps.join(', ') + ' (확인 필요)', changes, data: st };
   if (dry) return { status: 'dry', changes, data: st };
-  await env.CACHE.put(KV_KEY, JSON.stringify({ asof: today, updatedAt: new Date().toISOString(), data: st }));
+  // asof = 마지막으로 값이 바뀐 날. 변경 없으면 이전 날짜 유지(매일 날짜만 올려 '최신'처럼 보이지 않게)
+  const asof = (!prev || changes.length) ? today : (prev.asof || today);
+  await env.CACHE.put(KV_KEY, JSON.stringify({ asof, checkedAt: today, updatedAt: new Date().toISOString(), data: st }));
   // 같은 날 변경 내역은 모아 둔다(재실행 때 '변경 없음'으로 덮이지 않게)
   let log = await env.CACHE.get(KV_LOG, 'json');
   if (!log || log.date !== today) log = { date: today, first: !prev, changes: [] };
