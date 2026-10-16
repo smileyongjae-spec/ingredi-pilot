@@ -3,13 +3,17 @@
 <html lang="ko">
 <head>
   <script>
-    // [랜딩 테스트 B, 2026-10-16] 단백질 비용 광고(src=insta_cost)로 들어오면 메인 첫 화면(/app)으로 보낸다(세션당 1회).
-    // 되돌리기: 이 script 블록 삭제
+    // [랜딩 테스트 v2 — 무작위 50:50, 2026-10-16] 단백질 비용 광고(src=insta_cost) 방문자를 main(/app으로 이동) / spec(/sports 그대로)으로 배정.
+    // 배정은 app.html과 같은 localStorage ing_lpt. 되돌리기: 이 script 블록과 아래 lp 이벤트 블록 삭제
+    function _ingArm(){var k='ing_lpt',a;try{a=localStorage.getItem(k)}catch(e){}if(a!=='main'&&a!=='spec'){a=Math.random()<0.5?'main':'spec';try{localStorage.setItem(k,a)}catch(e){}}return a}
     try {
       if (new URLSearchParams(location.search).get('src') === 'insta_cost' && !sessionStorage.getItem('ing_lpv')) {
-        sessionStorage.setItem('ing_lpv', 'b');
-        window.__ingT = 1; // 이 페이지에서는 t.js 기록을 건너뜀(이동 후 /app에서 기록)
-        location.replace('/app.html' + location.search + location.hash);
+        var _arm = _ingArm();
+        sessionStorage.setItem('ing_lpv', _arm);
+        if (_arm === 'main') {
+          window.__ingT = 1; // 이 페이지에서는 t.js 기록을 건너뜀(이동 후 /app에서 기록)
+          location.replace('/app.html' + location.search + location.hash);
+        }
       }
     } catch (e) {}
   </script>
@@ -25,6 +29,10 @@
     try { var _src = new URLSearchParams(location.search).get("src"); if (_src) window.clarity("set", "src", _src.slice(0, 40)); } catch (e) {}
 </script>
 <script src="/t.js?v=2"></script>
+<script>
+  // [랜딩 테스트] 이 세션의 배정(lp_main / lp_spec)을 한 번 기록
+  try { var _lv = sessionStorage.getItem('ing_lpv'); if (_lv && !sessionStorage.getItem('ing_lpv_sent')) { sessionStorage.setItem('ing_lpv_sent', '1'); window.clarity('event', 'lp_' + _lv); } } catch (e) {}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1B3A2E">
 <meta name="description" content="국제스포츠영양학회(ISSN) 근거 기준으로 비교하는 운동 보충제. 광고 없는 정직한 비교, ingredi.">
