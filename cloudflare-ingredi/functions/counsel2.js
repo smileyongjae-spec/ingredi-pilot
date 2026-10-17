@@ -1,4 +1,5 @@
-// functions/counsel2.js  v17.30  (2026-10-04)
+// functions/counsel2.js  v17.31  (2026-10-18)
+// [v17.31 — 브랜드+숫자 붙여쓰기 분리: "드시모네1200"을 한 토큰으로 봐 브랜드 매칭이 실패하고 카테고리 미상("있는데 없다")으로 끝나던 문제. 글자 뒤 3자리 이상 숫자 앞에서 띄어 브랜드 토큰을 살린다(검색로그 10/17 실측)]
 // [v17.30 — 가격·하루 비용 채널 일치: 쿠팡 링크가 있으면 쿠팡 기준, 없으면 네이버 기준(_lib/price.js, recommend2 v8.6과 동일 규칙)]
 // [v17.29 — 유산균 PROBIOTICS_V2 연결 (axis-scores v2.4: Core 0.6 + 개별인정 0.1 + strain 표기 0.2 + 인증 0.1)]
 //   - productContext에 probiotic{individual, individualLabel, strainCoded, strainCount, humanTrial} 동봉,
@@ -605,8 +606,10 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
   }
   // [v16.6] "네이처셋오메가3"·"락티젠유산균"처럼 브랜드와 카테고리어를 붙여 쓴 질의는 카테고리어 앞에서 띄어 브랜드 토큰을 살린다
   const SPLIT_WORDS = ["오메가3", "오메가", "유산균", "프로바이오틱스", "비타민c", "비타민씨", "루테인", "지아잔틴", "아스타잔틴", "밀크씨슬", "밀크시슬", "실리마린", "알티지"];
+  // [v17.31] "드시모네1200"·"저먼프로트8000" → "드시모네 1200". 3자리 이상만("오메가3"·"b12"는 그대로)
+  function splitAlphaNum(q) { return String(q || "").replace(/([가-힣a-zA-Z])(\d{3,})/g, "$1 $2"); }
   function splitBrandCat(q) {
-    let s = String(q || "");
+    let s = splitAlphaNum(q);
     for (const w of SPLIT_WORDS) { const re = new RegExp("([가-힣a-z0-9])(" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"); s = s.replace(re, "$1 $2"); }
     return s;
   }
@@ -910,7 +913,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
     // 브랜드성 토큰 추출 — 카테고리어·범용어·불용어·숫자 제외 (제품명 탐색 공용)
     function makeBrandCands(text) {
       return [...new Set(
-        String(text).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).map(w => normEntity(w))
+        splitAlphaNum(text).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).map(w => normEntity(w))
           .filter(t => t.length >= 2 && !isCategoryWord(t) && !STOPWORDS.has(t) && !NON_BRAND_RE.test(t) && !/^\d+(mg|억|포|정|캡슐|개월|일분)?$/.test(t))
       )];
     }
@@ -1145,7 +1148,7 @@ const META_QUERY = /프롬프트|시스템\s*지시|이전\s*지시|무시하고
       }
       if (brandMatch) {
         // 질의의 구분 토큰(숫자·모델명 포함, 브랜드 토큰 제외)으로 SKU를 좁힌다.
-        const rawToks = String(query).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).map(normEntity)
+        const rawToks = splitAlphaNum(query).replace(/[?!.,~"'`()\[\]·…:;]/g, " ").split(/\s+/).map(normEntity)
           .filter(t => t && t !== brandMatch.token && t.length >= 2 && !STOPWORDS.has(t) && !NON_BRAND_RE.test(t) && !isCategoryWord(t));
         const nmOf = r => normEntity(getField(r.fields || {}, "제품명", "네이버_제품명", "name"));
         const useToks = rawToks.filter(t => brandMatch.records.some(r => nmOf(r).indexOf(t) !== -1));
