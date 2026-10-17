@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- sports.html  v3.9  (2026-10-17) — [GEO] 대표 주소(canonical)·공유 주소를 .html 없는 주소로, 제목 끝 'ingredi 잉그레디', 설명문 정리, 내부 링크 .html 제거 / [v3.8] [v3.8] 하단 비교 바 "N개 담음"→"N개 비교 중", "담거나/담으면"→"고르거나/고르면" / [v3.7] 비교 버튼 문구 "+ 제품 비교" / 담긴 후 "✓ 비교 중" / [v3.6] 광고 랜딩 딥링크: &profile=value(가성비 우선) / [v3.5] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v3.4] CLS 개선: 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.28→0) / [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
+<!-- sports.html  v4.0  (2026-10-18) — [v4.0] 검색 결과 0건 화면에 "AI 상담에 물어보기" 버튼·안내(유입 src 함께 전달), 검색창 AI 연결도 src 전달 / [GEO] 대표 주소(canonical)·공유 주소를 .html 없는 주소로, 제목 끝 'ingredi 잉그레디', 설명문 정리, 내부 링크 .html 제거 / [v3.8] [v3.8] 하단 비교 바 "N개 담음"→"N개 비교 중", "담거나/담으면"→"고르거나/고르면" / [v3.7] 비교 버튼 문구 "+ 제품 비교" / 담긴 후 "✓ 비교 중" / [v3.6] 광고 랜딩 딥링크: &profile=value(가성비 우선) / [v3.5] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v3.4] CLS 개선: 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.28→0) / [v3.3] 제품 이름·사진 탭 → AI 평가 열기 / [v3.2] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v3.1] 하단에 등급 기준·데이터 리포트 링크 / [v3.0] Microsoft Clarity 추가(purchase_click 이벤트·?src= 유입 태그) — 광고 성과 측정용 / [v2.9] AI 평가 패널 app v9.2와 동일 스타일(연초록·AI 배지·비교 범위) + 평결 문구 교체(기준을 잘 채운 제품이에요 / 이 제품보다 나은 선택이 있어요 + 이유) [v2.8] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 (app v9.1과 동일) / [v2.7] 비교 담기 도입 / [v2.6] 코드 평결 비교 맥락 -->
 <html lang="ko">
 <head>
   <script>
@@ -75,6 +75,10 @@ html,body { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif
 /* [ask-v2 2026-10-12] 검색창 → AI 연결 한 줄 · 1~3위 바로 비교 링크 */
 .cat-askrow { margin: 0 2px 8px; display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; padding:11px 12px; border-radius:11px; background: var(--green-tint); border:1px solid #CFE3D6; font-size:13.5px; font-family:inherit; color: var(--green-deep); text-align:left; cursor:pointer; }
 .cat-askrow[hidden] { display:none; }
+.cat-empty-ask { margin: 18px 4px 8px; padding: 18px 16px; border-radius: 12px; background: var(--green-tint, #EEF6F1); border: 1px solid #CFE3D6; text-align: center; }
+.cat-empty-ask .cea-t { font-size: 15px; font-weight: 700; color: #1f2a24; margin-bottom: 6px; word-break: keep-all; }
+.cat-empty-ask .cea-s { font-size: 13px; color: #4a5a50; line-height: 1.5; margin-bottom: 12px; word-break: keep-all; }
+.cat-empty-ask .cea-go { display: inline-block; padding: 11px 18px; border-radius: 10px; background: var(--green-primary, #2E7D4F); color: #fff; font-weight: 800; font-size: 14px; text-decoration: none; }
 .cat-askrow .ar-badge { flex-shrink:0; font-size:10px; font-weight:800; color:#fff; background: var(--green-primary); border-radius:6px; padding:2px 6px; }
 .cat-askrow .ar-t { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cat-askrow .ar-go { flex-shrink:0; font-weight:800; }
@@ -510,6 +514,14 @@ window.setProfile = function(p){
   if (data) render(data);
 };
 
+/* [empty-ask 2026-10-18] 검색 결과 0건 → AI 상담 연결 (Oliver 승인 10/18) */
+function _ingSrc(){ try { return (new URLSearchParams(location.search).get('src') || sessionStorage.getItem('ing_src') || '').slice(0,40); } catch(_) { return ''; } }
+function consultHref(q){ var s=_ingSrc(); return '/consult?q=' + encodeURIComponent(q) + (s ? '&src=' + encodeURIComponent(s) : ''); }
+function emptyAskHtml(q, escf){
+  return '<div class="cat-empty-ask"><div class="cea-t">"' + escf(q) + '" 제품은 아직 비교 목록에 없어요.</div>'
+    + '<div class="cea-s">AI 상담에 이 제품을 바로 물어볼 수 있어요.<br>검색하신 제품명은 비교 목록 추가 후보로 검토해요.</div>'
+    + '<a class="cea-go" data-emptyask href="' + consultHref(q) + '">AI 상담에 물어보기 →</a></div>';
+}
 function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
 function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
@@ -966,7 +978,7 @@ function render(d){
   const qRaw=((document.getElementById('catSearch')||{}).value||'').toLowerCase().trim();
   const qTok=qRaw.split(/\s+/).filter(Boolean);
   const list=qTok.length ? d.products.filter(p=>{const nm=String(p.name||'').toLowerCase(); return qTok.every(t=>nm.indexOf(t)!==-1);}) : d.products;
-  if(!list.length){ el.innerHTML=howToRead(d)+`<div class="cat-status">"${esc(qRaw)}"에 해당하는 제품이 없어요.</div>`; return; }
+  if(!list.length){ const _qOrig=((document.getElementById('catSearch')||{}).value||'').trim(); el.innerHTML=howToRead(d)+emptyAskHtml(_qOrig, esc); return; }
   const top=list.slice(0,3).map(p=>card(p,d)).join('');
   const rest=list.slice(3);
   const restHtml = rest.length
@@ -1078,9 +1090,11 @@ document.addEventListener('click', function (e) {
   if (row) row.addEventListener('click', function(){
     var q = (inp && inp.value || '').trim(); if (!q) return;
     ev('consult_open', 'consult_from', 'list_search:' + curCat());
-    location.href = '/consult.html?q=' + encodeURIComponent(q);
+    location.href = consultHref(q);
   });
   document.addEventListener('click', function(e){
+    var ea = e.target.closest && e.target.closest('[data-emptyask]');
+    if (ea) ev('consult_open', 'consult_from', 'empty_search:' + curCat());
     var t = e.target.closest && e.target.closest('#pbGo.on, .cat-compare-cta a, [data-quickcmp]');
     if (!t) return;
     var how = t.hasAttribute('data-quickcmp') ? 'top3' : (t.id === 'pbGo' ? (t.getAttribute('data-mode') || 'pick') : 'cta');

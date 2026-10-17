@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- consult.html  v4.1  (2026-10-17) — [GEO] 대표 주소(canonical)·공유 주소를 .html 없는 주소로, 제목 끝 'ingredi 잉그레디', 설명문 정리, 내부 링크 .html 제거 / [v4.0] [v4.0] 첫 화면 개편: 지원 범위 10종(영양제 5·운동 보충제 5) 표시, 예시 질문 6개(검색로그 실제 질문 기준), 답하는 것·답하지 않는 것·등급 기준 링크, 첫 화면 글꼴을 사이트 본문 글꼴로, 이름을 'AI 상담'으로 통일 / [v3.9] [v3.9] ?src= 유입 태그를 Clarity 세션 태그로 기록(광고 측정) / [v3.8] 스트리밍 수신(counsel2?stream=1): 평결·본문이 생기는 대로 먼저 표시, 완료 시 최종본으로 교체 / [v3.7] 전체보기 버튼 틴트 그린 / [v3.6] 카드 버튼 2개 · more_link 렌더 -->
+<!-- consult.html  v4.2  (2026-10-18) — [v4.2] 첫 질문 검색로그에 유입 src 기록(?src= 또는 같은 세션의 유입 꼬리표) / [GEO] 대표 주소(canonical)·공유 주소를 .html 없는 주소로, 제목 끝 'ingredi 잉그레디', 설명문 정리, 내부 링크 .html 제거 / [v4.0] [v4.0] 첫 화면 개편: 지원 범위 10종(영양제 5·운동 보충제 5) 표시, 예시 질문 6개(검색로그 실제 질문 기준), 답하는 것·답하지 않는 것·등급 기준 링크, 첫 화면 글꼴을 사이트 본문 글꼴로, 이름을 'AI 상담'으로 통일 / [v3.9] [v3.9] ?src= 유입 태그를 Clarity 세션 태그로 기록(광고 측정) / [v3.8] 스트리밍 수신(counsel2?stream=1): 평결·본문이 생기는 대로 먼저 표시, 완료 시 최종본으로 교체 / [v3.7] 전체보기 버튼 틴트 그린 / [v3.6] 카드 버튼 2개 · more_link 렌더 -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -384,7 +384,7 @@ function logFirstQuery(q, category) {
   try {
     fetch('/log-search', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: '질문', content: q, category: category || '미상', resultCount: null }),
+      body: JSON.stringify({ type: '질문', content: q, category: category || '미상', resultCount: null, src: (function(){ try { return (new URLSearchParams(location.search).get('src') || sessionStorage.getItem('ing_src') || '').slice(0, 40); } catch (e) { return ''; } })() }),
       keepalive: true
     }).catch(function(){});
   } catch (e) {}
