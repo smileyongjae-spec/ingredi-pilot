@@ -1,4 +1,4 @@
-// functions/ops-collect.js  v1.5 (2026-10-17) — [v1.5] 사이트 설명 숫자 자동 반영(site-stats: KV 갱신, 변경 내역을 일별_사이트지표.사이트숫자_변경에) / v1.4 (2026-10-16) — [v1.4] 랜딩 테스트 src×배정 집계(실험_JSON) / v1.3 — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
+// functions/ops-collect.js  v1.6 (2026-10-19) — [v1.6] 실험_JSON에 '기능1개이상'(AI 평가·비교·상담·검색 중 하나라도 쓴 세션 수) / v1.5 (2026-10-17) — [v1.5] 사이트 설명 숫자 자동 반영(site-stats: KV 갱신, 변경 내역을 일별_사이트지표.사이트숫자_변경에) / v1.4 (2026-10-16) — [v1.4] 랜딩 테스트 src×배정 집계(실험_JSON) / v1.3 — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
 //   v1.2 (2026-10-15) — 소재 매칭 필드 '광고명(매체 표기)', Meta 토큰 만료일 점검
 //   v1.1 (2026-10-14) — 쿠팡 전날 재수집·숫자 열, Clarity 하루 1회(재시도 시 건너뜀)
 // 매일 04:30(KST) GitHub Actions가 호출 → 어제 하루 데이터를 API로 모아 Airtable에 기록.
@@ -15,6 +15,9 @@ import {
   metaReach, CAMPAIGN_START,
 } from './_lib/ops.js';
 import { refreshSiteStats } from './_lib/site-stats.js';
+
+// [v1.6] 랜딩 테스트 '다른 기능 사용' 판정에 쓰는 이벤트(실험_JSON 비교 = compare_add·compare_go)
+const FEATURE_EVENTS = ['aieval_name_tap', 'compare_add', 'compare_go', 'consult_open', 'cat_search'];
 
 export async function onRequestGet(ctx) {
   try { return await run(ctx); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500); }
@@ -176,6 +179,8 @@ async function run({ request, env }) {
             카운슬링: sessCount(list, 'consult_open'),
             검색: sessCount(list, 'cat_search'),
             쿠팡클릭: sessCount(list, 'purchase_click'),
+            // [v1.6] 다른 기능(AI 평가·비교·상담·검색)을 1개 이상 쓴 세션 수 — 기능별 합은 한 세션이 겹쳐 세어져 판정용 비율이 안 됨
+            기능1개이상: new Set(list.filter((r) => FEATURE_EVENTS.includes(r.fields['이벤트'])).map((r) => r.fields.sid)).size,
           };
         }
         site['실험_JSON'] = JSON.stringify(exp);
