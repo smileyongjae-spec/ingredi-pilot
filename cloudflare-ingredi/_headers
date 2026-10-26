@@ -3,3 +3,5 @@
   Content-Type: text/plain; charset=utf-8
 /robots.txt
   Content-Type: text/plain; charset=utf-8
+/ads/*
+  X-Robots-Tag: noindex
