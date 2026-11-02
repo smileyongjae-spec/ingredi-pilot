@@ -29,12 +29,12 @@ export async function onRequestGet(ctx) {
   const origin = new URL(ctx.request.url).origin;
 
   const sections = [];
-  let total = 0;
+  let total = 0, okCats = 0;
   for (const [cat, label] of CATS) {
     let products = [];
     try {
       const r = await fetch(origin + '/recommend2?category=' + encodeURIComponent(cat));
-      if (r.ok) { const d = await r.json(); products = (d && d.products) || []; }
+      if (r.ok) { const d = await r.json(); products = (d && d.products) || []; if (products.length) okCats++; }
     } catch (_) {}
     if (!products.length) continue;
     const unscored = !!UNSCORED[cat];
@@ -52,6 +52,8 @@ export async function onRequestGet(ctx) {
     sections.push({ cat, label, unscored, mine, all: products.length, rankOf, alt });
   }
 
+  // 데이터를 하나도 못 불러오면 빈 페이지를 검색엔진에 내보내지 않는다
+  if (!okCats) return new Response('잠시 후 다시 시도해 주세요', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8', 'retry-after': '120', 'x-robots-tag': 'noindex' } });
   const title = `${b.name} 영양제 비교 — ${total}개 제품 등급·하루 비용 · ingredi 잉그레디`;
   const desc = `${b.full} 제품 ${total}개를 ingredi의 같은 기준(근거 함량·제형·인증)으로 비교했어요. 종류별 등급, 하루 비용, 같은 종류 안에서의 품질점수 순서를 한 페이지에서 봅니다.`;
   const body = sections.length ? sections.map((s) => `
