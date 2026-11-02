@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- sitemap.xml  v1.0  (2026-10-17) — 첫 배포. 주소는 .html 없는 형태(Cloudflare Pages가 .html 주소를 이쪽으로 돌려보냄).
+<!-- sitemap.xml  v1.1  (2026-11-02) — 브랜드 비교 페이지 5개 추가. v1.0 (2026-10-17) 첫 배포. 주소는 .html 없는 형태(Cloudflare Pages가 .html 주소를 이쪽으로 돌려보냄).
      lastmod = 저장소에서 그 파일을 마지막으로 고친 날(KST). 카테고리·제품 페이지가 생기면 빌드에서 자동 생성으로 바꾼다.
      /compare 는 제품을 고르지 않으면 빈 화면이라 넣지 않았다. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -12,4 +12,9 @@
   <url><loc>https://ingredi.kr/consult</loc><lastmod>2026-10-16</lastmod></url>
   <url><loc>https://ingredi.kr/fit</loc><lastmod>2026-10-16</lastmod></url>
   <url><loc>https://ingredi.kr/for-me</loc><lastmod>2026-10-16</lastmod></url>
+  <url><loc>https://ingredi.kr/brand/lactofit</loc><lastmod>2026-11-02</lastmod></url>
+  <url><loc>https://ingredi.kr/brand/chongkundang</loc><lastmod>2026-11-02</lastmod></url>
+  <url><loc>https://ingredi.kr/brand/esther</loc><lastmod>2026-11-02</lastmod></url>
+  <url><loc>https://ingredi.kr/brand/desimone</loc><lastmod>2026-11-02</lastmod></url>
+  <url><loc>https://ingredi.kr/brand/cj</loc><lastmod>2026-11-02</lastmod></url>
 </urlset>

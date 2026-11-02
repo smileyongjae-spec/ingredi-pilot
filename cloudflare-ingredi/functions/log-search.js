@@ -1,4 +1,4 @@
-// functions/log-search.js  v1.1  (2026-10-12) — [v1.1] 결과수: 값이 없으면(null) 비워 둠(기존엔 0으로 기록되던 버그) / 유입 경로 src 기록(검색로그 테이블 src 열)
+// functions/log-search.js  v1.2  (2026-11-02) — [v1.2] 타입 '요청'(제품 추가 요청) 허용 / [v1.1] 결과수: 값이 없으면(null) 비워 둠(기존엔 0으로 기록되던 버그) / 유입 경로 src 기록(검색로그 테이블 src 열)
 // 검색어 · 카운슬링 질문 로깅 → Airtable "검색로그" 테이블
 // 응답 속도에 영향을 주지 않도록 Airtable 쓰기는 waitUntil로 백그라운드 처리.
 
@@ -14,7 +14,7 @@ export async function onRequestPost(context) {
     if (!content) return json({ ok: false, skipped: 'empty' });
 
     const fields = {
-      '타입': type === '검색' ? '검색' : '질문',
+      '타입': type === '검색' ? '검색' : (type === '요청' ? '요청' : '질문'),   // [v1.2] '요청' = 검색 0건 화면의 "이 제품 비교해 주세요"
       '내용': content,
       '카테고리': (category == null ? '미상' : String(category)).slice(0, 100),
     };
