@@ -1,4 +1,4 @@
-/* ux-v1.js v1.0 (2026-11-02) — 서비스 진단 개선안(Oliver 승인 11/02 "1번 C / 2번 승인 / 3번 승인")
+/* ux-v1.js v1.1 (2026-11-02) — [v1.1] 브랜드 검색어(락토핏·종근당·여에스더·드시모네·cj)면 검색창 아래에 브랜드 비교 페이지 안내 한 줄(brand_hint_shown·brand_hint_click) / v1.0 서비스 진단 개선안(Oliver 승인 11/02 "1번 C / 2번 승인 / 3번 승인")
    1) 관심 제품 저장: 기기 브라우저(localStorage)에만 저장, 서버·개인정보 없음. 저장 당시 가격·하루 비용·등급을 기억해
       다시 열었을 때 "저장한 뒤 바뀐 점"을 보여 준다.
    2) 검색 0건: 다른 종류에서 찾은 제품 · 이름이 비슷한 제품 · "이 제품 비교해 주세요" 추가 요청(검색로그 타입 '요청')
@@ -46,7 +46,9 @@
     + '.xs-req.done{border-color:#CFE3D6;color:#6b766f;cursor:default}'
     + '[data-xp]{cursor:pointer}'
     + '.xp-box{margin:8px 0 2px;padding:10px 12px;border-radius:10px;background:#F3F7F4;border:1px solid #DCE8E0;font-size:12.8px;line-height:1.55;color:#33413A;word-break:keep-all}'
-    + '.xp-box b{color:#1f2a24}';
+    + '.xp-box b{color:#1f2a24}'
+    + '.bh-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 2px 4px;padding:11px 13px;border-radius:12px;background:#EEF6F1;border:1px solid #CFE3D6;color:#1f2a24;font-size:13.5px;line-height:1.45;text-decoration:none;word-break:keep-all}'
+    + '.bh-row .bh-go{font-weight:800;color:#2D5F3F;white-space:nowrap}';
   try { var st = document.createElement('style'); st.textContent = css; (document.head || document.documentElement).appendChild(st); } catch (e) {}
 
   /* ── 1) 저장 ── */
@@ -227,4 +229,37 @@
     host.parentNode.insertBefore(box, host.nextSibling);
     ev('chip_explain');
   });
+  /* ── 4) 브랜드 검색 → 브랜드 비교 페이지 안내 (v1.1) ── */
+  var BRANDS = [['lactofit', '락토핏', ['락토핏']], ['chongkundang', '종근당', ['종근당']], ['esther', '여에스더', ['여에스더', '에스더']], ['desimone', '드시모네', ['드시모네']], ['cj', 'CJ', ['cj']]];
+  function brandOf(q) {
+    var s = String(q || '').toLowerCase().replace(/\s+/g, '');
+    if (s.length < 2) return null;
+    for (var i = 0; i < BRANDS.length; i++) for (var j = 0; j < BRANDS[i][2].length; j++) {
+      var k = BRANDS[i][2][j];
+      if (k === 'cj' ? s.indexOf('cj') === 0 : s.indexOf(k) !== -1) return BRANDS[i];
+    }
+    return null;
+  }
+  function syncBrandHint() {
+    var inp = document.getElementById('catSearch'), meta = document.getElementById('catMeta');
+    if (!inp || !meta) return;
+    var old = document.querySelector('.bh-row'), b = brandOf(inp.value);
+    if (!b) { if (old) old.remove(); return; }
+    if (old && old.getAttribute('data-b') === b[0] && old.previousElementSibling === meta) return;
+    if (old) old.remove();
+    var a = document.createElement('a'); a.className = 'bh-row'; a.href = '/brand/' + b[0]; a.setAttribute('data-b', b[0]);
+    a.innerHTML = '<span><b>' + esc(b[1]) + '</b> 제품 전체를 종류별 등급·하루 비용으로 한눈에</span><span class="bh-go">보기 →</span>';
+    a.addEventListener('click', function () { ev('brand_hint_click'); });
+    meta.parentNode.insertBefore(a, meta.nextSibling);
+    ev('brand_hint_shown');
+  }
+  function initBrandHint() {
+    var inp = document.getElementById('catSearch'), meta = document.getElementById('catMeta');
+    if (!inp || !meta) return;
+    var tm = null;
+    inp.addEventListener('input', function () { clearTimeout(tm); tm = setTimeout(syncBrandHint, 350); });
+    try { new MutationObserver(function () { syncBrandHint(); }).observe(meta, { childList: true }); } catch (e) {}
+    syncBrandHint();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBrandHint); else initBrandHint();
 })();
