@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v10.10  (2026-10-26) — [v10.10] 랜딩 테스트 종료: 유산균 광고 방문자는 항상 유산균 목록으로(무작위 배정·lp 이벤트 삭제) / [v10.9] 검색 결과 0건 화면에 "AI 상담에 물어보기" 버튼·안내(유입 src 함께 전달), 검색창 AI 연결도 src 전달 / [v10.8] 카드 제품 수·푸터 기준일에 data-stat(매일 자동 반영) / [v10.7] [v10.7] 푸터 링크 .html 제거 / [v10.6] [v10.6] AI 입력창 예시 칩을 실제 질문 유형 5개로 교체(효능 표현 칩 제거), 입력창 안내 문구 변경 / [v10.5] [v10.5] 'AI 카운슬링' 표기를 'AI 상담'으로 통일 / [v10.4] GEO: canonical /app, 제목에 잉그레디, 첫 화면 카테고리 카드에 제품 수, 푸터에 종류별 바로가기 링크(검색엔진이 따라갈 수 있는 a 링크) / [v10.3] [v10.3] 하단 비교 바 "N개 담음"→"N개 비교 중", "담거나/담으면"→"고르거나/고르면" / [v10.2] 비교 버튼 문구 "+ 제품 비교" / 담긴 후 "✓ 비교 중" / [v10.1] 광고 랜딩 딥링크: &profile=budget|value(가성비 우선)·&sub=<대상 탭> / [v10.0] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v9.9] CLS 개선: 카테고리 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.32→0) / [v9.8] 제품 이름·사진 탭 → AI 평가 열기, 상단 ingredi 로고 탭 → 첫 화면·맨 위로 / [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
+<!-- app.html  v10.11  (2026-11-02) — [v10.11] 검색 매칭 보완(띄어쓰기 무시·접미어 제거·철자 별칭), 공유가 안 되는 브라우저에서 링크 복사로 대체 / [v10.10] 랜딩 테스트 종료: 유산균 광고 방문자는 항상 유산균 목록으로(무작위 배정·lp 이벤트 삭제) / [v10.9] 검색 결과 0건 화면에 "AI 상담에 물어보기" 버튼·안내(유입 src 함께 전달), 검색창 AI 연결도 src 전달 / [v10.8] 카드 제품 수·푸터 기준일에 data-stat(매일 자동 반영) / [v10.7] [v10.7] 푸터 링크 .html 제거 / [v10.6] [v10.6] AI 입력창 예시 칩을 실제 질문 유형 5개로 교체(효능 표현 칩 제거), 입력창 안내 문구 변경 / [v10.5] [v10.5] 'AI 카운슬링' 표기를 'AI 상담'으로 통일 / [v10.4] GEO: canonical /app, 제목에 잉그레디, 첫 화면 카테고리 카드에 제품 수, 푸터에 종류별 바로가기 링크(검색엔진이 따라갈 수 있는 a 링크) / [v10.3] [v10.3] 하단 비교 바 "N개 담음"→"N개 비교 중", "담거나/담으면"→"고르거나/고르면" / [v10.2] 비교 버튼 문구 "+ 제품 비교" / 담긴 후 "✓ 비교 중" / [v10.1] 광고 랜딩 딥링크: &profile=budget|value(가성비 우선)·&sub=<대상 탭> / [v10.0] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v9.9] CLS 개선: 카테고리 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.32→0) / [v9.8] 제품 이름·사진 탭 → AI 평가 열기, 상단 ingredi 로고 탭 → 첫 화면·맨 위로 / [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <script>
@@ -809,7 +809,10 @@ const API_BASE = window.location.origin;
 function shareIngredi(){
   var url = location.origin + location.pathname;
   var data = { title: 'ingredi', text: 'AI가 상담하고 추천하는, 광고 없는 건강기능식품 비교 · ingredi', url: url };
-  if (navigator.share) { navigator.share(data).catch(function(){}); return; }
+  if (navigator.share) { navigator.share(data).catch(function(e){ if (!e || e.name !== 'AbortError') copyShareUrl(url); }); return; }   // [v10.11] 인스타 앱 안 등에서 공유 실패 → 링크 복사
+  copyShareUrl(url);
+}
+function copyShareUrl(url){
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url)
       .then(function(){ showShareToast('링크가 복사되었어요'); })
@@ -956,6 +959,21 @@ window.closeTermSheet = closeTermSheet;
 /* [empty-ask 2026-10-18] 검색 결과 0건 → AI 상담 연결 (Oliver 승인 10/18) */
 function _ingSrc(){ try { return (new URLSearchParams(location.search).get('src') || sessionStorage.getItem('ing_src') || '').slice(0,40); } catch(_) { return ''; } }
 function consultHref(q){ var s=_ingSrc(); return '/consult?q=' + encodeURIComponent(q) + (s ? '&src=' + encodeURIComponent(s) : ''); }
+// [search-v2 2026-11-02] 검색 매칭 보완: 띄어쓰기 무시(cj바이오 → CJ 바이오코어), 흔한 접미어 제거(여에스더유산균 → 여에스더), 철자 별칭(레디웰 → 래디웰)
+const SEARCH_ALIAS = [['레디웰','래디웰'],['에스터','에스더']];
+const SEARCH_SUFFIX = /(유산균|프로바이오틱스|오메가3|오메가|영양제|보충제|제품)$/;
+function nameMatches(name, q){
+  const nm = String(name || '').toLowerCase(), nmS = nm.replace(/\s+/g, '');
+  let qq = String(q || '').toLowerCase().trim();
+  if (!qq) return true;
+  SEARCH_ALIAS.forEach(function(a){ qq = qq.split(a[0]).join(a[1]); });
+  const tok = qq.split(/\s+/).filter(Boolean);
+  if (tok.every(function(t){ return nm.indexOf(t) !== -1; })) return true;
+  const qS = qq.replace(/\s+/g, '');
+  if (qS && nmS.indexOf(qS) !== -1) return true;
+  const qS2 = qS.replace(SEARCH_SUFFIX, '');
+  return qS2.length >= 2 && qS2 !== qS && nmS.indexOf(qS2) !== -1;
+}
 function emptyAskHtml(q, escf){
   return '<div class="cat-empty-ask"><div class="cea-t">"' + escf(q) + '" 제품은 아직 비교 목록에 없어요.</div>'
     + '<div class="cea-s">AI 상담에 이 제품을 바로 물어볼 수 있어요.<br>검색하신 제품명은 비교 목록 추가 후보로 검토해요.</div>'
@@ -1680,7 +1698,7 @@ function renderCategory(data){
   // [v8.7] 검색은 선택된 대상 탭을 존중한다(여성 탭 + 검색 = 여성 대상 중 검색). 대상 전체가
   //        필요하면 "모든 대상" 탭(__all)이 담당 — 상담의 전체보기 딥링크가 이 탭으로 진입한다.
   const searchBase = filteredSub;
-  const filtered = qTok.length ? searchBase.filter(p => { const nm = String(p.name || "").toLowerCase(); return qTok.every(t => nm.indexOf(t) !== -1); }) : filteredSub;
+  const filtered = qTok.length ? searchBase.filter(p => nameMatches(p.name, qRaw)) : filteredSub;   // [v10.11] 검색 매칭 보완
   renderSubBar(cat);
   const unscored = !!UNSCORED_CATS[cat];
   // 무채점 카테고리는 프로필(성분/가성비) 선택이 의미 없어 바를 숨긴다

@@ -1,4 +1,5 @@
-// functions/_middleware.js  v1.1  (2026-10-18)
+// functions/_middleware.js  v1.2  (2026-11-02)
+// v1.2: 주소 통일 — www.ingredi.kr·ingredi-pilot.pages.dev로 들어온 GET/HEAD 요청을 https://ingredi.kr 같은 경로로 301(Oliver 승인 11/02 서비스 진단 개선안 4). 미리보기(<해시>.ingredi-pilot.pages.dev)는 그대로
 // v1.1: 진단 헤더 x-site-stats (applied / skip:이유) — /app 기준일 미반영 원인 확인용(Oliver 승인 10/18)
 // 사이트 설명 숫자 자동 반영(_lib/site-stats.js). 아래 6개 주소의 응답만 손대고, 나머지 요청(API·상담 스트리밍 등)은 그대로 통과.
 // KV(site_stats_v1)가 비었거나 오류가 나면 정적 파일 그대로 보낸다.
@@ -12,6 +13,12 @@ export async function onRequest(ctx) {
   const { request, env } = ctx;
   let path = '';
   try { path = new URL(request.url).pathname; } catch (_) {}
+  try {
+    const u = new URL(request.url);
+    if ((u.hostname === 'www.ingredi.kr' || u.hostname === 'ingredi-pilot.pages.dev') && (request.method === 'GET' || request.method === 'HEAD')) {
+      return Response.redirect('https://ingredi.kr' + u.pathname + u.search, 301);
+    }
+  } catch (_) {}
   if (request.method !== 'GET' || !PATHS.has(path)) return ctx.next();
 
   // 브라우저가 옛 숫자를 304로 재사용하지 않게 조건부 요청 헤더를 뺀다
