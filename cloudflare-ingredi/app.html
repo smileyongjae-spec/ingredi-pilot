@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- app.html  v10.11  (2026-11-02) — [v10.11] 검색 매칭 보완(띄어쓰기 무시·접미어 제거·철자 별칭), 공유가 안 되는 브라우저에서 링크 복사로 대체 / [v10.10] 랜딩 테스트 종료: 유산균 광고 방문자는 항상 유산균 목록으로(무작위 배정·lp 이벤트 삭제) / [v10.9] 검색 결과 0건 화면에 "AI 상담에 물어보기" 버튼·안내(유입 src 함께 전달), 검색창 AI 연결도 src 전달 / [v10.8] 카드 제품 수·푸터 기준일에 data-stat(매일 자동 반영) / [v10.7] [v10.7] 푸터 링크 .html 제거 / [v10.6] [v10.6] AI 입력창 예시 칩을 실제 질문 유형 5개로 교체(효능 표현 칩 제거), 입력창 안내 문구 변경 / [v10.5] [v10.5] 'AI 카운슬링' 표기를 'AI 상담'으로 통일 / [v10.4] GEO: canonical /app, 제목에 잉그레디, 첫 화면 카테고리 카드에 제품 수, 푸터에 종류별 바로가기 링크(검색엔진이 따라갈 수 있는 a 링크) / [v10.3] [v10.3] 하단 비교 바 "N개 담음"→"N개 비교 중", "담거나/담으면"→"고르거나/고르면" / [v10.2] 비교 버튼 문구 "+ 제품 비교" / 담긴 후 "✓ 비교 중" / [v10.1] 광고 랜딩 딥링크: &profile=budget|value(가성비 우선)·&sub=<대상 탭> / [v10.0] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v9.9] CLS 개선: 카테고리 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.32→0) / [v9.8] 제품 이름·사진 탭 → AI 평가 열기, 상단 ingredi 로고 탭 → 첫 화면·맨 위로 / [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
+<!-- app.html  v10.12  (2026-11-02) — [v10.12] 관심 제품 저장(♡ 저장·♥ 저장함, 기기 저장)·검색 0건에 다른 종류/비슷한 이름/추가 요청·카드 칩 설명(ux-v1.js) / [v10.11] 검색 매칭 보완(띄어쓰기 무시·접미어 제거·철자 별칭), 공유가 안 되는 브라우저에서 링크 복사로 대체 / [v10.10] 랜딩 테스트 종료: 유산균 광고 방문자는 항상 유산균 목록으로(무작위 배정·lp 이벤트 삭제) / [v10.9] 검색 결과 0건 화면에 "AI 상담에 물어보기" 버튼·안내(유입 src 함께 전달), 검색창 AI 연결도 src 전달 / [v10.8] 카드 제품 수·푸터 기준일에 data-stat(매일 자동 반영) / [v10.7] [v10.7] 푸터 링크 .html 제거 / [v10.6] [v10.6] AI 입력창 예시 칩을 실제 질문 유형 5개로 교체(효능 표현 칩 제거), 입력창 안내 문구 변경 / [v10.5] [v10.5] 'AI 카운슬링' 표기를 'AI 상담'으로 통일 / [v10.4] GEO: canonical /app, 제목에 잉그레디, 첫 화면 카테고리 카드에 제품 수, 푸터에 종류별 바로가기 링크(검색엔진이 따라갈 수 있는 a 링크) / [v10.3] [v10.3] 하단 비교 바 "N개 담음"→"N개 비교 중", "담거나/담으면"→"고르거나/고르면" / [v10.2] 비교 버튼 문구 "+ 제품 비교" / 담긴 후 "✓ 비교 중" / [v10.1] 광고 랜딩 딥링크: &profile=budget|value(가성비 우선)·&sub=<대상 탭> / [v10.0] 검색창에 고민을 입력하면 "AI에게 물어보기" 한 줄로 카운슬링 연결 · 목록 위 "1~3위 바로 비교" · 1개만 담아도 "1위와 비교" · 버튼명 "비교 담기" · 측정 이벤트(consult_open·cat_search·compare_add·compare_go) · 제품명 검색어 기록 / [v9.9] CLS 개선: 카테고리 데이터를 불러오는 동안 검색창·하단 안내·푸터를 숨겨 화면 밀림 제거(측정 0.32→0) / [v9.8] 제품 이름·사진 탭 → AI 평가 열기, 상단 ingredi 로고 탭 → 첫 화면·맨 위로 / [v9.7] 리뷰 수 근사 표기(2356→2,000+ 건, 534→500+ 건, 53→50+ 건) / [v9.6] 유산균 산식 설명을 PROBIOTICS_V2(0.6/0.2/0.1/0.1)로 정정, 하단에 등급 기준·데이터 리포트 링크 / [v9.5] 광고 유입 측정: ?src= 값을 Clarity 세션 태그 src로 기록 / [v9.4] "모든 대상" 탭을 탭 줄에서 숨김(상담 전체보기 딥링크로 들어온 경우에만 표시) / [v9.3] 유산균 카드에 근거 줄(개별인정·균주 N종·strain 표기·인체적용시험 표기) 추가(recommend2 v8.5 probiotic) / [v9.2] AI 평가 패널: 로딩 진행 표시(버튼 스피너·진행 막대·3단계) + 결과 패널 차별화(연초록·AI 배지·비교 범위) [v9.1] 비교 담기 버튼을 구매 줄로: 구매하기(크게) · AI 평가 · 제품 비교(3개까지) 한 줄 3버튼 / [v9.0] 비교 담기 도입 / [v8.9] 평가보기 경량 모드 -->
 <html lang="ko">
 <head>
   <script>
@@ -44,6 +44,7 @@
     try { var _src = new URLSearchParams(location.search).get("src"); if (_src) window.clarity("set", "src", _src.slice(0, 40)); } catch (e) {}
   </script>
 <script src="/t.js?v=2"></script>
+<script src="/ux-v1.js?v=1"></script>
   <!-- Cloudflare Web Analytics: beacon 토큰 받으면 여기에 붙여넣기 -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
@@ -959,6 +960,22 @@ window.closeTermSheet = closeTermSheet;
 /* [empty-ask 2026-10-18] 검색 결과 0건 → AI 상담 연결 (Oliver 승인 10/18) */
 function _ingSrc(){ try { return (new URLSearchParams(location.search).get('src') || sessionStorage.getItem('ing_src') || '').slice(0,40); } catch(_) { return ''; } }
 function consultHref(q){ var s=_ingSrc(); return '/consult?q=' + encodeURIComponent(q) + (s ? '&src=' + encodeURIComponent(s) : ''); }
+// [v10.12] 카드 칩 설명(ux-v1.js가 data-xp를 누르면 펼침). 리뷰 칩 문장은 리뷰 인사이트 표의 *_text 값 그대로
+const EVID_XP = {
+  individual: '<b>개별인정</b> · 식약처가 이 원료의 기능성을 따로 심사해 인정한 원료(개별인정형)예요. 뒤에 붙은 말이 인정받은 기능이에요. 등급 점수에 반영돼요.',
+  notice: '<b>고시형</b> · 건강기능식품 공전에 기준이 정해진 원료예요. 따로 심사를 받지 않고 기준에 맞춰 쓰는 원료예요.',
+  coded: '<b>균주 코드 표기</b> · 균 이름 뒤에 고유 번호(균주 코드)를 적은 제품이에요. 어떤 균을 넣었는지 확인할 수 있어요. 등급 점수에 반영돼요.',
+  uncoded: '<b>균주 코드 미표기</b> · 균 이름만 있고 고유 번호(균주 코드)는 적지 않았어요.',
+  count: '<b>균주 종류 수</b> · 제품에 들어 있는 균주 종류 수예요. 등급 점수에는 넣지 않는 참고 정보예요.',
+  trial: '<b>인체적용시험 표기</b> · 상세 설명에 사람 대상 시험 결과를 적은 제품이에요. 등급 점수에는 넣지 않는 참고 정보예요.'
+};
+function chipXp(x, p){
+  const n = (p && (p.reviewLabeled || p.reviewCount)) || 0;
+  const sc = num(x.score);
+  return '<b>' + escapeHtml(x.label) + '</b> · ' + escapeHtml(x.text || x.label)
+    + (sc > 0 && n > 0 ? ` · 리뷰 ${fmt(n)}건 중 ${Math.round(sc * 10) / 10}%` : (sc > 0 ? ` · 리뷰 중 ${Math.round(sc * 10) / 10}%` : ''))
+    + '. 네이버 리뷰를 내용별로 나눠 센 값이에요.';
+}
 // [search-v2 2026-11-02] 검색 매칭 보완: 띄어쓰기 무시(cj바이오 → CJ 바이오코어), 흔한 접미어 제거(여에스더유산균 → 여에스더), 철자 별칭(레디웰 → 래디웰)
 const SEARCH_ALIAS = [['레디웰','래디웰'],['에스터','에스더']];
 const SEARCH_SUFFIX = /(유산균|프로바이오틱스|오메가3|오메가|영양제|보충제|제품)$/;
@@ -1393,10 +1410,10 @@ function renderCardV8(p, ctx){
   if (p.reviews && ((p.reviews.good && p.reviews.good.length) || (p.reviews.caution && p.reviews.caution.length))) {
     const gc = (p.reviews.good||[]).map(function(x){
       const pct = num(x.score) > 0 ? ` ${Math.round(num(x.score))}%` : "";
-      return `<span class="cv-vchip" style="background:${VOCCOL.good[0]};color:${VOCCOL.good[1]}"><b style="font-weight:700">${escapeHtml(x.label)}</b>${pct}</span>`;
+      return `<span class="cv-vchip" data-xp="${escapeHtml(chipXp(x, p))}" style="background:${VOCCOL.good[0]};color:${VOCCOL.good[1]}"><b style="font-weight:700">${escapeHtml(x.label)}</b>${pct}</span>`;
     }).join("");
     const cc = (p.reviews.caution||[]).map(function(x){
-      return `<span class="cv-vchip" style="background:${VOCCOL.warn[0]};color:${VOCCOL.warn[1]}"><b style="font-weight:700">${escapeHtml(x.label)}</b></span>`;
+      return `<span class="cv-vchip" data-xp="${escapeHtml(chipXp(x, p))}" style="background:${VOCCOL.warn[0]};color:${VOCCOL.warn[1]}"><b style="font-weight:700">${escapeHtml(x.label)}</b></span>`;
     }).join("");
     vocChips = gc + cc;
     vocTag = "";
@@ -1429,10 +1446,10 @@ function renderCardV8(p, ctx){
   let evidRow = "";
   if (cat==="마이크로바이옴" && p.probiotic) {
     const pb = p.probiotic; const ev = [];
-    ev.push(pb.individual ? `<span class="ev on">개별인정 · ${escapeHtml(pb.individualLabel || "개별인정")}</span>` : `<span class="ev off">고시형</span>`);
-    ev.push(pb.strainCoded ? `<span class="ev on">균주 코드 표기</span>` : `<span class="ev off">균주 코드 미표기</span>`);
-    if (pb.strainCount) ev.push(`<span class="ev">균주 ${pb.strainCount}종</span>`);
-    if (pb.humanTrial) ev.push(`<span class="ev">인체적용시험 표기</span>`);
+    ev.push(pb.individual ? `<span class="ev on" data-xp="${escapeHtml(EVID_XP.individual)}">개별인정 · ${escapeHtml(pb.individualLabel || "개별인정")}</span>` : `<span class="ev off" data-xp="${escapeHtml(EVID_XP.notice)}">고시형</span>`);
+    ev.push(pb.strainCoded ? `<span class="ev on" data-xp="${escapeHtml(EVID_XP.coded)}">균주 코드 표기</span>` : `<span class="ev off" data-xp="${escapeHtml(EVID_XP.uncoded)}">균주 코드 미표기</span>`);
+    if (pb.strainCount) ev.push(`<span class="ev" data-xp="${escapeHtml(EVID_XP.count)}">균주 ${pb.strainCount}종</span>`);
+    if (pb.humanTrial) ev.push(`<span class="ev" data-xp="${escapeHtml(EVID_XP.trial)}">인체적용시험 표기</span>`);
     evidRow = `<div class="cv-form"><span class="lbl">근거</span><div class="cv-evid">${ev.join("")}</div></div>`;
   }
   const cartSvg = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>`;
@@ -1464,6 +1481,7 @@ function renderCardV8(p, ctx){
     <div class="cv-top">
       <span class="cv-rank">${rankLabel}</span>
       <span class="cv-gwrap">
+        ${window.ingSave ? window.ingSave.btn({ id: _pid, name: p.name || '', cat: cat, page: 'app', price: price, daily: cost, grade: grade || '', img: p.image || '' }) : ''}
         ${unscored ? "" : (grade
           ? `<span class="cv-grade" style="background:${gb};color:${gt};border-color:${gbd}">${grade}</span>`
           : `<span class="cv-grade cv-grade-na">–</span>`)}</span>
@@ -1722,7 +1740,7 @@ function renderCategory(data){
   document.getElementById('catDisclaimer').textContent = data.disclaimer || "";
   document.getElementById('catCompareCta').innerHTML = "";
   const el = document.getElementById('catCards');
-  if (!products.length){ el.innerHTML=""; const _st=document.getElementById('catStatus'); if (qTok.length) { _st.innerHTML = emptyAskHtml(qRaw, escapeHtml); } else { _st.textContent = "표시할 제품이 없습니다."; } return; }
+  if (!products.length){ el.innerHTML=""; const _st=document.getElementById('catStatus'); if (qTok.length) { _st.innerHTML = emptyAskHtml(qRaw, escapeHtml); if (window.ingCross) window.ingCross.render(_st, qRaw.trim(), { page: 'app', cat: cat, list: searchBase, matcher: nameMatches }); } else { _st.textContent = "표시할 제품이 없습니다."; } return; }
   document.getElementById('catStatus').textContent="";
   const howto = howToRead(cat);
   const top = products.slice(0,3).map((p,i)=>renderCardV8(p, {cat, metrics, stats, basis, idx:i, rank: rankOf.get(p.id)})).join("");
@@ -1986,7 +2004,7 @@ document.addEventListener('click', function(e){
 })();
 </script>
   <script src="/install-v1.js" defer></script>
-<footer class="site-foot">ingredi는 광고를 받지 않고 공개된 제품 데이터로 비교합니다. 쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있으며, 수수료는 순위에 영향을 주지 않습니다. · <a href="/guide">등급 기준</a> · <a href="/insights">데이터 리포트</a> · <a href="/about">소개 · 문의</a><br>종류별 비교: <a href="/app?category=오메가3">오메가3</a> · <a href="/app?category=마이크로바이옴">유산균</a> · <a href="/app?category=눈">눈 건강</a> · <a href="/app?category=비타민C">비타민C</a> · <a href="/app?category=밀크씨슬">밀크씨슬</a> · <a href="/sports?category=단백질">단백질</a> · <a href="/sports?category=크레아틴">크레아틴</a> · <a href="/sports?category=아미노산">아미노산</a> · <a href="/sports?category=부스터">부스터</a> · <a href="/sports?category=카르니틴">카르니틴</a> (제품 수 <span data-stat="asof.iso">2026-10-17</span> 기준)</footer>
+<footer class="site-foot">ingredi는 광고를 받지 않고 공개된 제품 데이터로 비교합니다. 쿠팡 파트너스 활동의 일환으로 수수료를 받을 수 있으며, 수수료는 순위에 영향을 주지 않습니다. · <a href="/guide">등급 기준</a> · <a href="/insights">데이터 리포트</a> · <a href="/about">소개 · 문의</a><br>종류별 비교: <a href="/app?category=오메가3">오메가3</a> · <a href="/app?category=마이크로바이옴">유산균</a> · <a href="/app?category=눈">눈 건강</a> · <a href="/app?category=비타민C">비타민C</a> · <a href="/app?category=밀크씨슬">밀크씨슬</a> · <a href="/sports?category=단백질">단백질</a> · <a href="/sports?category=크레아틴">크레아틴</a> · <a href="/sports?category=아미노산">아미노산</a> · <a href="/sports?category=부스터">부스터</a> · <a href="/sports?category=카르니틴">카르니틴</a> (제품 수 <span data-stat="asof.iso">2026-10-17</span> 기준)<br>브랜드별 비교: <a href="/brand/lactofit">락토핏</a> · <a href="/brand/chongkundang">종근당</a> · <a href="/brand/esther">여에스더</a> · <a href="/brand/desimone">드시모네</a> · <a href="/brand/cj">CJ</a></footer>
 <!-- [v9.0] 비교 담기 — 하단 고정 바 -->
 <div id="pickBar" hidden><div class="pb-inner"><div class="pb-thumbs" id="pbThumbs"></div><div class="pb-txt" id="pbTxt"></div><a class="pb-go" id="pbGo" href="#">비교하기</a></div></div>
 
