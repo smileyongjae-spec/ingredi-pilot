@@ -1,4 +1,4 @@
-// functions/ops-collect.js  v1.6 (2026-10-19) — [v1.6] 실험_JSON에 '기능1개이상'(AI 평가·비교·상담·검색 중 하나라도 쓴 세션 수) / v1.5 (2026-10-17) — [v1.5] 사이트 설명 숫자 자동 반영(site-stats: KV 갱신, 변경 내역을 일별_사이트지표.사이트숫자_변경에) / v1.4 (2026-10-16) — [v1.4] 랜딩 테스트 src×배정 집계(실험_JSON) / v1.3 — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
+// functions/ops-collect.js  v1.7 (2026-11-03) — [v1.7] AI평가 = aieval_name_tap(11/03까지 이름·사진 탭) + aieval_open(AI 평가 버튼) / v1.6 (2026-10-19) — [v1.6] 실험_JSON에 '기능1개이상'(AI 평가·비교·상담·검색 중 하나라도 쓴 세션 수) / v1.5 (2026-10-17) — [v1.5] 사이트 설명 숫자 자동 반영(site-stats: KV 갱신, 변경 내역을 일별_사이트지표.사이트숫자_변경에) / v1.4 (2026-10-16) — [v1.4] 랜딩 테스트 src×배정 집계(실험_JSON) / v1.3 — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
 //   v1.2 (2026-10-15) — 소재 매칭 필드 '광고명(매체 표기)', Meta 토큰 만료일 점검
 //   v1.1 (2026-10-14) — 쿠팡 전날 재수집·숫자 열, Clarity 하루 1회(재시도 시 건너뜀)
 // 매일 04:30(KST) GitHub Actions가 호출 → 어제 하루 데이터를 API로 모아 Airtable에 기록.
@@ -17,7 +17,7 @@ import {
 import { refreshSiteStats } from './_lib/site-stats.js';
 
 // [v1.6] 랜딩 테스트 '다른 기능 사용' 판정에 쓰는 이벤트(실험_JSON 비교 = compare_add·compare_go)
-const FEATURE_EVENTS = ['aieval_name_tap', 'compare_add', 'compare_go', 'consult_open', 'cat_search'];
+const FEATURE_EVENTS = ['aieval_name_tap', 'aieval_open', 'compare_add', 'compare_go', 'consult_open', 'cat_search'];
 
 export async function onRequestGet(ctx) {
   try { return await run(ctx); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500); }
@@ -131,7 +131,7 @@ async function run({ request, env }) {
           세션당활성초: s ? Math.round(act / s) : null };
       };
       // 이벤트별 '세션 수'(같은 세션의 반복은 1회) — Clarity 기준과 맞춤
-      const sessCount = (list, name) => new Set(list.filter((r) => r.fields['이벤트'] === name).map((r) => r.fields.sid)).size;
+      const sessCount = (list, name) => { const ns = [].concat(name); return new Set(list.filter((r) => ns.includes(r.fields['이벤트'])).map((r) => r.fields.sid)).size; };   // [v1.7] 이벤트 이름 배열 허용
 
       const all = agg(evs);
       Object.assign(site, {
@@ -152,7 +152,7 @@ async function run({ request, env }) {
           쿠팡클릭: sessCount(list, 'purchase_click'),
           비교: sessCount(list, 'compare_add') || sessCount(list, 'compare_go'),
           카운슬링: sessCount(list, 'consult_open'),
-          AI평가: sessCount(list, 'aieval_name_tap'),
+          AI평가: sessCount(list, ['aieval_name_tap', 'aieval_open']),
         });
       }
       // [v1.4] 랜딩 테스트: 세션별 배정(lp_main·lp_spec, 이전 lp_a·lp_b)을 찾아 src × 배정으로 집계 → 실험_JSON
@@ -174,7 +174,7 @@ async function run({ request, env }) {
           const a = agg(list);
           exp[k] = {
             세션: a.세션, UV: a.UV, 신규UV: a.신규UV, 페이지뷰: a.페이지뷰, 활성초: a.활성초,
-            AI평가: sessCount(list, 'aieval_name_tap'),
+            AI평가: sessCount(list, ['aieval_name_tap', 'aieval_open']),
             비교: new Set(list.filter((r) => ['compare_add', 'compare_go'].includes(r.fields['이벤트'])).map((r) => r.fields.sid)).size,
             카운슬링: sessCount(list, 'consult_open'),
             검색: sessCount(list, 'cat_search'),
