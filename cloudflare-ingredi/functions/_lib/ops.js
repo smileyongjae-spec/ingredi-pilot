@@ -1,4 +1,4 @@
-// functions/_lib/ops.js  v1.0 (2026-10-13)
+// functions/_lib/ops.js  v1.1 (2026-11-09) — [v1.1] atList에 max(최대 행 수) 선택 인자 / v1.0 (2026-10-13)
 // 그로스 운영 자동화 공용 헬퍼 — ops-collect(수집)·ops-act(실행)·ev(자체 이벤트)가 함께 쓴다.
 // 노트북 Chrome 없이 API로 수집·실행하기 위한 것. 키는 모두 Cloudflare 환경변수에만 둔다.
 //   META_TOKEN      Meta 시스템 사용자 토큰 (ads_read, ads_management)
@@ -67,19 +67,20 @@ async function at(env, method, table, path = '', body) {
 }
 
 // 전체 목록 (filterByFormula 선택)
-export async function atList(env, table, formula, fields) {
+export async function atList(env, table, formula, fields, max) {
   const out = [];
   let offset;
   do {
     const q = new URLSearchParams();
     q.set('pageSize', '100');
+    if (max) q.set('maxRecords', String(max));
     if (formula) q.set('filterByFormula', formula);
     if (fields) fields.forEach((f) => q.append('fields[]', f));
     if (offset) q.set('offset', offset);
     const data = await at(env, 'GET', table, '?' + q.toString());
     out.push(...(data.records || []));
     offset = data.offset;
-  } while (offset);
+  } while (offset && !(max && out.length >= max));
   return out;
 }
 

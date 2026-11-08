@@ -1,4 +1,4 @@
-// functions/ops-collect.js  v1.7 (2026-11-03) — [v1.7] AI평가 = aieval_name_tap(11/03까지 이름·사진 탭) + aieval_open(AI 평가 버튼) / v1.6 (2026-10-19) — [v1.6] 실험_JSON에 '기능1개이상'(AI 평가·비교·상담·검색 중 하나라도 쓴 세션 수) / v1.5 (2026-10-17) — [v1.5] 사이트 설명 숫자 자동 반영(site-stats: KV 갱신, 변경 내역을 일별_사이트지표.사이트숫자_변경에) / v1.4 (2026-10-16) — [v1.4] 랜딩 테스트 src×배정 집계(실험_JSON) / v1.3 — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
+// functions/ops-collect.js  v1.8 (2026-11-09) — [v1.8] 세션로그 정리를 남은 호출 한도(Cloudflare 50회) 안에서만, 정리 실패는 ok에 영향 없음 / v1.7 (2026-11-03) — [v1.7] AI평가 = aieval_name_tap(11/03까지 이름·사진 탭) + aieval_open(AI 평가 버튼) / v1.6 (2026-10-19) — [v1.6] 실험_JSON에 '기능1개이상'(AI 평가·비교·상담·검색 중 하나라도 쓴 세션 수) / v1.5 (2026-10-17) — [v1.5] 사이트 설명 숫자 자동 반영(site-stats: KV 갱신, 변경 내역을 일별_사이트지표.사이트숫자_변경에) / v1.4 (2026-10-16) — [v1.4] 랜딩 테스트 src×배정 집계(실험_JSON) / v1.3 — [v1.3] Meta 도달(하루·누적, 광고별·계정 전체) → 빈도, 신규/재방문 UV(t.js v2 new_vid)
 //   v1.2 (2026-10-15) — 소재 매칭 필드 '광고명(매체 표기)', Meta 토큰 만료일 점검
 //   v1.1 (2026-10-14) — 쿠팡 전날 재수집·숫자 열, Clarity 하루 1회(재시도 시 건너뜀)
 // 매일 04:30(KST) GitHub Actions가 호출 → 어제 하루 데이터를 API로 모아 Airtable에 기록.
@@ -23,7 +23,16 @@ export async function onRequestGet(ctx) {
   try { return await run(ctx); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }, 500); }
 }
 
-async function run({ request, env }) {
+// [v1.8] Cloudflare 무료 한도: 한 번 실행에 외부 호출 50회. 이 요청의 fetch 횟수를 세어 세션로그 정리에 남은 만큼만 쓴다
+const SUBREQ_LIMIT = 50, SUBREQ_MARGIN = 2;
+async function run(ctx) {
+  const f0 = globalThis.fetch;
+  const counter = { n: 0 };
+  globalThis.fetch = (...a) => { counter.n++; return f0(...a); };
+  try { return await runInner(ctx, counter); } finally { globalThis.fetch = f0; }
+}
+
+async function runInner({ request, env }, counter) {
   const u = new URL(request.url);
   if (!checkSecret(env, u.searchParams.get('key'))) return json({ ok: false, error: 'forbidden' }, 403);
 
@@ -286,11 +295,18 @@ async function run({ request, env }) {
       const siteByDate = new Map([[date, site]]);
       for (const r of [...extraSite, ...reachSite]) siteByDate.set(r.날짜, { ...(siteByDate.get(r.날짜) || {}), ...r });
       await atUpsert(env, T.site, ['날짜'], [...siteByDate.values()]);
-      // 3일 지난 세션로그 삭제
-      const cutoff = kstDate(-3);
-      const old = await atList(env, T.evlog, `DATETIME_FORMAT(SET_TIMEZONE(CREATED_TIME(),'Asia/Seoul'),'YYYY-MM-DD')<'${cutoff}'`, ['이벤트']);
-      out.deleted = old.length ? await atDelete(env, T.evlog, old.map((r) => r.id)) : 0;
     } catch (e) { out.ok = false; out.writeError = e.message; }
+    // [v1.8] 3일 지난 세션로그 삭제 — 남은 호출 수만큼만(목록 1회 + 10행씩 삭제). 남은 행은 다음 실행에서 이어 지운다.
+    // 정리는 집계에 영향이 없으므로 실패해도 ok를 false로 바꾸지 않는다(cleanupError로만 남김)
+    try {
+      const batches = SUBREQ_LIMIT - SUBREQ_MARGIN - counter.n - 1;
+      if (batches > 0) {
+        const cutoff = kstDate(-3);
+        const old = await atList(env, T.evlog, `DATETIME_FORMAT(SET_TIMEZONE(CREATED_TIME(),'Asia/Seoul'),'YYYY-MM-DD')<'${cutoff}'`, ['이벤트'], Math.min(100, batches * 10));
+        out.deleted = old.length ? await atDelete(env, T.evlog, old.map((r) => r.id)) : 0;
+      } else out.deleted = 0;
+    } catch (e) { out.cleanupError = e.message; }
   }
+  out.subrequests = counter.n;
   return json(out);
 }
